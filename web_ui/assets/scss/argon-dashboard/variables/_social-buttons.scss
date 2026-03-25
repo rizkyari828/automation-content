@@ -1,0 +1,30 @@
+@use "sass:color";
+
+// Social Buttons
+
+$facebook:              #3b5998 !default;
+$facebook-states:       color.adjust($facebook, $lightness: -5%) !default;
+$twitter:               #55acee !default;
+$twitter-states:        color.adjust($twitter, $lightness: -5%) !default;
+$instagram:             #125688 !default;
+$instagram-states:      color.adjust($instagram, $lightness: -6%) !default;
+$linkedin:              #0077B5 !default;
+$linkedin-states:       color.adjust($linkedin, $lightness: -5%) !default;
+$pinterest:             #cc2127 !default;
+$pinterest-states:      color.adjust($pinterest, $lightness: -6%) !default;
+$youtube:               #e52d27 !default;
+$youtube-states:        color.adjust($youtube, $lightness: -6%) !default;
+$dribbble:              #ea4c89 !default;
+$dribbble-states:       color.adjust($dribbble, $lightness: -6%) !default;
+$github:                #24292E !default;
+$github-states:         color.adjust($github, $lightness: -6%) !default;
+$reddit:                #ff4500 !default;
+$reddit-states:         color.adjust($reddit, $lightness: -6%) !default;
+$tumblr:                #35465c !default;
+$tumblr-states:         color.adjust($tumblr, $lightness: -6%) !default;
+$behance:               #1769ff !default;
+$behance-states:        color.adjust($behance, $lightness: -6%) !default;
+$vimeo:                 #1AB7EA !default;
+$vimeo-states:          color.adjust($vimeo, $lightness: -6%) !default;
+$slack:                 #3aaf85 !default;
+$slack-states:          color.adjust($slack, $lightness: -6%) !default;

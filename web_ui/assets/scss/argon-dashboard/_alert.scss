@@ -1,0 +1,24 @@
+@use "sass:color";
+@use "sass:list";
+
+@each $state, $value in $theme-gradient-colors {
+  .alert-#{$state} {
+    @include gradient-directional(list.nth($value, 1) 0%, color.adjust(list.nth($value, -1), $lightness: -8%) 100%, $deg: 310deg);
+  }
+}
+
+.btn-close{
+  &:focus{
+    box-shadow: none;
+  }
+}
+
+.alert-dismissible{
+  .btn-close{
+    background-image: none;
+  }
+}
+
+.alert {
+  z-index: 999;
+}
