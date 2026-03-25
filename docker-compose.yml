@@ -1,0 +1,14 @@
+services:
+  web-ui:
+    build:
+      context: ./web_ui
+      dockerfile: Dockerfile
+    container_name: automation-content-web-ui
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXT_PUBLIC_APP_NAME: Automation Content UI
+    ports:
+      - "${WEB_UI_PORT:-3000}:3000"
+    restart: unless-stopped
