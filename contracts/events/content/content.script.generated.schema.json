@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "content.script.generated",
+  "type": "object",
+  "required": [
+    "eventName",
+    "eventVersion",
+    "occurredAt",
+    "scriptId",
+    "workspaceId",
+    "status"
+  ],
+  "properties": {
+    "eventName": {
+      "const": "content.script.generated"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scriptId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "workspaceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "createdByUserId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["ready"]
+    }
+  },
+  "additionalProperties": false
+}

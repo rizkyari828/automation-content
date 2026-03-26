@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "publish.post.scheduled",
+  "type": "object",
+  "required": [
+    "eventName",
+    "eventVersion",
+    "occurredAt",
+    "jobId",
+    "workspaceId",
+    "platformCode",
+    "scheduledFor"
+  ],
+  "properties": {
+    "eventName": {
+      "const": "publish.post.scheduled"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "jobId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "workspaceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "platformCode": {
+      "type": "string",
+      "enum": ["tiktok", "instagram", "facebook", "youtube"]
+    },
+    "scheduledFor": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}

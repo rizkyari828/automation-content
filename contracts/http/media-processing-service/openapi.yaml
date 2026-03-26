@@ -1,0 +1,154 @@
+openapi: 3.1.0
+info:
+  title: CreatorFlow Media Processing Service
+  version: 0.1.0
+  description: Internal API untuk media render, clipping, dan subtitle jobs.
+servers:
+  - url: https://media.creatorflow.local
+tags:
+  - name: Health
+  - name: Render
+  - name: Clip
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /internal/v1/render-jobs:
+    post:
+      tags: [Render]
+      summary: Enqueue a render job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRenderJobRequest"
+      responses:
+        "202":
+          description: Render job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRenderJobResponse"
+  /internal/v1/render-jobs/{jobId}:
+    get:
+      tags: [Render]
+      summary: Get render job status
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Render job state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RenderJob"
+  /internal/v1/clip-jobs:
+    post:
+      tags: [Clip]
+      summary: Enqueue a clip job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClipJobRequest"
+      responses:
+        "202":
+          description: Clip job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateClipJobResponse"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    CreateRenderJobRequest:
+      type: object
+      required: [workspaceId, sourceAssetId]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        sourceAssetId:
+          type: string
+          format: uuid
+        scriptId:
+          type: string
+          format: uuid
+        requestedByUserId:
+          type: string
+          format: uuid
+    CreateRenderJobResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued]
+    RenderJob:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, processing, completed, failed, canceled]
+        outputAssetId:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        lastErrorMessage:
+          type: string
+    CreateClipJobRequest:
+      type: object
+      required: [workspaceId, sourceAssetId]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        sourceAssetId:
+          type: string
+          format: uuid
+        requestedByUserId:
+          type: string
+          format: uuid
+    CreateClipJobResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued]

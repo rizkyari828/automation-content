@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "trend.signal.collected",
+  "type": "object",
+  "required": [
+    "eventName",
+    "eventVersion",
+    "occurredAt",
+    "sourceCode",
+    "workspaceId",
+    "snapshotId",
+    "signalType"
+  ],
+  "properties": {
+    "eventName": {
+      "const": "trend.signal.collected"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sourceCode": {
+      "type": "string"
+    },
+    "workspaceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "snapshotId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "signalType": {
+      "type": "string",
+      "enum": ["topic", "product", "angle", "keyword"]
+    }
+  },
+  "additionalProperties": false
+}

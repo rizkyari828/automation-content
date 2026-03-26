@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "publish.post.failed",
+  "type": "object",
+  "required": [
+    "eventName",
+    "eventVersion",
+    "occurredAt",
+    "jobId",
+    "workspaceId",
+    "platformCode",
+    "reason"
+  ],
+  "properties": {
+    "eventName": {
+      "const": "publish.post.failed"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "jobId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "workspaceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "platformCode": {
+      "type": "string",
+      "enum": ["tiktok", "instagram", "facebook", "youtube"]
+    },
+    "reason": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

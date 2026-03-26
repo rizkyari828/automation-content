@@ -1,14 +1,210 @@
 services:
-  web-ui:
+  postgres:
+    image: ${POSTGRES_IMAGE:-public.ecr.aws/docker/library/postgres:17-alpine}
+    container_name: creatorflow-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-creatorflow}
+      POSTGRES_USER: ${POSTGRES_USER:-creatorflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-creatorflow}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-creatorflow} -d ${POSTGRES_DB:-creatorflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: ${REDIS_IMAGE:-public.ecr.aws/docker/library/redis:7.4-alpine}
+    container_name: creatorflow-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6380}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  db-migrate:
+    profiles: ["full"]
     build:
-      context: ./web_ui
+      context: .
+      dockerfile: packages/database/Dockerfile
+    container_name: creatorflow-db-migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-creatorflow}:${POSTGRES_PASSWORD:-creatorflow}@postgres:5432/${POSTGRES_DB:-creatorflow}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api-gateway:
+    profiles: ["full"]
+    build:
+      context: .
+      dockerfile: apps/api-gateway/Dockerfile
+    container_name: creatorflow-api-gateway
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-creatorflow}:${POSTGRES_PASSWORD:-creatorflow}@postgres:5432/${POSTGRES_DB:-creatorflow}
+      REDIS_URL: redis://redis:6379
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET:-creatorflow-dev-secret}
+      ACCESS_TOKEN_ISSUER: ${ACCESS_TOKEN_ISSUER:-creatorflow-api-gateway}
+      ACCESS_TOKEN_AUDIENCE: ${ACCESS_TOKEN_AUDIENCE:-creatorflow-web}
+      ACCESS_TOKEN_EXPIRES_IN: ${ACCESS_TOKEN_EXPIRES_IN:-15m}
+      REFRESH_TOKEN_COOKIE_NAME: ${REFRESH_TOKEN_COOKIE_NAME:-creatorflow_refresh_token}
+      REFRESH_TOKEN_MAX_AGE_SECONDS: ${REFRESH_TOKEN_MAX_AGE_SECONDS:-2592000}
+      REFRESH_TOKEN_SECURE: ${REFRESH_TOKEN_SECURE:-false}
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
+      INTERNAL_SERVICE_ISSUER: ${INTERNAL_SERVICE_ISSUER:-creatorflow-api-gateway}
+      INTERNAL_SERVICE_AUDIENCE: ${INTERNAL_SERVICE_AUDIENCE:-creatorflow-internal}
+      INTERNAL_SERVICE_EXPIRES_IN: ${INTERNAL_SERVICE_EXPIRES_IN:-5m}
+      INTERNAL_TOKEN_BOOTSTRAP_SECRET: ${INTERNAL_TOKEN_BOOTSTRAP_SECRET:-creatorflow-internal-bootstrap-secret}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+    ports:
+      - "${API_GATEWAY_PORT:-4000}:4000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  web-ui:
+    profiles: ["full"]
+    build:
+      context: ./apps/web-ui
       dockerfile: Dockerfile
     container_name: automation-content-web-ui
     environment:
       NODE_ENV: production
+      HOSTNAME: 0.0.0.0
       PORT: 3000
       NEXT_TELEMETRY_DISABLED: 1
+      API_GATEWAY_SERVER_BASE_URL: http://api-gateway:4000
+      ACCESS_TOKEN_COOKIE_NAME: ${ACCESS_TOKEN_COOKIE_NAME:-creatorflow_access_token}
+      ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS: ${ACCESS_TOKEN_COOKIE_MAX_AGE_SECONDS:-900}
+      REFRESH_TOKEN_COOKIE_NAME: ${REFRESH_TOKEN_COOKIE_NAME:-creatorflow_refresh_token}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       NEXT_PUBLIC_APP_NAME: Automation Content UI
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:${API_GATEWAY_PORT:-4000}
+    depends_on:
+      api-gateway:
+        condition: service_healthy
     ports:
       - "${WEB_UI_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     restart: unless-stopped
+
+  media-processing-service:
+    profiles: ["full"]
+    build:
+      context: ./services/media-processing-service
+      dockerfile: Dockerfile
+    container_name: creatorflow-media-processing-service
+    environment:
+      PORT: 4100
+      SERVICE_NAME: media-processing-service
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
+      INTERNAL_SERVICE_ISSUER: ${INTERNAL_SERVICE_ISSUER:-creatorflow-api-gateway}
+      INTERNAL_SERVICE_AUDIENCE: ${MEDIA_PROCESSING_INTERNAL_AUDIENCE:-creatorflow-media-processing-service}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${MEDIA_PROCESSING_PORT:-4100}:4100"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4100/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  media-processing-worker:
+    profiles: ["full"]
+    build:
+      context: ./services/media-processing-service
+      dockerfile: Dockerfile
+    container_name: creatorflow-media-processing-worker
+    command: ["media-worker"]
+    environment:
+      SERVICE_NAME: media-processing-worker
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
+      INTERNAL_SERVICE_ISSUER: ${INTERNAL_SERVICE_ISSUER:-creatorflow-api-gateway}
+      INTERNAL_SERVICE_AUDIENCE: ${MEDIA_PROCESSING_INTERNAL_AUDIENCE:-creatorflow-media-processing-service}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  publishing-service:
+    profiles: ["full"]
+    build:
+      context: ./services/publishing-service
+      dockerfile: Dockerfile
+    container_name: creatorflow-publishing-service
+    environment:
+      PORT: 4200
+      SERVICE_NAME: publishing-service
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
+      INTERNAL_SERVICE_ISSUER: ${INTERNAL_SERVICE_ISSUER:-creatorflow-api-gateway}
+      INTERNAL_SERVICE_AUDIENCE: ${PUBLISHING_SERVICE_INTERNAL_AUDIENCE:-creatorflow-publishing-service}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${PUBLISHING_SERVICE_PORT:-4200}:4200"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4200/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  publishing-worker:
+    profiles: ["full"]
+    build:
+      context: ./services/publishing-service
+      dockerfile: Dockerfile
+    container_name: creatorflow-publishing-worker
+    command: ["publishing-worker"]
+    environment:
+      SERVICE_NAME: publishing-worker
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
+      INTERNAL_SERVICE_ISSUER: ${INTERNAL_SERVICE_ISSUER:-creatorflow-api-gateway}
+      INTERNAL_SERVICE_AUDIENCE: ${PUBLISHING_SERVICE_INTERNAL_AUDIENCE:-creatorflow-publishing-service}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:

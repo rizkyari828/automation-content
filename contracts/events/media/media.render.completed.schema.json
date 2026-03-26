@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "media.render.completed",
+  "type": "object",
+  "required": [
+    "eventName",
+    "eventVersion",
+    "occurredAt",
+    "jobId",
+    "workspaceId",
+    "assetId",
+    "status"
+  ],
+  "properties": {
+    "eventName": {
+      "const": "media.render.completed"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "jobId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "workspaceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "assetId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["completed"]
+    }
+  },
+  "additionalProperties": false
+}

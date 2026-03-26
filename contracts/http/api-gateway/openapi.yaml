@@ -1,0 +1,463 @@
+openapi: 3.1.0
+info:
+  title: CreatorFlow API Gateway
+  version: 0.1.0
+  description: Public API gateway untuk MVP CreatorFlow.
+servers:
+  - url: https://api.creatorflow.local
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Content
+  - name: Assets
+  - name: Trend
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /v1/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user and workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+  /v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+  /v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Rotate refresh token and issue a new access token
+      responses:
+        "200":
+          description: Token rotated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+  /v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke current refresh token session
+      responses:
+        "204":
+          description: Logout success
+  /v1/me:
+    get:
+      tags: [Users]
+      summary: Get current user and workspace context
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Current session context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeResponse"
+  /v1/content/scripts:generate:
+    post:
+      tags: [Content]
+      summary: Generate a short-form script draft
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateScriptRequest"
+      responses:
+        "202":
+          description: Script generation accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateScriptResponse"
+  /v1/assets/upload-url:
+    post:
+      tags: [Assets]
+      summary: Create an upload session for a media asset
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUploadRequest"
+      responses:
+        "201":
+          description: Upload session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateUploadResponse"
+  /v1/trend/collect:
+    post:
+      tags: [Trend]
+      summary: Manually collect a trend signal and create a lightweight digest
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ManualTrendCollectRequest"
+      responses:
+        "201":
+          description: Trend signal collected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ManualTrendCollectResponse"
+  /v1/trend/watchlist:
+    get:
+      tags: [Trend]
+      summary: Get current trend watchlist for the active workspace
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Workspace trend watchlist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendWatchlistResponse"
+  /v1/trend/digests/latest:
+    get:
+      tags: [Trend]
+      summary: Get the latest trend digest for the active workspace
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [daily, weekly]
+      responses:
+        "200":
+          description: Latest trend digest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrendDigestResponse"
+  /v1/trend/recommendations/{recommendationId}/content-request:
+    post:
+      tags: [Trend]
+      summary: Turn a trend recommendation into a content request
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: recommendationId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PromoteTrendToContentRequest"
+      responses:
+        "202":
+          description: Content request accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PromoteTrendToContentResponse"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    RegisterRequest:
+      type: object
+      required: [email, password, workspaceName]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        fullName:
+          type: string
+        workspaceName:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    AuthResponse:
+      type: object
+      required: [userId, workspaceId, accessToken, expiresIn]
+      properties:
+        userId:
+          type: string
+          format: uuid
+        workspaceId:
+          type: string
+          format: uuid
+        accessToken:
+          type: string
+        expiresIn:
+          type: string
+    MeResponse:
+      type: object
+      required: [user, workspace]
+      properties:
+        user:
+          type: object
+          required: [id, email, status]
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+            fullName:
+              type: string
+              nullable: true
+            status:
+              type: string
+        workspace:
+          type: object
+          required: [id, name, roleCode, slug]
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            roleCode:
+              type: string
+            slug:
+              type: string
+    GenerateScriptRequest:
+      type: object
+      required: [sourceType, title]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        sourceType:
+          type: string
+          enum: [manual, product, long_video, ai_generate]
+        title:
+          type: string
+        productUrl:
+          type: string
+          format: uri
+        languageCode:
+          type: string
+          default: id
+        promptHint:
+          type: string
+    GenerateScriptResponse:
+      type: object
+      required: [scriptId, status]
+      properties:
+        scriptId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, ready]
+    CreateUploadRequest:
+      type: object
+      required: [assetType, fileName]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        assetType:
+          type: string
+          enum: [video, image, audio, subtitle, thumbnail, document]
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        fileSizeBytes:
+          type: integer
+          minimum: 1
+    CreateUploadResponse:
+      type: object
+      required: [assetId, uploadId, uploadToken, uploadUrl, expiresAt]
+      properties:
+        assetId:
+          type: string
+          format: uuid
+        uploadId:
+          type: string
+          format: uuid
+        uploadToken:
+          type: string
+        uploadUrl:
+          type: string
+          format: uri
+        expiresAt:
+          type: string
+          format: date-time
+    ManualTrendCollectRequest:
+      type: object
+      properties:
+        sourceCode:
+          type: string
+        sourceName:
+          type: string
+        signalType:
+          type: string
+          enum: [topic, product, angle, keyword]
+        title:
+          type: string
+        recommendationType:
+          type: string
+          enum: [topic, product, angle, cta]
+        recommendationText:
+          type: string
+        score:
+          type: number
+        period:
+          type: string
+          enum: [daily, weekly]
+        summary:
+          type: string
+    ManualTrendCollectResponse:
+      type: object
+      required: [collectionRunId, snapshotId, recommendationId, digestId, status]
+      properties:
+        collectionRunId:
+          type: string
+          format: uuid
+        snapshotId:
+          type: string
+          format: uuid
+        recommendationId:
+          type: string
+          format: uuid
+        digestId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [completed]
+    TrendWatchlistItem:
+      type: object
+      required: [id, signalType, title, score, recommendationText, period]
+      properties:
+        id:
+          type: string
+          format: uuid
+        signalType:
+          type: string
+          enum: [topic, product, angle, keyword]
+        title:
+          type: string
+        score:
+          type: number
+        recommendationText:
+          type: string
+        period:
+          type: string
+          enum: [daily, weekly]
+    TrendWatchlistResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendWatchlistItem"
+    TrendDigestResponse:
+      type: object
+      required: [digestId, period, generatedAt, summary, items]
+      properties:
+        digestId:
+          type: string
+          format: uuid
+        period:
+          type: string
+          enum: [daily, weekly]
+        generatedAt:
+          type: string
+          format: date-time
+        summary:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendWatchlistItem"
+    PromoteTrendToContentRequest:
+      type: object
+      properties:
+        campaignId:
+          type: string
+          format: uuid
+        titleOverride:
+          type: string
+        promptHint:
+          type: string
+    PromoteTrendToContentResponse:
+      type: object
+      required: [contentRequestId, status]
+      properties:
+        contentRequestId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued]

@@ -1,0 +1,27 @@
+{
+  "name": "@creatorflow/api-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "CreatorFlow API gateway and MVP domain modules",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js"
+  },
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "dependencies": {
+    "@creatorflow/auth": "^0.1.0",
+    "@fastify/cookie": "^11.0.2",
+    "fastify": "^5.6.1",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@types/pg": "^8.15.5",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}

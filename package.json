@@ -1,0 +1,39 @@
+{
+  "name": "creatorflow-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "apps/*",
+    "services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace automation-content-ui",
+    "dev:gateway": "npm run dev --workspace @creatorflow/api-gateway",
+    "build:web": "npm run build --workspace automation-content-ui",
+    "build:gateway": "npm run build --workspace @creatorflow/api-gateway",
+    "infra:up": "docker compose up -d postgres redis",
+    "infra:down": "docker compose stop postgres redis",
+    "infra:ps": "docker compose ps postgres redis",
+    "infra:logs": "docker compose logs -f postgres redis",
+    "infra:restart": "docker compose restart postgres redis",
+    "stack:up": "COMPOSE_PROFILES=full docker compose up -d --build",
+    "stack:down": "COMPOSE_PROFILES=full docker compose stop",
+    "stack:ps": "COMPOSE_PROFILES=full docker compose ps",
+    "stack:logs": "COMPOSE_PROFILES=full docker compose logs -f",
+    "stack:restart": "COMPOSE_PROFILES=full docker compose restart",
+    "stack:rebuild": "COMPOSE_PROFILES=full docker compose up -d --build --force-recreate",
+    "db:migrate": "npm run migrate:up --workspace @creatorflow/database",
+    "db:status": "npm run migrate:status --workspace @creatorflow/database",
+    "audit:deps": "npm audit --workspaces --include-workspace-root",
+    "outdated:deps": "npm outdated --workspaces"
+  },
+  "engines": {
+    "node": ">=22 <23",
+    "npm": ">=10 <11"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0"
+  }
+}

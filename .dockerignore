@@ -1,0 +1,10 @@
+.git
+.github
+.vscode
+node_modules
+**/node_modules
+apps/web-ui/.next
+apps/api-gateway/dist
+coverage
+npm-debug.log
+.DS_Store

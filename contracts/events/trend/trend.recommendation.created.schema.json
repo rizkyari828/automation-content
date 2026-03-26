@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "trend.recommendation.created",
+  "type": "object",
+  "required": [
+    "eventName",
+    "eventVersion",
+    "occurredAt",
+    "recommendationId",
+    "workspaceId",
+    "recommendationType"
+  ],
+  "properties": {
+    "eventName": {
+      "const": "trend.recommendation.created"
+    },
+    "eventVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurredAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "recommendationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "workspaceId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "recommendationType": {
+      "type": "string",
+      "enum": ["topic", "product", "angle", "cta"]
+    }
+  },
+  "additionalProperties": false
+}

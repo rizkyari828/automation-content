@@ -1,0 +1,14 @@
+{
+  "name": "@creatorflow/auth",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Auth helpers for CreatorFlow",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "types": "./index.d.ts",
+  "dependencies": {
+    "jose": "^6.1.0"
+  }
+}

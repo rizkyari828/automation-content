@@ -1,0 +1,121 @@
+openapi: 3.1.0
+info:
+  title: CreatorFlow Publishing Service
+  version: 0.1.0
+  description: Internal API untuk scheduling dan publish execution.
+servers:
+  - url: https://publishing.creatorflow.local
+tags:
+  - name: Health
+  - name: Publishing
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /internal/v1/publish-jobs:
+    post:
+      tags: [Publishing]
+      summary: Schedule a publish job
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePublishJobRequest"
+      responses:
+        "202":
+          description: Publish job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreatePublishJobResponse"
+  /internal/v1/publish-jobs/{jobId}:
+    get:
+      tags: [Publishing]
+      summary: Get publish job status
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Publish job state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishJob"
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    CreatePublishJobRequest:
+      type: object
+      required: [workspaceId, platformCode, scheduledFor, idempotencyKey]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        connectedAccountId:
+          type: string
+          format: uuid
+        assetId:
+          type: string
+          format: uuid
+        captionId:
+          type: string
+          format: uuid
+        platformCode:
+          type: string
+          enum: [tiktok, instagram, facebook, youtube]
+        scheduledFor:
+          type: string
+          format: date-time
+        idempotencyKey:
+          type: string
+    CreatePublishJobResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [scheduled]
+    PublishJob:
+      type: object
+      required: [jobId, status, platformCode, scheduledFor]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [scheduled, queued, processing, published, failed, canceled]
+        platformCode:
+          type: string
+          enum: [tiktok, instagram, facebook, youtube]
+        scheduledFor:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+        lastErrorMessage:
+          type: string
