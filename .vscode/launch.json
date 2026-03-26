@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter: Native UI",
+      "type": "dart",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/apps/native-ui",
+      "program": "lib/main.dart",
+      "flutterMode": "debug"
+    },
+    {
+      "name": "Docker: Web UI Stack",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "COMPOSE_PROFILES=full docker compose up --build web-ui api-gateway postgres redis db-migrate",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Docker: Stop Web UI Stack",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "COMPOSE_PROFILES=full docker compose stop web-ui api-gateway postgres redis",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

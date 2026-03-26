@@ -118,6 +118,9 @@ components:
         status:
           type: string
           enum: [queued, processing, completed, failed, canceled]
+        workspaceId:
+          type: string
+          format: uuid
         outputAssetId:
           type: string
           format: uuid

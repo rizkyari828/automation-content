@@ -1,0 +1,11 @@
+{
+  "name": "@creatorflow/logger",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Structured logging and request context helpers for CreatorFlow",
+  "type": "module",
+  "exports": {
+    ".": "./index.js"
+  },
+  "types": "./index.d.ts"
+}

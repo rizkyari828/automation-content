@@ -69,6 +69,10 @@ services:
       INTERNAL_SERVICE_AUDIENCE: ${INTERNAL_SERVICE_AUDIENCE:-creatorflow-internal}
       INTERNAL_SERVICE_EXPIRES_IN: ${INTERNAL_SERVICE_EXPIRES_IN:-5m}
       INTERNAL_TOKEN_BOOTSTRAP_SECRET: ${INTERNAL_TOKEN_BOOTSTRAP_SECRET:-creatorflow-internal-bootstrap-secret}
+      MEDIA_PROCESSING_SERVICE_AUDIENCE: ${MEDIA_PROCESSING_INTERNAL_AUDIENCE:-creatorflow-media-processing-service}
+      MEDIA_PROCESSING_SERVICE_BASE_URL: http://media-processing-service:4100
+      PUBLISHING_SERVICE_AUDIENCE: ${PUBLISHING_SERVICE_INTERNAL_AUDIENCE:-creatorflow-publishing-service}
+      PUBLISHING_SERVICE_BASE_URL: http://publishing-service:4200
     depends_on:
       postgres:
         condition: service_healthy
@@ -122,6 +126,8 @@ services:
       dockerfile: Dockerfile
     container_name: creatorflow-media-processing-service
     environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-creatorflow}:${POSTGRES_PASSWORD:-creatorflow}@postgres:5432/${POSTGRES_DB:-creatorflow}
       PORT: 4100
       SERVICE_NAME: media-processing-service
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
@@ -149,7 +155,9 @@ services:
     container_name: creatorflow-media-processing-worker
     command: ["media-worker"]
     environment:
+      APP_ENV: production
       SERVICE_NAME: media-processing-worker
+      DATABASE_URL: postgresql://${POSTGRES_USER:-creatorflow}:${POSTGRES_PASSWORD:-creatorflow}@postgres:5432/${POSTGRES_DB:-creatorflow}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
       INTERNAL_SERVICE_ISSUER: ${INTERNAL_SERVICE_ISSUER:-creatorflow-api-gateway}
       INTERNAL_SERVICE_AUDIENCE: ${MEDIA_PROCESSING_INTERNAL_AUDIENCE:-creatorflow-media-processing-service}
@@ -167,6 +175,8 @@ services:
       dockerfile: Dockerfile
     container_name: creatorflow-publishing-service
     environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-creatorflow}:${POSTGRES_PASSWORD:-creatorflow}@postgres:5432/${POSTGRES_DB:-creatorflow}
       PORT: 4200
       SERVICE_NAME: publishing-service
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
@@ -194,7 +204,9 @@ services:
     container_name: creatorflow-publishing-worker
     command: ["publishing-worker"]
     environment:
+      APP_ENV: production
       SERVICE_NAME: publishing-worker
+      DATABASE_URL: postgresql://${POSTGRES_USER:-creatorflow}:${POSTGRES_PASSWORD:-creatorflow}@postgres:5432/${POSTGRES_DB:-creatorflow}
       INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-creatorflow-internal-dev-secret}
       INTERNAL_SERVICE_ISSUER: ${INTERNAL_SERVICE_ISSUER:-creatorflow-api-gateway}
       INTERNAL_SERVICE_AUDIENCE: ${PUBLISHING_SERVICE_INTERNAL_AUDIENCE:-creatorflow-publishing-service}

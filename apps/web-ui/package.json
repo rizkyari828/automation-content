@@ -5,8 +5,12 @@
   "description": "Next.js UI microservice shell for automation-content-deployment",
   "type": "module",
   "scripts": {
+    "sync:assets": "node ./scripts/sync-public-assets.mjs",
+    "predev": "npm run sync:assets",
     "dev": "next dev",
+    "prebuild": "npm run sync:assets",
     "build": "next build",
+    "prestart": "npm run sync:assets",
     "start": "node .next/standalone/server.js",
     "lint": "next lint"
   },

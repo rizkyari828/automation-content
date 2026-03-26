@@ -108,6 +108,9 @@ components:
         status:
           type: string
           enum: [scheduled, queued, processing, published, failed, canceled]
+        workspaceId:
+          type: string
+          format: uuid
         platformCode:
           type: string
           enum: [tiktok, instagram, facebook, youtube]

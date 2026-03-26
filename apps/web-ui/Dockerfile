@@ -18,8 +18,8 @@ ENV PORT=3000
 ENV NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./apps/web-ui/.next/static
-COPY --from=builder /app/public ./apps/web-ui/public
+COPY --from=builder /app/.next/static ./app/.next/static
+COPY --from=builder /app/public ./app/public
 
 EXPOSE 3000
 

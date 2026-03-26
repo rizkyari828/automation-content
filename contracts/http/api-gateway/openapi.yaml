@@ -8,9 +8,12 @@ servers:
 tags:
   - name: Health
   - name: Auth
+  - name: Internal
   - name: Users
   - name: Content
   - name: Assets
+  - name: Media
+  - name: Publishing
   - name: Trend
 paths:
   /health:
@@ -24,6 +27,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthResponse"
+  /internal/v1/observability/downstream-whoami:
+    get:
+      tags: [Internal]
+      summary: Probe internal service auth and header propagation against media and publishing services
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Downstream whoami probe results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DownstreamWhoAmIProbeResponse"
   /v1/auth/register:
     post:
       tags: [Auth]
@@ -127,6 +143,84 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateUploadResponse"
+  /v1/media/render-jobs:
+    post:
+      tags: [Media]
+      summary: Enqueue a render job through the media processing service
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRenderJobGatewayRequest"
+      responses:
+        "202":
+          description: Render job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RenderJobGatewayResponse"
+  /v1/media/render-jobs/{jobId}:
+    get:
+      tags: [Media]
+      summary: Get render job status for the active workspace
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Render job state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RenderJobGatewayResponse"
+  /v1/publishing/publish-jobs:
+    post:
+      tags: [Publishing]
+      summary: Schedule a publish job through the publishing service
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePublishJobGatewayRequest"
+      responses:
+        "202":
+          description: Publish job accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishJobGatewayResponse"
+  /v1/publishing/publish-jobs/{jobId}:
+    get:
+      tags: [Publishing]
+      summary: Get publish job status for the active workspace
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: jobId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Publish job state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishJobGatewayResponse"
   /v1/trend/collect:
     post:
       tags: [Trend]
@@ -215,9 +309,47 @@ components:
       type: object
       required: [status]
       properties:
+        correlationId:
+          type: string
+        requestId:
+          type: string
         status:
           type: string
           const: ok
+    DownstreamWhoAmIProbeServiceResult:
+      type: object
+      required: [ok, statusCode]
+      properties:
+        ok:
+          type: boolean
+        statusCode:
+          type: integer
+        service:
+          type: string
+        error:
+          type: string
+        body:
+          type: object
+          additionalProperties: true
+    DownstreamWhoAmIProbeResponse:
+      type: object
+      required: [status, services]
+      properties:
+        status:
+          type: string
+          const: ok
+        requestId:
+          type: string
+        correlationId:
+          type: string
+        services:
+          type: object
+          required: [mediaProcessingService, publishingService]
+          properties:
+            mediaProcessingService:
+              $ref: "#/components/schemas/DownstreamWhoAmIProbeServiceResult"
+            publishingService:
+              $ref: "#/components/schemas/DownstreamWhoAmIProbeServiceResult"
     RegisterRequest:
       type: object
       required: [email, password, workspaceName]
@@ -352,6 +484,85 @@ components:
         expiresAt:
           type: string
           format: date-time
+    CreateRenderJobGatewayRequest:
+      type: object
+      required: [sourceAssetId]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        sourceAssetId:
+          type: string
+          format: uuid
+        scriptId:
+          type: string
+          format: uuid
+    RenderJobGatewayResponse:
+      type: object
+      required: [jobId, status]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, processing, completed, failed, canceled]
+        outputAssetId:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+        lastErrorMessage:
+          type: string
+    CreatePublishJobGatewayRequest:
+      type: object
+      required: [platformCode, scheduledFor]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        connectedAccountId:
+          type: string
+          format: uuid
+        assetId:
+          type: string
+          format: uuid
+        captionId:
+          type: string
+          format: uuid
+        platformCode:
+          type: string
+          enum: [tiktok, instagram, facebook, youtube]
+        scheduledFor:
+          type: string
+          format: date-time
+        idempotencyKey:
+          type: string
+    PublishJobGatewayResponse:
+      type: object
+      required: [jobId, status, platformCode, scheduledFor]
+      properties:
+        jobId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [scheduled, queued, processing, published, failed, canceled]
+        platformCode:
+          type: string
+          enum: [tiktok, instagram, facebook, youtube]
+        scheduledFor:
+          type: string
+          format: date-time
+        publishedAt:
+          type: string
+          format: date-time
+        lastErrorMessage:
+          type: string
     ManualTrendCollectRequest:
       type: object
       properties:
