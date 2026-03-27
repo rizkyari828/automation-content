@@ -55,23 +55,29 @@ class AuthLayout extends StatelessWidget {
                               children: [
                                 Expanded(
                                   flex: 5,
-                                  child: PremiumSurfaceCard(
-                                    padding: EdgeInsets.all(cardPadding),
-                                    child: _AuthFormPanel(
-                                      title: title,
-                                      subtitle: subtitle,
-                                      formChild: formChild,
+                                  child: RevealMotion(
+                                    child: PremiumSurfaceCard(
+                                      padding: EdgeInsets.all(cardPadding),
+                                      child: _AuthFormPanel(
+                                        title: title,
+                                        subtitle: subtitle,
+                                        formChild: formChild,
+                                      ),
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.lg),
                                 Expanded(
                                   flex: 4,
-                                  child: PremiumGradientCard(
-                                    child: _AuthShowcase(
-                                      sideEyebrow: sideEyebrow,
-                                      sideTitle: sideTitle,
-                                      sideBody: sideBody,
+                                  child: RevealMotion(
+                                    delay: const Duration(milliseconds: 120),
+                                    offset: const Offset(28, 0),
+                                    child: PremiumGradientCard(
+                                      child: _AuthShowcase(
+                                        sideEyebrow: sideEyebrow,
+                                        sideTitle: sideTitle,
+                                        sideBody: sideBody,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -81,28 +87,33 @@ class AuthLayout extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 if (showStackedShowcase)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      bottom: AppSpacing.lg,
-                                    ),
-                                    child: PremiumGradientCard(
-                                      padding: const EdgeInsets.all(
-                                        AppSpacing.lg,
+                                  RevealMotion(
+                                    delay: const Duration(milliseconds: 80),
+                                    child: Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: AppSpacing.lg,
                                       ),
-                                      child: _AuthShowcase(
-                                        sideEyebrow: sideEyebrow,
-                                        sideTitle: sideTitle,
-                                        sideBody: sideBody,
-                                        compact: true,
+                                      child: PremiumGradientCard(
+                                        padding: const EdgeInsets.all(
+                                          AppSpacing.lg,
+                                        ),
+                                        child: _AuthShowcase(
+                                          sideEyebrow: sideEyebrow,
+                                          sideTitle: sideTitle,
+                                          sideBody: sideBody,
+                                          compact: true,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                PremiumSurfaceCard(
-                                  padding: EdgeInsets.all(cardPadding),
-                                  child: _AuthFormPanel(
-                                    title: title,
-                                    subtitle: subtitle,
-                                    formChild: formChild,
+                                RevealMotion(
+                                  child: PremiumSurfaceCard(
+                                    padding: EdgeInsets.all(cardPadding),
+                                    child: _AuthFormPanel(
+                                      title: title,
+                                      subtitle: subtitle,
+                                      formChild: formChild,
+                                    ),
                                   ),
                                 ),
                               ],

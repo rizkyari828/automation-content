@@ -23,82 +23,112 @@ class BillingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  PremiumGradientCard(
+                  RevealMotion(
+                    child: PremiumGradientCard(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final stacked = constraints.maxWidth < 980;
+                          final metricsMaxWidth = constraints.maxWidth;
+                          final metricColumns = metricsMaxWidth >= 1220
+                              ? 3
+                              : metricsMaxWidth >= 760
+                                  ? 2
+                                  : 1;
+                          final metricWidth = metricColumns == 1
+                              ? metricsMaxWidth
+                              : (metricsMaxWidth -
+                                          (AppSpacing.md * (metricColumns - 1))) /
+                                      metricColumns;
+                          final summary = Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SectionEyebrow(
+                                isId ? 'Paket aktif' : 'Active plan',
+                                onDark: true,
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              Text(
+                                'CreatorFlow Growth',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineLarge
+                                    ?.copyWith(color: Colors.white),
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Text(
+                                isId
+                                    ? 'Dirancang untuk seller dan affiliate yang butuh ritme output harian.'
+                                    : 'Built for sellers and affiliates who need a steadier daily output rhythm.',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyLarge
+                                    ?.copyWith(
+                                      color: Colors.white.withValues(alpha: 0.82),
+                                    ),
+                              ),
+                            ],
+                          );
+                          final metrics = Wrap(
+                            spacing: AppSpacing.md,
+                            runSpacing: AppSpacing.md,
+                            children: [
+                              _PlanMetric(
+                                label: 'SEAT TERPAKAI',
+                                value: '8 dari 12',
+                                note: '4 seat masih tersedia',
+                                width: metricWidth,
+                              ),
+                              _PlanMetric(
+                                label: 'LIMIT DRAFT',
+                                value: '1.480 / bulan',
+                                note: '62% kapasitas bulan ini',
+                                width: metricWidth,
+                              ),
+                              _PlanMetric(
+                                label: 'RENDER QUEUE',
+                                value: '36 aset',
+                                note: 'Rata-rata selesai 2.1 jam',
+                                width: metricWidth,
+                              ),
+                            ],
+                          );
+
+                          if (stacked) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                summary,
+                                const SizedBox(height: AppSpacing.lg),
+                                metrics,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 5, child: summary),
+                              const SizedBox(width: AppSpacing.lg),
+                              Expanded(flex: 4, child: metrics),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  RevealMotion(
+                    delay: const Duration(milliseconds: 90),
                     child: LayoutBuilder(
                       builder: (context, constraints) {
                         final stacked = constraints.maxWidth < 980;
-                        final metricsMaxWidth = constraints.maxWidth;
-                        final metricColumns = metricsMaxWidth >= 1220
-                            ? 3
-                            : metricsMaxWidth >= 760
-                                ? 2
-                                : 1;
-                        final metricWidth = metricColumns == 1
-                            ? metricsMaxWidth
-                            : (metricsMaxWidth -
-                                        (AppSpacing.md * (metricColumns - 1))) /
-                                    metricColumns;
-                        final summary = Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SectionEyebrow(
-                              isId ? 'Paket aktif' : 'Active plan',
-                              onDark: true,
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            Text(
-                              'CreatorFlow Growth',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineLarge
-                                  ?.copyWith(color: Colors.white),
-                            ),
-                            const SizedBox(height: AppSpacing.sm),
-                            Text(
-                              isId
-                                  ? 'Dirancang untuk seller dan affiliate yang butuh ritme output harian.'
-                                  : 'Built for sellers and affiliates who need a steadier daily output rhythm.',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodyLarge
-                                  ?.copyWith(
-                                    color: Colors.white.withValues(alpha: 0.82),
-                                  ),
-                            ),
-                          ],
-                        );
-                        final metrics = Wrap(
-                          spacing: AppSpacing.md,
-                          runSpacing: AppSpacing.md,
-                          children: [
-                            _PlanMetric(
-                              label: 'SEAT TERPAKAI',
-                              value: '8 dari 12',
-                              note: '4 seat masih tersedia',
-                              width: metricWidth,
-                            ),
-                            _PlanMetric(
-                              label: 'LIMIT DRAFT',
-                              value: '1.480 / bulan',
-                              note: '62% kapasitas bulan ini',
-                              width: metricWidth,
-                            ),
-                            _PlanMetric(
-                              label: 'RENDER QUEUE',
-                              value: '36 aset',
-                              note: 'Rata-rata selesai 2.1 jam',
-                              width: metricWidth,
-                            ),
-                          ],
-                        );
 
                         if (stacked) {
                           return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              summary,
+                              _PaymentMethodsCard(isId: isId),
                               const SizedBox(height: AppSpacing.lg),
-                              metrics,
+                              _InvoicesCard(isId: isId),
                             ],
                           );
                         }
@@ -106,75 +136,53 @@ class BillingScreen extends StatelessWidget {
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(flex: 5, child: summary),
+                            Expanded(
+                              flex: 6,
+                              child: _PaymentMethodsCard(isId: isId),
+                            ),
                             const SizedBox(width: AppSpacing.lg),
-                            Expanded(flex: 4, child: metrics),
+                            Expanded(
+                              flex: 5,
+                              child: _InvoicesCard(isId: isId),
+                            ),
                           ],
                         );
                       },
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final stacked = constraints.maxWidth < 980;
+                  RevealMotion(
+                    delay: const Duration(milliseconds: 170),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final stacked = constraints.maxWidth < 980;
 
-                      if (stacked) {
-                        return Column(
+                        if (stacked) {
+                          return Column(
+                            children: [
+                              _TeamUsageCard(isId: isId),
+                              const SizedBox(height: AppSpacing.lg),
+                              _ActivityCard(isId: isId),
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _PaymentMethodsCard(isId: isId),
-                            const SizedBox(height: AppSpacing.lg),
-                            _InvoicesCard(isId: isId),
+                            Expanded(
+                              flex: 7,
+                              child: _TeamUsageCard(isId: isId),
+                            ),
+                            const SizedBox(width: AppSpacing.lg),
+                            Expanded(
+                              flex: 4,
+                              child: _ActivityCard(isId: isId),
+                            ),
                           ],
                         );
-                      }
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 6,
-                            child: _PaymentMethodsCard(isId: isId),
-                          ),
-                          const SizedBox(width: AppSpacing.lg),
-                          Expanded(
-                            flex: 5,
-                            child: _InvoicesCard(isId: isId),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final stacked = constraints.maxWidth < 980;
-
-                      if (stacked) {
-                        return Column(
-                          children: [
-                            _TeamUsageCard(isId: isId),
-                            const SizedBox(height: AppSpacing.lg),
-                            _ActivityCard(isId: isId),
-                          ],
-                        );
-                      }
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            flex: 7,
-                            child: _TeamUsageCard(isId: isId),
-                          ),
-                          const SizedBox(width: AppSpacing.lg),
-                          Expanded(
-                            flex: 4,
-                            child: _ActivityCard(isId: isId),
-                          ),
-                        ],
-                      );
-                    },
+                      },
+                    ),
                   ),
                 ],
               ),

@@ -130,53 +130,62 @@ class AppShell extends ConsumerWidget {
                       if (useFullSidebar)
                         SizedBox(
                           width: 292,
-                          child: _DesktopSidebar(
-                            destinations: destinations,
-                            selectedIndex: safeSelectedIndex,
-                            onSelect: (index) {
-                              ref
-                                  .read(appShellIndexProvider.notifier)
-                                  .selectIndex(index);
-                            },
-                            onBillingTap: () {
-                              final billingIndex = destinations.indexWhere(
-                                (destination) =>
-                                    destination.label == strings.billing,
-                              );
-
-                              if (billingIndex >= 0) {
+                          child: RevealMotion(
+                            offset: const Offset(-24, 0),
+                            child: _DesktopSidebar(
+                              destinations: destinations,
+                              selectedIndex: safeSelectedIndex,
+                              onSelect: (index) {
                                 ref
                                     .read(appShellIndexProvider.notifier)
-                                    .selectIndex(billingIndex);
-                              }
-                            },
+                                    .selectIndex(index);
+                              },
+                              onBillingTap: () {
+                                final billingIndex = destinations.indexWhere(
+                                  (destination) =>
+                                      destination.label == strings.billing,
+                                );
+
+                                if (billingIndex >= 0) {
+                                  ref
+                                      .read(appShellIndexProvider.notifier)
+                                      .selectIndex(billingIndex);
+                                }
+                              },
+                            ),
                           ),
                         )
                       else
                         SizedBox(
                           width: 104,
-                          child: _CompactSidebar(
-                            destinations: destinations,
-                            selectedIndex: safeSelectedIndex,
-                            onSelect: (index) {
-                              ref
-                                  .read(appShellIndexProvider.notifier)
-                                  .selectIndex(index);
-                            },
+                          child: RevealMotion(
+                            offset: const Offset(-20, 0),
+                            child: _CompactSidebar(
+                              destinations: destinations,
+                              selectedIndex: safeSelectedIndex,
+                              onSelect: (index) {
+                                ref
+                                    .read(appShellIndexProvider.notifier)
+                                    .selectIndex(index);
+                              },
+                            ),
                           ),
                         ),
                       const SizedBox(width: AppSpacing.lg),
                       Expanded(
-                        child: _ContentArea(
-                          selected: selected,
-                          session: session,
-                          strings: strings,
-                          compactHeader: useCompactSidebar,
-                          onSignOut: () {
-                            ref
-                                .read(authControllerProvider.notifier)
-                                .signOut();
-                          },
+                        child: RevealMotion(
+                          delay: const Duration(milliseconds: 100),
+                          child: _ContentArea(
+                            selected: selected,
+                            session: session,
+                            strings: strings,
+                            compactHeader: useCompactSidebar,
+                            onSignOut: () {
+                              ref
+                                  .read(authControllerProvider.notifier)
+                                  .signOut();
+                            },
+                          ),
                         ),
                       ),
                     ],

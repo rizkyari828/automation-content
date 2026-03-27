@@ -284,6 +284,98 @@ class SectionEyebrow extends StatelessWidget {
   }
 }
 
+class RevealMotion extends StatefulWidget {
+  const RevealMotion({
+    required this.child,
+    super.key,
+    this.delay = Duration.zero,
+    this.duration = const Duration(milliseconds: 560),
+    this.offset = const Offset(0, 20),
+  });
+
+  final Widget child;
+  final Duration delay;
+  final Duration duration;
+  final Offset offset;
+
+  @override
+  State<RevealMotion> createState() => _RevealMotionState();
+}
+
+class _RevealMotionState extends State<RevealMotion>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    _slide = Tween<Offset>(
+      begin: widget.offset,
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeOutCubic,
+      ),
+    );
+    _start();
+  }
+
+  Future<void> _start() async {
+    if (widget.delay > Duration.zero) {
+      await Future<void>.delayed(widget.delay);
+    }
+    if (mounted) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.maybeOf(context);
+    final reduceMotion =
+        (mediaQuery?.disableAnimations ?? false) ||
+        (mediaQuery?.accessibleNavigation ?? false);
+
+    if (reduceMotion) {
+      return widget.child;
+    }
+
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacity.value.clamp(0, 1),
+          child: Transform.translate(
+            offset: Offset(
+              _slide.value.dx,
+              _slide.value.dy,
+            ),
+            child: child,
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _GlowOrb extends StatelessWidget {
   const _GlowOrb({
     required this.size,

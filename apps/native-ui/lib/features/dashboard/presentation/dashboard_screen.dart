@@ -27,96 +27,107 @@ class DashboardScreen extends ConsumerWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _HeroPanel(data: data),
-                    const SizedBox(height: AppSpacing.lg),
-                    _MetricGrid(metrics: data.metrics),
-                    const SizedBox(height: AppSpacing.lg),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final useSplit = constraints.maxWidth >= 980;
-
-                        if (!useSplit) {
-                          return Column(
-                            children: [
-                              _MomentumCard(metrics: data.metrics),
-                              const SizedBox(height: AppSpacing.lg),
-                              _WorkflowCard(items: data.categories),
-                            ],
-                          );
-                        }
-
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 7,
-                              child: _MomentumCard(metrics: data.metrics),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              flex: 4,
-                              child: _WorkflowCard(items: data.categories),
-                            ),
-                          ],
-                        );
-                      },
+                    RevealMotion(
+                      child: _HeroPanel(data: data),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final useSplit = constraints.maxWidth >= 980;
+                    RevealMotion(
+                      delay: const Duration(milliseconds: 80),
+                      child: _MetricGrid(metrics: data.metrics),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    RevealMotion(
+                      delay: const Duration(milliseconds: 140),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final useSplit = constraints.maxWidth >= 980;
 
-                        if (!useSplit) {
-                          return Column(
+                          if (!useSplit) {
+                            return Column(
+                              children: [
+                                _MomentumCard(metrics: data.metrics),
+                                const SizedBox(height: AppSpacing.lg),
+                                _WorkflowCard(items: data.categories),
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _SignalListCard(
-                                title: Localizations.localeOf(context)
-                                            .languageCode ==
-                                        'id'
-                                    ? 'Watchlist tren'
-                                    : 'Trend watchlist',
-                                items: data.countries,
+                              Expanded(
+                                flex: 7,
+                                child: _MomentumCard(metrics: data.metrics),
                               ),
-                              const SizedBox(height: AppSpacing.lg),
-                              _SignalListCard(
-                                title: Localizations.localeOf(context)
-                                            .languageCode ==
-                                        'id'
-                                    ? 'Detail workspace'
-                                    : 'Workspace details',
-                                items: data.categories,
+                              const SizedBox(width: AppSpacing.lg),
+                              Expanded(
+                                flex: 4,
+                                child: _WorkflowCard(items: data.categories),
                               ),
                             ],
                           );
-                        }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    RevealMotion(
+                      delay: const Duration(milliseconds: 200),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final useSplit = constraints.maxWidth >= 980;
 
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _SignalListCard(
-                                title: Localizations.localeOf(context)
-                                            .languageCode ==
-                                        'id'
-                                    ? 'Watchlist tren'
-                                    : 'Trend watchlist',
-                                items: data.countries,
+                          if (!useSplit) {
+                            return Column(
+                              children: [
+                                _SignalListCard(
+                                  title: Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'id'
+                                      ? 'Watchlist tren'
+                                      : 'Trend watchlist',
+                                  items: data.countries,
+                                ),
+                                const SizedBox(height: AppSpacing.lg),
+                                _SignalListCard(
+                                  title: Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'id'
+                                      ? 'Detail workspace'
+                                      : 'Workspace details',
+                                  items: data.categories,
+                                ),
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _SignalListCard(
+                                  title: Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'id'
+                                      ? 'Watchlist tren'
+                                      : 'Trend watchlist',
+                                  items: data.countries,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              child: _SignalListCard(
-                                title: Localizations.localeOf(context)
-                                            .languageCode ==
-                                        'id'
-                                    ? 'Detail workspace'
-                                    : 'Workspace details',
-                                items: data.categories,
+                              const SizedBox(width: AppSpacing.lg),
+                              Expanded(
+                                child: _SignalListCard(
+                                  title: Localizations.localeOf(context)
+                                              .languageCode ==
+                                          'id'
+                                      ? 'Detail workspace'
+                                      : 'Workspace details',
+                                  items: data.categories,
+                                ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
+                            ],
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),
