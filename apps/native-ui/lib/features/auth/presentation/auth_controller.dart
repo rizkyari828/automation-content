@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/networking/api_client.dart';
 import '../../../core/storage/token_storage.dart';
 import '../domain/auth_session.dart';
+import '../domain/social_auth_provider.dart';
+import 'native_sso_service.dart';
 
 class AuthController extends AsyncNotifier<AuthSession> {
   @override
@@ -32,7 +34,10 @@ class AuthController extends AsyncNotifier<AuthSession> {
           apiBaseUrl: apiClient.baseUrl,
           clientType: apiClient.clientType,
           email: profile.email,
+          enabledFeatureCodes: profile.authorization.enabledFeatureCodes,
           fullName: profile.fullName,
+          permissions: profile.authorization.permissions,
+          platformRoleCode: profile.authorization.platformRoleCode,
           refreshToken: refreshToken,
           status: profile.status,
           userId: profile.userId,
@@ -65,7 +70,10 @@ class AuthController extends AsyncNotifier<AuthSession> {
         apiBaseUrl: apiClient.baseUrl,
         clientType: apiClient.clientType,
         email: profile.email,
+        enabledFeatureCodes: profile.authorization.enabledFeatureCodes,
         fullName: profile.fullName,
+        permissions: profile.authorization.permissions,
+        platformRoleCode: profile.authorization.platformRoleCode,
         refreshToken: refreshedTokens.refreshToken,
         status: profile.status,
         userId: profile.userId,
@@ -86,10 +94,7 @@ class AuthController extends AsyncNotifier<AuthSession> {
     }
   }
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     if (email.trim().isEmpty || password.isEmpty) {
       state = AsyncError(
         StateError('Email and password are required'),
@@ -120,7 +125,10 @@ class AuthController extends AsyncNotifier<AuthSession> {
         apiBaseUrl: apiClient.baseUrl,
         clientType: apiClient.clientType,
         email: profile.email,
+        enabledFeatureCodes: profile.authorization.enabledFeatureCodes,
         fullName: profile.fullName,
+        permissions: profile.authorization.permissions,
+        platformRoleCode: profile.authorization.platformRoleCode,
         refreshToken: tokens.refreshToken,
         status: profile.status,
         userId: profile.userId,
@@ -133,6 +141,7 @@ class AuthController extends AsyncNotifier<AuthSession> {
 
   Future<void> signUp({
     required String email,
+    String? fullName,
     required String password,
     required String workspaceName,
   }) async {
@@ -152,6 +161,7 @@ class AuthController extends AsyncNotifier<AuthSession> {
       final tokenStorage = ref.read(tokenStorageProvider);
       final tokens = await apiClient.signUp(
         email: email.trim(),
+        fullName: fullName?.trim(),
         password: password,
         workspaceName: workspaceName.trim(),
       );
@@ -169,7 +179,10 @@ class AuthController extends AsyncNotifier<AuthSession> {
         apiBaseUrl: apiClient.baseUrl,
         clientType: apiClient.clientType,
         email: profile.email,
+        enabledFeatureCodes: profile.authorization.enabledFeatureCodes,
         fullName: profile.fullName,
+        permissions: profile.authorization.permissions,
+        platformRoleCode: profile.authorization.platformRoleCode,
         refreshToken: tokens.refreshToken,
         status: profile.status,
         userId: profile.userId,
@@ -187,9 +200,7 @@ class AuthController extends AsyncNotifier<AuthSession> {
 
     if ((storedTokens.refreshToken ?? '').isNotEmpty) {
       try {
-        await apiClient.signOut(
-          refreshToken: storedTokens.refreshToken!,
-        );
+        await apiClient.signOut(refreshToken: storedTokens.refreshToken!);
       } on ApiException {
         // Clear local session even if remote logout fails.
       }
@@ -203,6 +214,55 @@ class AuthController extends AsyncNotifier<AuthSession> {
         clientType: apiClient.clientType,
       ),
     );
+  }
+
+  Future<void> signInWithProvider(SocialAuthProvider provider) async {
+    await _authenticateWithProvider(intent: 'sign_in', provider: provider);
+  }
+
+  Future<void> signUpWithProvider(SocialAuthProvider provider) async {
+    await _authenticateWithProvider(intent: 'register', provider: provider);
+  }
+
+  Future<void> _authenticateWithProvider({
+    required String intent,
+    required SocialAuthProvider provider,
+  }) async {
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final apiClient = ref.read(apiClientProvider);
+      final tokenStorage = ref.read(tokenStorageProvider);
+      final ssoService = ref.read(nativeSsoServiceProvider);
+      final tokens = await ssoService.authenticate(
+        intent: intent,
+        provider: provider,
+      );
+      final profile = await apiClient.getCurrentUser(
+        accessToken: tokens.accessToken,
+      );
+
+      await tokenStorage.write(
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+      );
+
+      return AuthSession.authenticated(
+        accessToken: tokens.accessToken,
+        apiBaseUrl: apiClient.baseUrl,
+        clientType: apiClient.clientType,
+        email: profile.email,
+        enabledFeatureCodes: profile.authorization.enabledFeatureCodes,
+        fullName: profile.fullName,
+        permissions: profile.authorization.permissions,
+        platformRoleCode: profile.authorization.platformRoleCode,
+        refreshToken: tokens.refreshToken,
+        status: profile.status,
+        userId: profile.userId,
+        workspaceId: profile.workspaceId,
+        workspaceName: profile.workspaceName,
+        workspaceRole: profile.workspaceRole,
+      );
+    });
   }
 }
 

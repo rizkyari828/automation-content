@@ -4,6 +4,10 @@ export function badRequest(reply: FastifyReply, message: string) {
   return reply.code(400).send({ error: message, message });
 }
 
+export function forbidden(reply: FastifyReply, message = "Forbidden") {
+  return reply.code(403).send({ error: message, message });
+}
+
 export function notFound(reply: FastifyReply, message = "Resource not found") {
   return reply.code(404).send({ error: message, message });
 }

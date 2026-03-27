@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_spacing.dart';
 
 class TrendScreen extends StatelessWidget {
@@ -7,13 +8,14 @@ class TrendScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      children: const [
+      children: [
         _TrendCard(
-          title: 'Watchlist Overview',
-          subtitle:
-              'Trend digest and watchlist sections can map directly from api-gateway trend endpoints.',
+          title: strings.watchlistOverview,
+          subtitle: strings.watchlistOverviewBody,
         ),
       ],
     );

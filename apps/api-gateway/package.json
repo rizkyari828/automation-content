@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@creatorflow/auth": "^0.1.0",
+    "@fastify/formbody": "^8.0.2",
     "@creatorflow/logger": "^0.1.0",
     "@fastify/cookie": "^11.0.2",
     "fastify": "^5.6.1",

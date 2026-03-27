@@ -1,0 +1,163 @@
+{
+  "web": {
+    "billingPage": {
+      "pageTitle": "Paket workspace",
+      "planEyebrow": "Paket aktif",
+      "planName": "CreatorFlow Growth",
+      "planNote": "Dirancang untuk seller dan affiliate yang butuh ritme output harian.",
+      "planStatus": "Aktif",
+      "kpis": [
+        {
+          "label": "Seat terpakai",
+          "value": "8 dari 12",
+          "note": "4 seat masih tersedia"
+        },
+        {
+          "label": "Limit draft",
+          "value": "1.480 / bulan",
+          "note": "62% kapasitas bulan ini"
+        },
+        {
+          "label": "Render queue",
+          "value": "36 aset",
+          "note": "Rata-rata selesai 2.1 jam"
+        }
+      ],
+      "renewalTitle": "Siklus tagihan berikut",
+      "renewalBody": "Pantau tanggal penagihan, metode pembayaran, dan detail paket tanpa keluar dari workspace.",
+      "nextChargeLabel": "Tagihan berikut",
+      "nextChargeValue": "Rp1.490.000 / bulan",
+      "nextChargeBadge": "Perpanjang otomatis",
+      "renewalHighlights": [
+        "Kursi tim tetap aktif saat renewal berjalan.",
+        "Invoice dikirim otomatis ke email owner workspace.",
+        "Perubahan paket bisa dijadwalkan sebelum tanggal tagih."
+      ],
+      "managePlanCta": "Kelola paket dan add-on",
+      "paymentTitle": "Metode pembayaran",
+      "paymentBody": "Pilih metode yang paling familiar buat operasional tim di Indonesia.",
+      "paymentMethods": [
+        {
+          "name": "Virtual Account BCA",
+          "detail": "Auto debit bulanan aktif",
+          "note": "Diverifikasi untuk workspace utama",
+          "badge": "Utama",
+          "badgeClass": "bg-gradient-success",
+          "icon": "ni ni-credit-card",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "name": "Kartu bisnis Visa",
+          "detail": "Cadangan jika auto debit gagal",
+          "note": "Pemilik kartu: Rani Setiawan",
+          "badge": "Cadangan",
+          "badgeClass": "bg-gradient-info",
+          "icon": "ni ni-money-coins",
+          "iconBackground": "#edf4ff",
+          "iconColor": "#102c45"
+        },
+        {
+          "name": "QRIS bisnis",
+          "detail": "Tersedia untuk top-up add-on",
+          "note": "Dipakai untuk pembelian kredit ekstra",
+          "badge": "Opsional",
+          "badgeClass": "bg-gradient-secondary",
+          "icon": "ni ni-mobile-button",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        }
+      ],
+      "invoicesTitle": "Invoice terbaru",
+      "invoicesBody": "Riwayat dokumen pembayaran yang siap dibagikan ke finance.",
+      "viewInvoicesCta": "Lihat semua invoice",
+      "invoices": [
+        {
+          "period": "Maret 2026",
+          "code": "INV-CF-2026-0318",
+          "amount": "Rp1.490.000",
+          "status": "Lunas"
+        },
+        {
+          "period": "Februari 2026",
+          "code": "INV-CF-2026-0220",
+          "amount": "Rp1.490.000",
+          "status": "Lunas"
+        },
+        {
+          "period": "Januari 2026",
+          "code": "INV-CF-2026-0118",
+          "amount": "Rp1.290.000",
+          "status": "Lunas"
+        }
+      ],
+      "seatTitle": "Seat dan penggunaan tim",
+      "seatBody": "Cek siapa yang aktif dan bagaimana pemakaian workspace per anggota.",
+      "seatTableLabels": {
+        "member": "Anggota",
+        "role": "Peran",
+        "usage": "Penggunaan",
+        "status": "Status"
+      },
+      "seats": [
+        {
+          "member": "Rani Setiawan",
+          "email": "rani@creatorflow.id",
+          "role": "Owner",
+          "usage": "214 draft bulan ini",
+          "status": "Aktif",
+          "statusClass": "bg-gradient-success"
+        },
+        {
+          "member": "Aldi Pratama",
+          "email": "aldi@creatorflow.id",
+          "role": "Content Lead",
+          "usage": "166 draft bulan ini",
+          "status": "Aktif",
+          "statusClass": "bg-gradient-success"
+        },
+        {
+          "member": "Nadya Kusuma",
+          "email": "nadya@creatorflow.id",
+          "role": "Affiliate Ops",
+          "usage": "91 draft bulan ini",
+          "status": "Perlu review",
+          "statusClass": "bg-gradient-warning"
+        },
+        {
+          "member": "Rifqi Alfarizi",
+          "email": "rifqi@creatorflow.id",
+          "role": "Editor",
+          "usage": "57 draft bulan ini",
+          "status": "Aktif",
+          "statusClass": "bg-gradient-info"
+        }
+      ],
+      "transactionsTitle": "Aktivitas pembayaran",
+      "transactionsBody": "Mutasi terbaru terkait paket, add-on, dan kredit render.",
+      "transactions": [
+        {
+          "title": "Renewal paket Growth",
+          "time": "27 Mar 2026, 09:42 WIB",
+          "amount": "-Rp1.490.000",
+          "amountClass": "text-danger",
+          "note": "Invoice INV-CF-2026-0318"
+        },
+        {
+          "title": "Top-up kredit render",
+          "time": "25 Mar 2026, 16:08 WIB",
+          "amount": "-Rp250.000",
+          "amountClass": "text-danger",
+          "note": "Tambahan 120 render kredit"
+        },
+        {
+          "title": "Refund duplikasi pembayaran",
+          "time": "21 Mar 2026, 10:21 WIB",
+          "amount": "+Rp250.000",
+          "amountClass": "text-success",
+          "note": "Masuk ke Virtual Account BCA"
+        }
+      ]
+    }
+  }
+}

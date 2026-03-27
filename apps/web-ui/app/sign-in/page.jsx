@@ -9,6 +9,9 @@ export default async function SignInRoute({ searchParams }) {
   const nextPath = typeof resolvedSearchParams?.next === "string"
     ? resolvedSearchParams.next
     : "/dashboard";
+  const initialError = typeof resolvedSearchParams?.error === "string"
+    ? resolvedSearchParams.error
+    : "";
 
-  return <SignInPage nextPath={nextPath} />;
+  return <SignInPage initialError={initialError} nextPath={nextPath} />;
 }

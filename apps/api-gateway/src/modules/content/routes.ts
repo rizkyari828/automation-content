@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { authenticateUserRequest, ensureWorkspaceScope } from "../../lib/auth.js";
+import { ensureWorkspacePermission } from "../../lib/authorization.js";
 import { badRequest, internalError } from "../../lib/http.js";
 import { query } from "../../lib/database.js";
 
@@ -27,6 +28,14 @@ export function registerContentRoutes(app: FastifyInstance) {
       const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
       if (workspaceError) {
         return workspaceError;
+      }
+
+      const permissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "content",
+        permission: "content.generate"
+      });
+      if (permissionError) {
+        return permissionError;
       }
 
       if (!workspaceId) {

@@ -12,6 +12,13 @@ Dokumen ini memetakan arsitektur awal CreatorFlow sebagai sistem berbasis micros
 
 Dokumen ini dimaksudkan sebagai blueprint implementasi awal, bukan final contract. Tujuannya adalah memberi batas domain yang jelas sejak awal sambil tetap menjaga MVP tetap realistis.
 
+Dokumen ini harus dibaca bersama:
+
+- `creatorflow-product-foundation.md`
+- `creatorflow-next-development-brief.md`
+
+Kedua dokumen tersebut memegang source of truth untuk ICP, positioning launch, proof model, dan prioritas development. Blueprint teknis di dokumen ini harus mengikuti guardrail produk tersebut.
+
 Penyesuaian terbaru:
 
 - fitur `trend-intelligence` resmi masuk ke scope produk

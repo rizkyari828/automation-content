@@ -4,8 +4,11 @@ class AuthSession {
     required this.apiBaseUrl,
     required this.clientType,
     required this.email,
+    required this.enabledFeatureCodes,
     required this.fullName,
     required this.isAuthenticated,
+    required this.permissions,
+    required this.platformRoleCode,
     required this.refreshToken,
     required this.status,
     required this.userId,
@@ -18,8 +21,11 @@ class AuthSession {
   final String apiBaseUrl;
   final String clientType;
   final String? email;
+  final List<String> enabledFeatureCodes;
   final String? fullName;
   final bool isAuthenticated;
+  final List<String> permissions;
+  final String? platformRoleCode;
   final String? refreshToken;
   final String? status;
   final String? userId;
@@ -36,8 +42,11 @@ class AuthSession {
       apiBaseUrl: apiBaseUrl,
       clientType: clientType,
       email: null,
+      enabledFeatureCodes: const <String>[],
       fullName: null,
       isAuthenticated: false,
+      permissions: const <String>[],
+      platformRoleCode: null,
       refreshToken: null,
       status: null,
       userId: null,
@@ -58,15 +67,21 @@ class AuthSession {
     required String userId,
     required String email,
     required String status,
+    List<String> enabledFeatureCodes = const <String>[],
     String? fullName,
+    List<String> permissions = const <String>[],
+    String? platformRoleCode,
   }) {
     return AuthSession(
       accessToken: accessToken,
       apiBaseUrl: apiBaseUrl,
       clientType: clientType,
       email: email,
+      enabledFeatureCodes: enabledFeatureCodes,
       fullName: fullName,
       isAuthenticated: true,
+      permissions: permissions,
+      platformRoleCode: platformRoleCode,
       refreshToken: refreshToken,
       status: status,
       userId: userId,
@@ -74,5 +89,21 @@ class AuthSession {
       workspaceName: workspaceName,
       workspaceRole: workspaceRole,
     );
+  }
+
+  bool hasFeature(String code) {
+    if (platformRoleCode == 'superadmin') {
+      return true;
+    }
+
+    return enabledFeatureCodes.contains(code);
+  }
+
+  bool hasPermission(String code) {
+    if (platformRoleCode == 'superadmin') {
+      return true;
+    }
+
+    return permissions.contains(code);
   }
 }

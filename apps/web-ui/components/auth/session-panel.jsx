@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { formatWebMessage, useWebMessages } from "../i18n/web-locale.jsx";
+
 const INITIAL_STATE = {
   authenticated: false,
   loading: true,
@@ -13,6 +15,7 @@ const INITIAL_STATE = {
 
 export default function SessionPanel() {
   const router = useRouter();
+  const copy = useWebMessages().web.sessionPanel;
   const [state, setState] = useState(INITIAL_STATE);
   const [isPending, startTransition] = useTransition();
 
@@ -34,7 +37,7 @@ export default function SessionPanel() {
         setState({
           authenticated: false,
           loading: false,
-          message: payload?.message ?? "Sign in to unlock workspace data.",
+          message: payload?.message ?? copy.inactiveFallback,
           user: null,
           workspace: null
         });
@@ -55,7 +58,7 @@ export default function SessionPanel() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [copy.inactiveFallback]);
 
   function handleLogout() {
     startTransition(async () => {
@@ -72,48 +75,50 @@ export default function SessionPanel() {
   return (
     <div className="row mb-4">
       <div className="col-12">
-        <div className="card">
+        <div className="card cf-surface-card">
           <div className="card-body p-3">
             {state.loading ? (
               <>
-                <h6 className="mb-1">Checking session</h6>
+                <h6 className="mb-1">{copy.loadingTitle}</h6>
                 <p className="text-sm text-secondary mb-0">
-                  Syncing access token and workspace context from CreatorFlow API.
+                  {copy.loadingBody}
                 </p>
               </>
             ) : state.authenticated ? (
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                 <div>
                   <h6 className="mb-1">
-                    Welcome back{state.user?.fullName ? `, ${state.user.fullName}` : ""}.
+                    {formatWebMessage(copy.signedInTemplate, {
+                      name: state.user?.fullName ? `, ${state.user.fullName}` : ""
+                    })}
                   </h6>
                   <p className="text-sm text-secondary mb-0">
-                    Workspace: <span className="font-weight-bold">{state.workspace?.name}</span>
+                    {copy.workspace}: <span className="font-weight-bold">{state.workspace?.name}</span>
                     {" · "}
-                    Role: <span className="text-dark">{state.workspace?.roleCode}</span>
+                    {copy.role}: <span className="text-dark">{state.workspace?.roleCode}</span>
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-outline-dark mb-0"
+                  className="btn btn-outline-dark btn-sm mb-0"
                   disabled={isPending}
                   onClick={handleLogout}
                 >
-                  {isPending ? "Signing out..." : "Sign out"}
+                  {isPending ? copy.signingOut : copy.signOut}
                 </button>
               </div>
             ) : (
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                 <div>
-                  <h6 className="mb-1">Session not active</h6>
+                  <h6 className="mb-1">{copy.inactiveTitle}</h6>
                   <p className="text-sm text-secondary mb-0">{state.message}</p>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-dark mb-0"
+                  className="btn btn-dark btn-sm mb-0"
                   onClick={() => router.push("/sign-in")}
                 >
-                  Go to sign in
+                  {copy.goToSignIn}
                 </button>
               </div>
             )}

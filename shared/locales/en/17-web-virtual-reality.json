@@ -1,0 +1,96 @@
+{
+  "web": {
+    "virtualRealityPage": {
+      "pageTitle": "Ops center",
+      "heroEyebrow": "Mission control",
+      "heroTitle": "Monitor content operations tied to revenue from one screen.",
+      "heroBody": "From campaign alerts to publish checklists, the team can move faster without losing context.",
+      "heroBadges": [
+        "24 active campaigns",
+        "81 drafts awaiting decisions",
+        "3 channels ready for tonight's batch"
+      ],
+      "alertsTitle": "Priority alerts",
+      "alertsBody": "Signals that need fast action to keep campaign momentum healthy.",
+      "alerts": [
+        {
+          "title": "TikTok Shop queue is near capacity",
+          "body": "Add a second reviewer so tonight's batch is not delayed.",
+          "time": "5 minutes ago",
+          "badge": "Urgent",
+          "badgeClass": "bg-gradient-warning",
+          "icon": "ni ni-bell-55",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        },
+        {
+          "title": "Testimonial hook performance is rising",
+          "body": "Proof-led creative is up 18% versus generic angles from last week.",
+          "time": "32 minutes ago",
+          "badge": "Opportunity",
+          "badgeClass": "bg-gradient-success",
+          "icon": "ni ni-chart-bar-32",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "title": "2 Shopee Video assets are waiting for legal check",
+          "body": "Review promo claims before publishing to avoid takedowns.",
+          "time": "1 hour ago",
+          "badge": "Review",
+          "badgeClass": "bg-gradient-info",
+          "icon": "ni ni-single-copy-04",
+          "iconBackground": "#eaf4ff",
+          "iconColor": "#102c45"
+        }
+      ],
+      "queueTitle": "Channel queue",
+      "queueBody": "A status snapshot of primary distribution lanes over the next 24 hours.",
+      "queues": [
+        {
+          "channel": "TikTok Shop",
+          "window": "Publish window: 20:00 - 22:00",
+          "summary": "8 drafts are review-ready, 2 still need final captions.",
+          "status": "Ready",
+          "statusClass": "bg-gradient-success"
+        },
+        {
+          "channel": "Shopee Video",
+          "window": "Publish window: 08:00 - 10:00",
+          "summary": "6 drafts scheduled, legal approval still needed for 2 assets.",
+          "status": "Needs review",
+          "statusClass": "bg-gradient-warning"
+        },
+        {
+          "channel": "Instagram Reels",
+          "window": "Publish window: 12:00 - 14:00",
+          "summary": "4 drafts are in visual QA and almost ready for scheduling.",
+          "status": "On track",
+          "statusClass": "bg-gradient-info"
+        }
+      ],
+      "checklistTitle": "Today's launch checklist",
+      "checklistBody": "Lock key steps before the peak publish window starts.",
+      "checklist": [
+        {
+          "task": "Validate CTA for TikTok Shop batch",
+          "owner": "Owner: Aldi (Growth seller)",
+          "status": "In progress",
+          "statusClass": "bg-gradient-info"
+        },
+        {
+          "task": "Approve 2 Shopee promo claims",
+          "owner": "Owner: Nadya (Marketplace ops)",
+          "status": "Action needed",
+          "statusClass": "bg-gradient-warning"
+        },
+        {
+          "task": "Queue 4 WhatsApp recap assets",
+          "owner": "Owner: CRM team",
+          "status": "Done",
+          "statusClass": "bg-gradient-success"
+        }
+      ]
+    }
+  }
+}

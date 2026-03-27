@@ -1,0 +1,179 @@
+{
+  "web": {
+    "dashboardPage": {
+      "pageTitle": "Workspace Overview",
+      "stats": [
+        {
+          "label": "Drafts today",
+          "value": "48",
+          "change": "+18%",
+          "changeClassName": "text-success",
+          "suffix": "vs. last week",
+          "icon": "ni ni-collection",
+          "iconClassName": "bg-gradient-primary shadow-primary"
+        },
+        {
+          "label": "Angles ready",
+          "value": "19",
+          "change": "+6",
+          "changeClassName": "text-success",
+          "suffix": "awaiting review",
+          "icon": "ni ni-lamp-16",
+          "iconClassName": "bg-gradient-info shadow-info"
+        },
+        {
+          "label": "Scheduled posts",
+          "value": "32",
+          "change": "+9%",
+          "changeClassName": "text-success",
+          "suffix": "for the next 3 days",
+          "icon": "ni ni-calendar-grid-58",
+          "iconClassName": "bg-gradient-success shadow-success"
+        },
+        {
+          "label": "Active campaigns",
+          "value": "6",
+          "change": "2 urgent",
+          "changeClassName": "text-warning",
+          "suffix": "needing quick attention",
+          "icon": "ni ni-send",
+          "iconClassName": "bg-gradient-warning shadow-warning"
+        }
+      ],
+      "velocityTitle": "Content velocity",
+      "velocityChange": "18% faster output this week",
+      "workflowTitle": "Workflow snapshot",
+      "workflowBody": "A focused view of the production steps that are moving right now.",
+      "workflowItems": [
+        {
+          "label": "Briefs collected",
+          "value": "14 briefs",
+          "detail": "Most briefs already include offer, audience, and conversion angle.",
+          "badge": "Healthy",
+          "badgeClassName": "bg-gradient-success"
+        },
+        {
+          "label": "Review queue",
+          "value": "9 assets",
+          "detail": "Scripts and captions waiting for final checks before scheduling.",
+          "badge": "Priority",
+          "badgeClassName": "bg-gradient-warning"
+        },
+        {
+          "label": "Render handoff",
+          "value": "5 video drafts",
+          "detail": "Promo drafts are ready for trimming, polish, and publishing prep.",
+          "badge": "In motion",
+          "badgeClassName": "bg-gradient-info"
+        }
+      ],
+      "channelsTitle": "Channel queue",
+      "channelsSubtitle": "The current output mix across active distribution lanes.",
+      "channelsBadge": "Live ops",
+      "channelLabels": {
+        "channel": "Channel",
+        "format": "Format",
+        "drafts": "Drafts",
+        "status": "Status"
+      },
+      "channels": [
+        {
+          "channel": "TikTok Shop",
+          "owner": "Owner: Growth seller",
+          "format": "UGC promo / urgency angle",
+          "window": "Next publish window: tonight",
+          "drafts": "8",
+          "status": "Ready to review",
+          "statusClassName": "bg-gradient-success",
+          "icon": "ni ni-button-play",
+          "iconClassName": "bg-gradient-dark"
+        },
+        {
+          "channel": "Shopee Video",
+          "owner": "Owner: Marketplace ops",
+          "format": "Offer-first product cutdown",
+          "window": "Next publish window: tomorrow morning",
+          "drafts": "6",
+          "status": "Copy refinement",
+          "statusClassName": "bg-gradient-warning",
+          "icon": "ni ni-cart",
+          "iconClassName": "bg-gradient-warning"
+        },
+        {
+          "channel": "Instagram Reels",
+          "owner": "Owner: Brand content",
+          "format": "Problem-solution storytelling",
+          "window": "Next publish window: tomorrow afternoon",
+          "drafts": "4",
+          "status": "Needs approval",
+          "statusClassName": "bg-gradient-info",
+          "icon": "ni ni-camera-compact",
+          "iconClassName": "bg-gradient-primary"
+        },
+        {
+          "channel": "WhatsApp Broadcast",
+          "owner": "Owner: CRM team",
+          "format": "Short promo recap + CTA",
+          "window": "Next publish window: after campaign launch",
+          "drafts": "3",
+          "status": "Queued",
+          "statusClassName": "bg-gradient-secondary",
+          "icon": "ni ni-chat-round",
+          "iconClassName": "bg-gradient-success"
+        }
+      ],
+      "playbooksTitle": "Next best plays",
+      "playbooks": [
+        {
+          "title": "Push the testimonial angle",
+          "body": "The strongest traction this week comes from proof-led creative, not feature-heavy copy.",
+          "badge": "High leverage",
+          "badgeClassName": "bg-gradient-success",
+          "icon": "ni ni-chart-bar-32",
+          "iconClassName": "bg-gradient-success"
+        },
+        {
+          "title": "Trim long intros",
+          "body": "Drafts with shorter first 2 seconds are moving through approval faster and keeping more attention.",
+          "badge": "Quick win",
+          "badgeClassName": "bg-gradient-info",
+          "icon": "ni ni-scissors",
+          "iconClassName": "bg-gradient-info"
+        },
+        {
+          "title": "Duplicate the winning CTA",
+          "body": "Use the current top-performing closing line across the next batch before testing new variants.",
+          "badge": "Scale now",
+          "badgeClassName": "bg-gradient-warning",
+          "icon": "ni ni-send",
+          "iconClassName": "bg-gradient-warning"
+        }
+      ],
+      "cadenceTitle": "Team cadence",
+      "cadenceBody": "A simple production pulse to keep the week structured and fast.",
+      "cadenceItems": [
+        {
+          "day": "Mon",
+          "focus": "Brief intake & angle planning",
+          "note": "Collect product context and lock the campaign thesis.",
+          "badge": "Planning",
+          "badgeClassName": "bg-gradient-dark"
+        },
+        {
+          "day": "Wed",
+          "focus": "Review scripts & draft assets",
+          "note": "Choose what moves into render and what needs another iteration.",
+          "badge": "Review",
+          "badgeClassName": "bg-gradient-info"
+        },
+        {
+          "day": "Fri",
+          "focus": "Queue publishing batch",
+          "note": "Prepare the cleanest set of approved assets for the next posting cycle.",
+          "badge": "Publish",
+          "badgeClassName": "bg-gradient-success"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,187 @@
+{
+  "web": {
+    "rtlPage": {
+      "pageTitle": "RTL",
+      "stats": [
+        {
+          "label": "Today's Money",
+          "value": "$53,000",
+          "change": "+55%",
+          "changeClassName": "text-success",
+          "icon": "ni ni-money-coins"
+        },
+        {
+          "label": "Today's Users",
+          "value": "2,300",
+          "change": "+33%",
+          "changeClassName": "text-success",
+          "icon": "ni ni-world"
+        },
+        {
+          "label": "New Clients",
+          "value": "+3,462",
+          "change": "-2%",
+          "changeClassName": "text-danger",
+          "icon": "ni ni-paper-diploma"
+        },
+        {
+          "label": "Sales",
+          "value": "$103,430",
+          "change": "+5%",
+          "changeClassName": "text-success",
+          "icon": "ni ni-cart"
+        }
+      ],
+      "heroEyebrow": "Built by developers",
+      "heroTitle": "Soft UI Dashboard",
+      "heroBody": "From colors, cards, and typography to more advanced elements, this page now follows the same bilingual system as the rest of the product.",
+      "readDocs": "Read docs",
+      "storyTitle": "Work with the rockets",
+      "storyBody": "We kept this page as a visual sandbox, while aligning the language switch and navigation pattern with the main product experience.",
+      "activeUsers": "Active users",
+      "activeUsersChange": "+23% since last week",
+      "activeUsersItems": [
+        {
+          "label": "Users",
+          "value": "36K",
+          "progressClassName": "w-60",
+          "iconClassName": "bg-gradient-primary"
+        },
+        {
+          "label": "Clicks",
+          "value": "2m",
+          "progressClassName": "w-90",
+          "iconClassName": "bg-gradient-info"
+        },
+        {
+          "label": "Sales",
+          "value": "435$",
+          "progressClassName": "w-30",
+          "iconClassName": "bg-gradient-warning"
+        },
+        {
+          "label": "Items",
+          "value": "43",
+          "progressClassName": "w-50",
+          "iconClassName": "bg-gradient-danger"
+        }
+      ],
+      "salesOverview": "Sales overview",
+      "salesOverviewChange": "4% more in 2021",
+      "projectsTitle": "Projects",
+      "projectsSummary": "30 done this month",
+      "tableHeaders": {
+        "project": "Project",
+        "members": "Members",
+        "budget": "Budget",
+        "completion": "Completion"
+      },
+      "ordersOverview": "Orders overview",
+      "ordersSummary": "24% this month",
+      "teamMember": "Team member",
+      "timeline": [
+        {
+          "icon": "ni ni-bell-55 text-success text-gradient",
+          "title": "$2400, design changes",
+          "date": "22 DEC 7:20 PM"
+        },
+        {
+          "icon": "ni ni-html5 text-danger text-gradient",
+          "title": "New order #1832412",
+          "date": "21 DEC 11 PM"
+        },
+        {
+          "icon": "ni ni-cart text-info text-gradient",
+          "title": "Server payments for April",
+          "date": "21 DEC 9:34 PM"
+        },
+        {
+          "icon": "ni ni-credit-card text-warning text-gradient",
+          "title": "New card added for order #4395133",
+          "date": "20 DEC 2:20 AM"
+        },
+        {
+          "icon": "ni ni-key-25 text-primary text-gradient",
+          "title": "Unlock packages for development",
+          "date": "18 DEC 4:54 AM"
+        },
+        {
+          "icon": "ni ni-money-coins text-dark text-gradient",
+          "title": "New order #9583120",
+          "date": "17 DEC"
+        }
+      ],
+      "projects": [
+        {
+          "logo": "/assets/img/small-logos/logo-xd.svg",
+          "title": "Soft UI XD Version",
+          "budget": "$14,000",
+          "completion": "60%",
+          "progressClassName": "w-60",
+          "members": [
+            "/assets/img/team-1.jpg",
+            "/assets/img/team-2.jpg",
+            "/assets/img/team-3.jpg",
+            "/assets/img/team-4.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-atlassian.svg",
+          "title": "Add progress track to the internal app",
+          "budget": "$3,000",
+          "completion": "10%",
+          "progressClassName": "w-10",
+          "members": [
+            "/assets/img/team-2.jpg",
+            "/assets/img/team-4.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-slack.svg",
+          "title": "Fix platform errors",
+          "budget": "Not set",
+          "completion": "100%",
+          "progressClassName": "w-100 bg-gradient-success",
+          "members": [
+            "/assets/img/team-3.jpg",
+            "/assets/img/team-1.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-spotify.svg",
+          "title": "Launch our mobile app",
+          "budget": "$20,500",
+          "completion": "100%",
+          "progressClassName": "w-100 bg-gradient-success",
+          "members": [
+            "/assets/img/team-4.jpg",
+            "/assets/img/team-3.jpg",
+            "/assets/img/team-4.jpg",
+            "/assets/img/team-1.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-jira.svg",
+          "title": "Add the new pricing page",
+          "budget": "$500",
+          "completion": "25%",
+          "progressClassName": "w-25",
+          "members": [
+            "/assets/img/team-4.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-invision.svg",
+          "title": "Redesign the online store",
+          "budget": "$2,000",
+          "completion": "40%",
+          "progressClassName": "w-40",
+          "members": [
+            "/assets/img/team-1.jpg",
+            "/assets/img/team-4.jpg"
+          ]
+        }
+      ]
+    }
+  }
+}

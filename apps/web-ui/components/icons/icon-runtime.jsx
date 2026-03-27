@@ -20,8 +20,26 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="10" height="11" rx="2"/><path d="M6 15H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"/></svg>',
   "ni-collection":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M7 4h10M7 10h10M4 13h16M7 16h10M7 19h10"/></svg>',
+  "ni-lamp-16":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M8.5 14.5C7 13.3 6 11.4 6 9.2A6 6 0 0 1 18 9.2c0 2.2-1 4.1-2.5 5.3-.7.6-1.5 1.7-1.5 2.5h-4c0-.8-.8-1.9-1.5-2.5Z"/></svg>',
+  "ni-send":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>',
+  "ni-time-alarm":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7"/><path d="M12 9v4l2.5 2.5M7 3 4 6M17 3l3 3"/></svg>',
+  "ni-layers-3":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 4 8 4-8 4-8-4 8-4Z"/><path d="m4 12 8 4 8-4"/><path d="m4 16 8 4 8-4"/></svg>',
+  "ni-shop":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16l-1 4a2 2 0 0 1-2 1.5H7A2 2 0 0 1 5 12Z"/><path d="M6 13.5V20h12v-6.5M9 20v-4h6v4M6 8l1-4h10l1 4"/></svg>',
+  "ni-bullet-list-67":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7h9M9 12h9M9 17h9"/><circle cx="5.5" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="5.5" cy="12" r="1.1" fill="currentColor" stroke="none"/><circle cx="5.5" cy="17" r="1.1" fill="currentColor" stroke="none"/></svg>',
+  "ni-chat-round":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 18H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-7l-4 3v-3Z"/></svg>',
   "ni-money-coins":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="6" ry="3"/><path d="M6 6v8c0 1.7 2.7 3 6 3s6-1.3 6-3V6"/><path d="M6 10c0 1.7 2.7 3 6 3s6-1.3 6-3"/></svg>',
+  "ni-chart-pie-35":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 9 9h-9Z"/><path d="M13 3.1A8.9 8.9 0 0 1 20.9 11H13Z"/></svg>',
+  "ni-chart-bar-32":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M7 20v-7"/><path d="M12 20V8"/><path d="M17 20v-4"/></svg>',
   "ni-world":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.4 4 5.6 4 9s-1.5 6.6-4 9c-2.5-2.4-4-5.6-4-9s1.5-6.6 4-9"/></svg>',
   "ni-paper-diploma":
@@ -30,12 +48,20 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M3 4h2l2.6 10.2a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L21 8H7"/></svg>',
   "ni-camera-compact":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-2h6l2 2h3v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><circle cx="12" cy="13" r="3"/></svg>',
+  "ni-button-play":
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l10-6.5-10-6.5Z"/></svg>',
   "ni-bulb-61":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M8.5 14.5C7 13.3 6 11.4 6 9.2A6 6 0 0 1 18 9.2c0 2.2-1 4.1-2.5 5.3-.7.6-1.5 1.7-1.5 2.5h-4c0-.8-.8-1.9-1.5-2.5Z"/></svg>',
   "ni-trophy":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v3a4 4 0 0 1-8 0Z"/><path d="M8 5H5a2 2 0 0 0 2 4h1M16 5h3a2 2 0 0 1-2 4h-1M12 11v4M9 21h6M8 17h8"/></svg>',
   "ni-mobile-button":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2.5" width="8" height="19" rx="2"/><path d="M11 18.5h2"/></svg>',
+  "ni-laptop":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="10" rx="2"/><path d="M2 19h20"/></svg>',
+  "ni-spaceship":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 1 7 4 8 8-2.2 1.2-4.9 1.8-8 1.8S6.2 12.2 4 11c1-4 4-7 8-8Z"/><path d="M8 13 5 20l4-2 3 3 3-3 4 2-3-7M10 9h.01M14 9h.01"/></svg>',
+  "ni-shield-check":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 5 3.4 8.9 7 10 3.6-1.1 7-5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
   "ni-tag":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13 11 22l-9-9V4h9z"/><circle cx="7.5" cy="8.5" r="1.2"/></svg>',
   "ni-box-2":
@@ -54,6 +80,14 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14l-1.2 14.5L12 21l-5.8-3.5L5 3Zm2.8 3 .5 6.7H15l-.2 2.7-2.8.8-2.7-.8-.1-1.4H6.8l.3 3.1 4.9 1.5 4.9-1.5.7-8.9H8.4L8.2 6h7.1l.1-1.5H7.8Z"/></svg>',
   "ni-key-25":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M12 15h9M18 12v6M21 13v4"/></svg>',
+  "ni-check-bold":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>',
+  "ni-curved-next":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h7a5 5 0 0 1 5 5v5"/><path d="m13 13 4 4 4-4"/></svg>',
+  "ni-atom":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1.6"/><path d="M12 4c3.5 0 6.5 3.6 6.5 8s-3 8-6.5 8-6.5-3.6-6.5-8 3-8 6.5-8Z" transform="rotate(60 12 12)"/><path d="M12 4c3.5 0 6.5 3.6 6.5 8s-3 8-6.5 8-6.5-3.6-6.5-8 3-8 6.5-8Z" transform="rotate(-60 12 12)"/><ellipse cx="12" cy="12" rx="8.5" ry="3.8"/></svg>',
+  "ni-lock-circle-open":
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 12V10a2.5 2.5 0 0 1 4.9-.7"/><rect x="8.5" y="12" width="7" height="5" rx="1.4"/><path d="M12 14.2v1.6"/></svg>',
   "fa-chart-pie":
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12A9 9 0 1 1 12 3"/><path d="M12 3v9h9"/></svg>',
   "fa-user":

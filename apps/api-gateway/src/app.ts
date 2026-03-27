@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import Fastify from "fastify";
 import cookie from "@fastify/cookie";
+import formbody from "@fastify/formbody";
 import {
   CORRELATION_ID_HEADER,
   REQUEST_ID_HEADER,
@@ -80,6 +81,7 @@ export function buildApp() {
   });
 
   app.register(cookie);
+  app.register(formbody);
 
   app.get("/health", async (request) => {
     const requestContext = request.requestContext ?? createRequestContext(request.headers, {

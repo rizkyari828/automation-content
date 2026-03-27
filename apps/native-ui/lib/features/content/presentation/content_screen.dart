@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_spacing.dart';
 
 class ContentScreen extends StatelessWidget {
@@ -7,13 +8,14 @@ class ContentScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      children: const [
+      children: [
         _PlaceholderCard(
-          title: 'Content Pipeline',
-          body:
-              'This screen will replace the dense web table with card-first content drafts and generator actions.',
+          title: strings.contentPipeline,
+          body: strings.contentPipelineBody,
         ),
       ],
     );

@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/router.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_spacing.dart';
+import 'auth_layout.dart';
 import 'auth_controller.dart';
+import 'social_auth_section.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({super.key});
@@ -13,6 +16,7 @@ class SignUpScreen extends ConsumerStatefulWidget {
 }
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
+  late final TextEditingController _fullNameController;
   late final TextEditingController _workspaceController;
   late final TextEditingController _emailController;
   late final TextEditingController _passwordController;
@@ -20,6 +24,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   void initState() {
     super.initState();
+    _fullNameController = TextEditingController();
     _workspaceController = TextEditingController();
     _emailController = TextEditingController();
     _passwordController = TextEditingController();
@@ -27,6 +32,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   void dispose() {
+    _fullNameController.dispose();
     _workspaceController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -35,6 +41,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final authState = ref.watch(authControllerProvider);
 
     ref.listen(authControllerProvider, (previous, next) {
@@ -50,83 +57,86 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
       if (next.hasError && mounted) {
         final message = next.error.toString().replaceFirst('Bad state: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight - (AppSpacing.lg * 2),
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 480),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Create Workspace',
-                        style: Theme.of(context).textTheme.headlineLarge,
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      const Text(
-                        'Create a workspace and get native tokens from api-gateway.',
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      TextField(
-                        controller: _workspaceController,
-                        decoration: const InputDecoration(
-                          labelText: 'Workspace name',
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      TextField(
-                        controller: _emailController,
-                        decoration: const InputDecoration(labelText: 'Email'),
-                      ),
-                      const SizedBox(height: AppSpacing.md),
-                      TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: const InputDecoration(
-                          labelText: 'Password',
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      ElevatedButton(
-                        onPressed: authState.isLoading
-                            ? null
-                            : () {
-                                ref
-                                    .read(authControllerProvider.notifier)
-                                    .signUp(
-                                      email: _emailController.text,
-                                      password: _passwordController.text,
-                                      workspaceName: _workspaceController.text,
-                                    );
-                              },
-                        child: Text(
-                          authState.isLoading
-                              ? 'Creating...'
-                              : 'Create and continue',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+    return AuthLayout(
+      title: strings.createWorkspaceTitle,
+      subtitle: strings.createWorkspaceSubtitle,
+      sideEyebrow: 'workspace onboarding',
+      sideTitle: strings.createWorkspaceTitle,
+      sideBody: strings.signInSideBody,
+      formChild: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SocialAuthSection(
+            busy: authState.isLoading,
+            intent: 'register',
+            onProviderTap: (provider) {
+              ref
+                  .read(authControllerProvider.notifier)
+                  .signUpWithProvider(provider);
+            },
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          TextField(
+            controller: _fullNameController,
+            decoration: InputDecoration(
+              labelText: strings.fullName,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextField(
+            controller: _workspaceController,
+            decoration: InputDecoration(
+              labelText: strings.workspaceName,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextField(
+            controller: _emailController,
+            decoration: InputDecoration(labelText: strings.email),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          TextField(
+            controller: _passwordController,
+            obscureText: true,
+            decoration: InputDecoration(
+              labelText: strings.password,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: authState.isLoading
+                  ? null
+                  : () {
+                      ref.read(authControllerProvider.notifier).signUp(
+                            email: _emailController.text,
+                            fullName: _fullNameController.text,
+                            password: _passwordController.text,
+                            workspaceName: _workspaceController.text,
+                          );
+                    },
+              child: Text(
+                authState.isLoading
+                    ? strings.creating
+                    : strings.createAndContinue,
               ),
             ),
-          );
-        },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pushNamed(AppRouter.signInRoute);
+            },
+            child: Text(strings.backToSignIn),
+          ),
+        ],
       ),
     );
   }

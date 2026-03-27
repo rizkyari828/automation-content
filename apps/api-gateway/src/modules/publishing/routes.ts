@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { authenticateUserRequest, ensureWorkspaceScope } from "../../lib/auth.js";
+import { ensureWorkspacePermission } from "../../lib/authorization.js";
 import { query } from "../../lib/database.js";
 import {
   DownstreamServiceError,
@@ -57,6 +58,14 @@ export function registerPublishingRoutes(app: FastifyInstance) {
         const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
         if (workspaceError) {
           return workspaceError;
+        }
+
+        const permissionError = await ensureWorkspacePermission(request, reply, {
+          feature: "publishing",
+          permission: "publishing.write"
+        });
+        if (permissionError) {
+          return permissionError;
         }
 
         if (!workspaceId) {
@@ -160,6 +169,14 @@ export function registerPublishingRoutes(app: FastifyInstance) {
       }
 
       try {
+        const permissionError = await ensureWorkspacePermission(request, reply, {
+          feature: "publishing",
+          permission: "publishing.read"
+        });
+        if (permissionError) {
+          return permissionError;
+        }
+
         const result = await callInternalService<PublishJobResponse>(request, {
           path: `/internal/v1/publish-jobs/${params.jobId}`,
           scope: ["publishing.read"],

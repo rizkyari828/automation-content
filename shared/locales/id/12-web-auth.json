@@ -1,0 +1,93 @@
+{
+  "web": {
+    "authShell": {
+      "brand": "Argon Dashboard 3",
+      "dashboard": "Dashboard",
+      "profile": "Profil",
+      "signUp": "Daftar",
+      "signIn": "Masuk",
+      "freeDownload": "Unduh Gratis",
+      "footerLinks": [
+        "Perusahaan",
+        "Tentang Kami",
+        "Tim",
+        "Produk",
+        "Blog",
+        "Harga"
+      ],
+      "copyrightTemplate": "Hak cipta © {{year}} Soft oleh Creative Tim."
+    },
+    "signInPage": {
+      "title": "Masuk",
+      "subtitle": "Masukkan email dan password untuk masuk",
+      "email": "Email",
+      "password": "Password",
+      "forgotPassword": "Lupa password?",
+      "emailDivider": "Atau lanjutkan dengan email dan password",
+      "signingIn": "Sedang masuk...",
+      "submit": "Masuk",
+      "noAccount": "Belum punya akun?",
+      "signUp": "Daftar",
+      "sideQuote": "\"Perhatian adalah mata uang baru\"",
+      "sideBody": "Semakin effortless sebuah tulisan terlihat, biasanya semakin besar usaha yang diberikan penulis di balik prosesnya.",
+      "fallbackError": "Tidak bisa masuk"
+    },
+    "signUpPage": {
+      "welcome": "Selamat datang!",
+      "intro": "Gunakan form ini untuk masuk atau membuat akun baru di project Anda secara gratis.",
+      "createWorkspace": "Buat workspace CreatorFlow",
+      "fullName": "Nama lengkap",
+      "workspaceName": "Nama workspace",
+      "email": "Email",
+      "password": "Password",
+      "emailDivider": "Atau isi data workspace secara manual",
+      "creating": "Sedang membuat workspace...",
+      "signUp": "Daftar",
+      "alreadyHaveAccount": "Sudah punya akun?",
+      "signIn": "Masuk",
+      "fallbackError": "Tidak bisa membuat akun"
+    },
+    "forgotPasswordPage": {
+      "title": "Reset password",
+      "subtitle": "Minta kode OTP lalu set password baru untuk akun CreatorFlow Anda.",
+      "email": "Email",
+      "code": "Kode OTP",
+      "newPassword": "Password baru",
+      "requestCode": "Kirim kode reset",
+      "requesting": "Mengirim kode...",
+      "requestSuccess": "Jika email terdaftar, kode reset sudah dikirim.",
+      "requestFallbackError": "Tidak bisa mengirim kode reset",
+      "resetPassword": "Reset password",
+      "resetting": "Sedang reset password...",
+      "resetSuccess": "Password berhasil direset",
+      "resetFallbackError": "Tidak bisa reset password",
+      "requestAnotherCode": "Kirim kode baru",
+      "backToSignIn": "Kembali ke halaman masuk",
+      "sideTitle": "Recovery tanpa tiket support",
+      "sideBody": "Flow ini menjaga recovery password tetap langsung di produk, dengan OTP email singkat dan tanpa alur yang membingungkan."
+    },
+    "socialAuth": {
+      "signInTitle": "Masuk lebih cepat dengan",
+      "registerTitle": "Buat akun dengan",
+      "provisioningHint": "SSO akan otomatis membuat atau menghubungkan workspace default untuk akun Anda saat pertama kali login.",
+      "providers": {
+        "google": "Lanjut dengan Google",
+        "twitter": "Lanjut dengan X / Twitter",
+        "facebook": "Lanjut dengan Facebook",
+        "apple": "Lanjut dengan Apple"
+      }
+    },
+    "sessionPanel": {
+      "loadingTitle": "Memeriksa sesi",
+      "loadingBody": "Menyinkronkan access token dan konteks workspace dari CreatorFlow API.",
+      "signedInTemplate": "Selamat datang kembali{{name}}.",
+      "workspace": "Workspace",
+      "role": "Peran",
+      "signingOut": "Sedang keluar...",
+      "signOut": "Keluar",
+      "inactiveTitle": "Sesi belum aktif",
+      "inactiveFallback": "Masuk untuk membuka data workspace.",
+      "goToSignIn": "Ke halaman masuk"
+    }
+  }
+}

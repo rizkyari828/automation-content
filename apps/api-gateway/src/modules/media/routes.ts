@@ -1,5 +1,6 @@
 import type { FastifyInstance } from "fastify";
 import { authenticateUserRequest, ensureWorkspaceScope } from "../../lib/auth.js";
+import { ensureWorkspacePermission } from "../../lib/authorization.js";
 import {
   DownstreamServiceError,
   callInternalService
@@ -38,6 +39,14 @@ export function registerMediaRoutes(app: FastifyInstance) {
       const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
       if (workspaceError) {
         return workspaceError;
+      }
+
+      const permissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "media",
+        permission: "media.render"
+      });
+      if (permissionError) {
+        return permissionError;
       }
 
       if (!workspaceId || !request.userAuth) {
@@ -109,6 +118,14 @@ export function registerMediaRoutes(app: FastifyInstance) {
       }
 
       try {
+        const permissionError = await ensureWorkspacePermission(request, reply, {
+          feature: "media",
+          permission: "media.read"
+        });
+        if (permissionError) {
+          return permissionError;
+        }
+
         const result = await callInternalService<RenderJobResponse>(request, {
           path: `/internal/v1/render-jobs/${params.jobId}`,
           scope: ["media.render.read"],

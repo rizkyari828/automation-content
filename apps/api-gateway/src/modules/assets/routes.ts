@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { getConfig } from "../../config.js";
 import { authenticateUserRequest, ensureWorkspaceScope } from "../../lib/auth.js";
+import { ensureWorkspacePermission } from "../../lib/authorization.js";
 import { query, withTransaction } from "../../lib/database.js";
 import { badRequest, internalError } from "../../lib/http.js";
 import { sanitizeFileName } from "../../lib/slug.js";
@@ -25,6 +26,14 @@ export function registerAssetRoutes(app: FastifyInstance) {
       const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
       if (workspaceError) {
         return workspaceError;
+      }
+
+      const permissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "assets",
+        permission: "assets.upload"
+      });
+      if (permissionError) {
+        return permissionError;
       }
 
       if (!workspaceId) {

@@ -1,0 +1,138 @@
+{
+  "web": {
+    "tablesPage": {
+      "pageTitle": "Content pipeline",
+      "pipelineTitle": "Active channel pipeline",
+      "pipelineBody": "Track the flow from brief to publish scheduling in one operational table.",
+      "pipelineLabels": {
+        "channel": "Channel",
+        "campaign": "Campaign",
+        "owner": "Owner",
+        "drafts": "Drafts",
+        "stage": "Stage",
+        "status": "Status"
+      },
+      "pipelineRows": [
+        {
+          "channel": "TikTok Shop",
+          "slot": "Publish slot: tonight",
+          "campaign": "Flash-sale brightening serum",
+          "angle": "Urgency hook + testimonial",
+          "owner": "Growth seller",
+          "drafts": "8",
+          "stage": "Final review",
+          "status": "Ready to publish",
+          "statusClass": "bg-gradient-success",
+          "icon": "ni ni-button-play",
+          "iconBackground": "#eaf4ff",
+          "iconColor": "#102c45"
+        },
+        {
+          "channel": "Shopee Video",
+          "slot": "Publish slot: tomorrow morning",
+          "campaign": "Payday bundling promo",
+          "angle": "Offer first + save CTA",
+          "owner": "Marketplace ops",
+          "drafts": "6",
+          "stage": "Caption refinement",
+          "status": "Needs revision",
+          "statusClass": "bg-gradient-warning",
+          "icon": "ni ni-cart",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        },
+        {
+          "channel": "Instagram Reels",
+          "slot": "Publish slot: tomorrow noon",
+          "campaign": "Before-after product story",
+          "angle": "Problem-solution",
+          "owner": "Brand content",
+          "drafts": "4",
+          "stage": "Brand approval",
+          "status": "Waiting",
+          "statusClass": "bg-gradient-info",
+          "icon": "ni ni-camera-compact",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "channel": "WhatsApp Broadcast",
+          "slot": "Publish slot: post launch",
+          "campaign": "Weekly promo recap",
+          "angle": "Proof + checkout CTA",
+          "owner": "CRM team",
+          "drafts": "3",
+          "stage": "Already scheduled",
+          "status": "Queued",
+          "statusClass": "bg-gradient-secondary",
+          "icon": "ni ni-chat-round",
+          "iconBackground": "#f0f4fa",
+          "iconColor": "#46607d"
+        }
+      ],
+      "experimentsTitle": "Angle experiments",
+      "experimentsBody": "Track running experiments so scaling decisions can be made faster.",
+      "experimentsLabels": {
+        "hypothesis": "Hypothesis",
+        "variant": "Variant",
+        "owner": "Owner",
+        "lift": "Lift",
+        "decision": "Decision"
+      },
+      "experiments": [
+        {
+          "hypothesis": "Open with final product result in first 2 seconds",
+          "variant": "A vs B",
+          "owner": "Content lead",
+          "lift": "+18%",
+          "liftClass": "text-success",
+          "decision": "Scale",
+          "decisionClass": "bg-gradient-success"
+        },
+        {
+          "hypothesis": "Urgency CTA versus educational CTA",
+          "variant": "C vs D",
+          "owner": "Affiliate ops",
+          "lift": "+6%",
+          "liftClass": "text-success",
+          "decision": "Keep testing",
+          "decisionClass": "bg-gradient-info"
+        },
+        {
+          "hypothesis": "Real user testimonial hook",
+          "variant": "E vs F",
+          "owner": "Marketplace ops",
+          "lift": "-2%",
+          "liftClass": "text-danger",
+          "decision": "Stop",
+          "decisionClass": "bg-gradient-secondary"
+        }
+      ],
+      "actionsTitle": "Top actions today",
+      "actionsBody": "Three highest-leverage tasks to keep the publish queue healthy.",
+      "actions": [
+        {
+          "title": "Finalize 6 Shopee Video drafts",
+          "body": "Finish caption revisions and validate CTA before the morning batch.",
+          "icon": "ni ni-check-bold",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "title": "Approve 4 Reels assets",
+          "body": "Confirm visual sequence and promo claim compliance with brand guardrails.",
+          "icon": "ni ni-like-2",
+          "iconBackground": "#eaf4ff",
+          "iconColor": "#102c45"
+        },
+        {
+          "title": "Duplicate the winning CTA",
+          "body": "Apply yesterday's top CTA to the next affiliate content batch.",
+          "icon": "ni ni-send",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        }
+      ]
+    }
+  }
+}

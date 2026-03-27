@@ -1,0 +1,179 @@
+{
+  "web": {
+    "dashboardPage": {
+      "pageTitle": "Ringkasan Workspace",
+      "stats": [
+        {
+          "label": "Draft hari ini",
+          "value": "48",
+          "change": "+18%",
+          "changeClassName": "text-success",
+          "suffix": "dibanding minggu lalu",
+          "icon": "ni ni-collection",
+          "iconClassName": "bg-gradient-primary shadow-primary"
+        },
+        {
+          "label": "Angle siap",
+          "value": "19",
+          "change": "+6",
+          "changeClassName": "text-success",
+          "suffix": "menunggu review",
+          "icon": "ni ni-lamp-16",
+          "iconClassName": "bg-gradient-info shadow-info"
+        },
+        {
+          "label": "Post terjadwal",
+          "value": "32",
+          "change": "+9%",
+          "changeClassName": "text-success",
+          "suffix": "untuk 3 hari ke depan",
+          "icon": "ni ni-calendar-grid-58",
+          "iconClassName": "bg-gradient-success shadow-success"
+        },
+        {
+          "label": "Campaign aktif",
+          "value": "6",
+          "change": "2 urgent",
+          "changeClassName": "text-warning",
+          "suffix": "butuh perhatian cepat",
+          "icon": "ni ni-send",
+          "iconClassName": "bg-gradient-warning shadow-warning"
+        }
+      ],
+      "velocityTitle": "Kecepatan produksi konten",
+      "velocityChange": "18% lebih cepat minggu ini",
+      "workflowTitle": "Snapshot workflow",
+      "workflowBody": "Gambaran singkat langkah produksi yang sedang bergerak sekarang.",
+      "workflowItems": [
+        {
+          "label": "Brief terkumpul",
+          "value": "14 brief",
+          "detail": "Sebagian besar brief sudah memuat offer, audience, dan angle konversi.",
+          "badge": "Sehat",
+          "badgeClassName": "bg-gradient-success"
+        },
+        {
+          "label": "Queue review",
+          "value": "9 aset",
+          "detail": "Script dan caption menunggu pengecekan akhir sebelum masuk scheduling.",
+          "badge": "Prioritas",
+          "badgeClassName": "bg-gradient-warning"
+        },
+        {
+          "label": "Handoff render",
+          "value": "5 draft video",
+          "detail": "Draft promo siap dipoles dan disiapkan untuk publish.",
+          "badge": "Berjalan",
+          "badgeClassName": "bg-gradient-info"
+        }
+      ],
+      "channelsTitle": "Queue channel",
+      "channelsSubtitle": "Komposisi output aktif di jalur distribusi utama saat ini.",
+      "channelsBadge": "Live ops",
+      "channelLabels": {
+        "channel": "Channel",
+        "format": "Format",
+        "drafts": "Draft",
+        "status": "Status"
+      },
+      "channels": [
+        {
+          "channel": "TikTok Shop",
+          "owner": "PIC: Growth seller",
+          "format": "UGC promo / angle urgency",
+          "window": "Window publish berikutnya: malam ini",
+          "drafts": "8",
+          "status": "Siap direview",
+          "statusClassName": "bg-gradient-success",
+          "icon": "ni ni-button-play",
+          "iconClassName": "bg-gradient-dark"
+        },
+        {
+          "channel": "Shopee Video",
+          "owner": "PIC: Marketplace ops",
+          "format": "Offer-first product cutdown",
+          "window": "Window publish berikutnya: besok pagi",
+          "drafts": "6",
+          "status": "Rapikan copy",
+          "statusClassName": "bg-gradient-warning",
+          "icon": "ni ni-cart",
+          "iconClassName": "bg-gradient-warning"
+        },
+        {
+          "channel": "Instagram Reels",
+          "owner": "PIC: Brand content",
+          "format": "Storytelling problem-solution",
+          "window": "Window publish berikutnya: besok siang",
+          "drafts": "4",
+          "status": "Menunggu approval",
+          "statusClassName": "bg-gradient-info",
+          "icon": "ni ni-camera-compact",
+          "iconClassName": "bg-gradient-primary"
+        },
+        {
+          "channel": "WhatsApp Broadcast",
+          "owner": "PIC: Tim CRM",
+          "format": "Promo recap singkat + CTA",
+          "window": "Window publish berikutnya: setelah launch campaign",
+          "drafts": "3",
+          "status": "Sudah antre",
+          "statusClassName": "bg-gradient-secondary",
+          "icon": "ni ni-chat-round",
+          "iconClassName": "bg-gradient-success"
+        }
+      ],
+      "playbooksTitle": "Langkah berikut yang paling menarik",
+      "playbooks": [
+        {
+          "title": "Dorong angle testimoni",
+          "body": "Traksi terbaik minggu ini datang dari creative berbasis bukti, bukan copy yang terlalu penuh fitur.",
+          "badge": "High leverage",
+          "badgeClassName": "bg-gradient-success",
+          "icon": "ni ni-chart-bar-32",
+          "iconClassName": "bg-gradient-success"
+        },
+        {
+          "title": "Pendekkan intro video",
+          "body": "Draft dengan 2 detik awal yang lebih singkat lebih cepat lolos review dan menahan perhatian lebih baik.",
+          "badge": "Quick win",
+          "badgeClassName": "bg-gradient-info",
+          "icon": "ni ni-scissors",
+          "iconClassName": "bg-gradient-info"
+        },
+        {
+          "title": "Duplikasi CTA yang menang",
+          "body": "Pakai closing line dengan performa terbaik saat ini di batch berikutnya sebelum menguji variasi baru.",
+          "badge": "Scale now",
+          "badgeClassName": "bg-gradient-warning",
+          "icon": "ni ni-send",
+          "iconClassName": "bg-gradient-warning"
+        }
+      ],
+      "cadenceTitle": "Ritme tim",
+      "cadenceBody": "Pulse produksi yang sederhana supaya minggu kerja tetap terstruktur dan cepat.",
+      "cadenceItems": [
+        {
+          "day": "Sen",
+          "focus": "Intake brief & perencanaan angle",
+          "note": "Kumpulkan konteks produk dan kunci tesis campaign.",
+          "badge": "Planning",
+          "badgeClassName": "bg-gradient-dark"
+        },
+        {
+          "day": "Rab",
+          "focus": "Review script & draft aset",
+          "note": "Pilih yang lanjut ke render dan yang masih butuh iterasi.",
+          "badge": "Review",
+          "badgeClassName": "bg-gradient-info"
+        },
+        {
+          "day": "Jum",
+          "focus": "Batch queue publish",
+          "note": "Siapkan kumpulan aset approved terbaik untuk siklus posting berikutnya.",
+          "badge": "Publish",
+          "badgeClassName": "bg-gradient-success"
+        }
+      ]
+    }
+  }
+}

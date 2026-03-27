@@ -1,70 +1,141 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Script from "next/script";
 
 import DashboardBodyClass from "../dashboard/dashboard-body-class.jsx";
-import DashboardConfigurator from "../dashboard/dashboard-configurator.jsx";
+import LanguageSwitcher from "../i18n/language-switcher.jsx";
+import { useWebMessages } from "../i18n/web-locale.jsx";
 
 const MAIN_NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: "ni ni-tv-2", routeKey: "dashboard" },
-  { href: "/tables", label: "Tables", icon: "ni ni-calendar-grid-58", routeKey: "tables" },
-  { href: "/billing", label: "Billing", icon: "ni ni-credit-card", routeKey: "billing" },
-  { href: "/virtual-reality", label: "Virtual Reality", icon: "ni ni-app", routeKey: "virtual-reality" },
-  { href: "/rtl", label: "RTL", icon: "ni ni-world-2", routeKey: "rtl" }
+  { href: "/dashboard", icon: "ni ni-shop", key: "dashboard", routeKey: "dashboard" },
+  { href: "/tables", icon: "ni ni-bullet-list-67", key: "tables", routeKey: "tables" },
+  { href: "/billing", icon: "ni ni-money-coins", key: "billing", routeKey: "billing" },
+  { href: "/virtual-reality", icon: "ni ni-chart-pie-35", key: "virtualReality", routeKey: "virtual-reality" }
 ];
 
 const ACCOUNT_NAV_ITEMS = [
-  { href: "/profile", label: "Profile", icon: "ni ni-single-02", routeKey: "profile" },
-  { href: "/sign-in", label: "Sign In", icon: "ni ni-single-copy-04", routeKey: "sign-in" },
-  { href: "/sign-up", label: "Sign Up", icon: "ni ni-collection", routeKey: "sign-up" }
+  { href: "/profile", icon: "ni ni-single-02", key: "profile", routeKey: "profile" }
 ];
 
-const NOTIFICATIONS = [
-  {
-    image: "/assets/img/team-2.jpg",
-    imageClassName: "avatar avatar-sm me-3",
-    title: (
-      <>
-        <span className="font-weight-bold">New message</span> from Laur
-      </>
-    ),
-    time: "13 minutes ago"
-  },
-  {
-    image: "/assets/img/small-logos/logo-spotify.svg",
-    imageClassName: "avatar avatar-sm bg-gradient-dark me-3",
-    title: (
-      <>
-        <span className="font-weight-bold">New album</span> by Travis Scott
-      </>
-    ),
-    time: "1 day"
-  },
-  {
-    iconClassName: "avatar avatar-sm bg-gradient-secondary me-3 my-auto",
-    icon: "ni ni-credit-card text-white",
-    title: "Payment successfully completed",
-    time: "2 days"
+const NAV_ACCESS_RULES = {
+  billing: {
+    feature: "billing",
+    permission: "billing.read"
   }
-];
+};
 
-function SidebarNavItem({ item, activeRoute }) {
+function canAccessNavItem(item, session) {
+  if (!session?.authenticated || !session.authorization) {
+    return true;
+  }
+
+  if (session.authorization.platformRoleCode === "superadmin") {
+    return true;
+  }
+
+  const rule = NAV_ACCESS_RULES[item.routeKey];
+  if (!rule) {
+    return true;
+  }
+
+  if (
+    rule.feature &&
+    !session.authorization.enabledFeatureCodes?.includes(rule.feature)
+  ) {
+    return false;
+  }
+
+  if (
+    rule.permission &&
+    !session.authorization.permissions?.includes(rule.permission)
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function SidebarNavItem({ item, activeRoute, labels }) {
+  const active = item.routeKey === activeRoute;
+
   return (
     <li className="nav-item">
-      <Link className={`nav-link${item.routeKey === activeRoute ? " active" : ""}`} href={item.href}>
-        <div className="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center">
-          <i className={`${item.icon} text-dark text-sm opacity-10`} />
+      <Link
+        className={`nav-link creatorflow-sidenav-link${active ? " active shadow-sm" : ""}`}
+        href={item.href}
+        style={active ? { background: "#f4f7fb" } : undefined}
+      >
+        <div
+          className="icon icon-shape icon-sm border-radius-md text-center me-2 d-flex align-items-center justify-content-center"
+          style={
+            active
+              ? {
+                  background: "linear-gradient(135deg, #102c45 0%, #0f8590 60%, #f59a53 100%)"
+                }
+              : {
+                  background: "#edf2f7"
+                }
+          }
+        >
+          <i className={`${item.icon} ${active ? "text-white" : "text-dark"} text-sm opacity-10`} />
         </div>
-        <span className="nav-link-text ms-1">{item.label}</span>
+        <span className="nav-link-text ms-1">{labels[item.key]}</span>
       </Link>
     </li>
   );
 }
 
 function ArgonSidebar({ activeRoute }) {
+  const copy = useWebMessages().web.layout;
+  const [session, setSession] = useState({
+    authenticated: false,
+    authorization: null
+  });
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadSession() {
+      try {
+        const response = await fetch("/api/auth/session", {
+          credentials: "same-origin"
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!active || !response.ok || !payload) {
+          return;
+        }
+
+        setSession({
+          authenticated: Boolean(payload.authenticated),
+          authorization: payload.authorization ?? null
+        });
+      } catch {
+        if (!active) {
+          return;
+        }
+      }
+    }
+
+    loadSession();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const mainNavItems = MAIN_NAV_ITEMS.filter((item) => canAccessNavItem(item, session));
+
   return (
     <aside
-      className="sidenav bg-white navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-4"
+      className="sidenav navbar navbar-vertical navbar-expand-xs border-0 border-radius-xl my-3 fixed-start ms-4 d-flex flex-column creatorflow-internal-sidenav"
       id="sidenav-main"
+      style={{
+        background: "rgba(255, 255, 255, 0.96)",
+        boxShadow: "0 28px 60px rgba(16, 44, 69, 0.12)"
+      }}
     >
       <div className="sidenav-header">
         <i
@@ -72,68 +143,69 @@ function ArgonSidebar({ activeRoute }) {
           aria-hidden="true"
           id="iconSidenav"
         />
-        <a
-          className="navbar-brand m-0"
-          href="https://demos.creative-tim.com/argon-dashboard/pages/dashboard.html"
-          target="_blank"
-          rel="noreferrer"
-        >
-          <img
-            src="/assets/img/logo-ct-dark.png"
-            width="26"
-            height="26"
-            className="navbar-brand-img h-100"
-            alt="main logo"
-          />
-          <span className="ms-1 font-weight-bold">Creative Tim</span>
-        </a>
+        <Link className="navbar-brand m-0 d-flex align-items-center" href="/">
+          <span
+            aria-hidden="true"
+            style={{
+              alignItems: "center",
+              background: "linear-gradient(135deg, #102c45 0%, #0f8590 58%, #f59a53 100%)",
+              borderRadius: 14,
+              boxShadow: "0 14px 30px rgba(16, 44, 69, 0.18)",
+              color: "#ffffff",
+              display: "inline-flex",
+              fontFamily: "\"Plus Jakarta Sans\", sans-serif",
+              fontSize: "0.72rem",
+              fontWeight: 800,
+              height: 32,
+              justifyContent: "center",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              width: 32
+            }}
+          >
+            CF
+          </span>
+          <span className="ms-2">
+            <span className="d-block font-weight-bold">CreatorFlow</span>
+            <span className="text-xs text-uppercase text-secondary" style={{ letterSpacing: "0.14em" }}>
+              Commerce OS
+            </span>
+          </span>
+        </Link>
       </div>
       <hr className="horizontal dark mt-0" />
-      <div className="collapse navbar-collapse w-auto" id="sidenav-collapse-main">
+      <div className="creatorflow-sidenav-body d-flex flex-column flex-grow-1">
         <ul className="navbar-nav">
-          {MAIN_NAV_ITEMS.map((item) => (
-            <SidebarNavItem key={item.href} item={item} activeRoute={activeRoute} />
+          {mainNavItems.map((item) => (
+            <SidebarNavItem key={item.href} item={item} activeRoute={activeRoute} labels={copy.nav} />
           ))}
           <li className="nav-item mt-3">
             <h6 className="ps-4 ms-2 text-uppercase text-xs font-weight-bolder opacity-6">
-              Account pages
+              {copy.nav.accountPages}
             </h6>
           </li>
           {ACCOUNT_NAV_ITEMS.map((item) => (
-            <SidebarNavItem key={item.href} item={item} activeRoute={activeRoute} />
+            <SidebarNavItem key={item.href} item={item} activeRoute={activeRoute} labels={copy.nav} />
           ))}
         </ul>
-      </div>
-      <div className="sidenav-footer mx-3">
-        <div className="card card-plain shadow-none" id="sidenavCard">
-          <img
-            className="w-50 mx-auto"
-            src="/assets/img/illustrations/icon-documentation.svg"
-            alt="sidebar illustration"
-          />
-          <div className="card-body text-center p-3 w-100 pt-0">
-            <div className="docs-info">
-              <h6 className="mb-0">Need help?</h6>
-              <p className="text-xs font-weight-bold mb-0">Please check our docs</p>
-            </div>
+        <div className="sidenav-footer mt-auto px-3 pb-3 pt-3">
+          <div
+            className="border-radius-lg p-3 creatorflow-sidenav-promo"
+            style={{
+              background: "linear-gradient(135deg, rgba(16, 44, 69, 0.98), rgba(15, 133, 144, 0.92))",
+              color: "#ffffff"
+            }}
+          >
+            <p className="text-xs text-uppercase mb-2 opacity-8" style={{ letterSpacing: "0.16em" }}>
+              {copy.sidebar.eyebrow}
+            </p>
+            <h6 className="text-white mb-2">{copy.sidebar.title}</h6>
+            <p className="text-sm mb-3 opacity-8 creatorflow-sidenav-promo-body">{copy.sidebar.body}</p>
+            <Link href="/billing" className="btn btn-sm bg-white text-dark mb-0 w-100 creatorflow-sidenav-promo-cta">
+              {copy.sidebar.cta}
+            </Link>
           </div>
         </div>
-        <a
-          href="https://www.creative-tim.com/learning-lab/bootstrap/license/argon-dashboard"
-          target="_blank"
-          rel="noreferrer"
-          className="btn btn-dark btn-sm w-100 mb-3"
-        >
-          Documentation
-        </a>
-        <a
-          className="btn btn-primary btn-sm mb-0 w-100"
-          href="https://www.creative-tim.com/product/argon-dashboard-pro?ref=sidebarfree"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Upgrade to pro
-        </a>
       </div>
     </aside>
   );
@@ -141,42 +213,101 @@ function ArgonSidebar({ activeRoute }) {
 
 function ArgonTopbar({
   pageTitle,
-  className = "navbar navbar-main navbar-expand-lg px-0 mx-4 shadow-none border-radius-xl",
-  containerClassName = "container-fluid py-1 px-3",
-  breadcrumbClassName = "breadcrumb bg-transparent mb-0 pb-0 pt-1 px-0 me-sm-6 me-5",
-  titleClassName = "font-weight-bolder text-white mb-0",
+  className = "navbar navbar-main navbar-expand-lg px-0 mx-4 border-radius-xl creatorflow-internal-topbar",
+  containerClassName = "container-fluid py-3 px-3",
+  titleClassName = "font-weight-bolder text-white mb-0 creatorflow-topbar-page-title",
   dropdownMenuClassName = "me-sm-n4",
   mobileNavItemClassName = "nav-item d-xl-none ps-3 d-flex align-items-center",
   dataScroll = "false"
 }) {
+  const copy = useWebMessages().web.layout;
+
   return (
     <nav className={className} id="navbarBlur" data-scroll={dataScroll}>
       <div className={containerClassName}>
-        <nav aria-label="breadcrumb">
-          <ol className={breadcrumbClassName}>
-            <li className="breadcrumb-item text-sm">
-              <span className="opacity-5 text-white">Pages</span>
-            </li>
-            <li className="breadcrumb-item text-sm text-white active" aria-current="page">
-              {pageTitle}
-            </li>
-          </ol>
+        <div className="creatorflow-topbar-heading">
+          <p className="text-xs text-uppercase text-white opacity-7 mb-1" style={{ letterSpacing: "0.14em" }}>
+            {copy.topbar.pages}
+          </p>
           <h6 className={titleClassName}>{pageTitle}</h6>
-        </nav>
+        </div>
         <div className="collapse navbar-collapse mt-sm-0 mt-2 me-md-0 me-sm-4" id="navbar">
-          <div className="ms-md-auto pe-md-3 d-flex align-items-center">
-            <div className="input-group">
-              <span className="input-group-text text-body">
-                <i className="fas fa-search" aria-hidden="true" />
-              </span>
-              <input type="text" className="form-control" placeholder="Type here..." />
+          <div className="ms-md-auto d-none d-lg-flex align-items-center gap-2 creatorflow-topbar-chips">
+            <div className="badge bg-white text-dark border px-3 py-2 creatorflow-topbar-chip">
+              {copy.topbar.workspaceLabel}: {copy.topbar.workspaceValue}
+            </div>
+            <div className="badge bg-gradient-dark px-3 py-2 creatorflow-topbar-chip creatorflow-topbar-chip-secondary">
+              {copy.topbar.outputLabel}: {copy.topbar.outputValue}
             </div>
           </div>
-          <ul className="navbar-nav justify-content-end">
+          <ul className="navbar-nav justify-content-end align-items-center ms-auto">
+            <li className="nav-item d-flex align-items-center me-2">
+              <LanguageSwitcher compact variant="light" />
+            </li>
+            <li className="nav-item dropdown pe-2 d-flex align-items-center me-2">
+              <button
+                type="button"
+                className="nav-link text-white p-0 border-0 bg-transparent"
+                id="dropdownMenuButton"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                aria-label={copy.topbar.notificationsTitle}
+              >
+                <span
+                  className="d-inline-flex align-items-center justify-content-center border-radius-md"
+                  style={{
+                    background: "rgba(255, 255, 255, 0.14)",
+                    height: 40,
+                    width: 40
+                  }}
+                >
+                  <i className="ni ni-bell-55 text-sm" />
+                </span>
+              </button>
+              <ul
+                className={`dropdown-menu dropdown-menu-end px-2 py-3 creatorflow-notify-menu${dropdownMenuClassName ? ` ${dropdownMenuClassName}` : ""}`}
+                aria-labelledby="dropdownMenuButton"
+                style={{ minWidth: 320 }}
+              >
+                <li className="px-3 pb-2">
+                  <p className="text-xs text-uppercase text-secondary mb-1" style={{ letterSpacing: "0.16em" }}>
+                    {copy.topbar.notificationsTitle}
+                  </p>
+                  <h6 className="text-sm mb-0">{copy.topbar.notificationsSubtitle}</h6>
+                </li>
+                {copy.topbar.notifications.map((item, index) => (
+                  <li key={item.time} className={index < copy.topbar.notifications.length - 1 ? "mb-1" : undefined}>
+                    <span className="dropdown-item border-radius-md">
+                      <div className="d-flex py-1">
+                        <div
+                          className="icon icon-shape icon-sm text-center rounded-circle me-3"
+                          style={{
+                            background: item.tone === "warning" ? "#fff3e8" : item.tone === "success" ? "#ebfbf6" : "#eef4fb"
+                          }}
+                        >
+                          <i
+                            className={`${item.icon} text-sm`}
+                            style={{
+                              color: item.tone === "warning" ? "#f59a53" : item.tone === "success" ? "#0f8590" : "#102c45"
+                            }}
+                          />
+                        </div>
+                        <div className="d-flex flex-column justify-content-center">
+                          <h6 className="text-sm font-weight-normal mb-1">{item.title}</h6>
+                          <p className="text-xs text-secondary mb-0">
+                            <i className="fa fa-clock me-1" />
+                            {item.time}
+                          </p>
+                        </div>
+                      </div>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </li>
             <li className="nav-item d-flex align-items-center">
-              <Link href="/sign-in" className="nav-link text-white font-weight-bold px-0">
-                <i className="fa fa-user me-sm-1" />
-                <span className="d-sm-inline d-none">Sign In</span>
+              <Link href="/profile" className="btn btn-sm bg-white text-dark mb-0 creatorflow-topbar-profile-btn">
+                {copy.topbar.profileCta}
               </Link>
             </li>
             <li className={mobileNavItemClassName}>
@@ -188,51 +319,6 @@ function ArgonTopbar({
                 </div>
               </button>
             </li>
-            <li className="nav-item px-3 d-flex align-items-center">
-              <button type="button" className="nav-link text-white p-0 fixed-plugin-button-nav border-0 bg-transparent">
-                <i className="fa fa-cog cursor-pointer" />
-              </button>
-            </li>
-            <li className="nav-item dropdown pe-2 d-flex align-items-center">
-              <button
-                type="button"
-                className="nav-link text-white p-0"
-                id="dropdownMenuButton"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                <i className="fa fa-bell cursor-pointer" />
-              </button>
-              <ul
-                className={`dropdown-menu dropdown-menu-end px-2 py-3${dropdownMenuClassName ? ` ${dropdownMenuClassName}` : ""}`}
-                aria-labelledby="dropdownMenuButton"
-              >
-                {NOTIFICATIONS.map((item, index) => (
-                  <li key={item.time} className={index < NOTIFICATIONS.length - 1 ? "mb-2" : undefined}>
-                    <a className="dropdown-item border-radius-md" href="#!">
-                      <div className="d-flex py-1">
-                        <div className="my-auto">
-                          {item.image ? (
-                            <img src={item.image} className={item.imageClassName} alt="notification avatar" />
-                          ) : (
-                            <div className={item.iconClassName}>
-                              <i className={item.icon} aria-hidden="true" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="d-flex flex-column justify-content-center">
-                          <h6 className="text-sm font-weight-normal mb-1">{item.title}</h6>
-                          <p className="text-xs text-secondary mb-0">
-                            <i className="fa fa-clock me-1" />
-                            {item.time}
-                          </p>
-                        </div>
-                      </div>
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </li>
           </ul>
         </div>
       </div>
@@ -241,65 +327,41 @@ function ArgonTopbar({
 }
 
 export function ArgonFooter() {
+  const copy = useWebMessages().web.layout.footer;
+
   return (
-    <footer className="footer pt-3">
+    <footer className="footer pt-4">
       <div className="container-fluid">
-        <div className="row align-items-center justify-content-lg-between">
-          <div className="col-lg-6 mb-lg-0 mb-4">
+        <div className="row align-items-center justify-content-lg-between gy-3">
+          <div className="col-lg-5">
             <div className="copyright text-center text-sm text-muted text-lg-start">
-              © {new Date().getFullYear()}, made with <i className="fa fa-heart" /> by{" "}
-              <a
-                href="https://www.creative-tim.com"
-                className="font-weight-bold"
-                target="_blank"
-                rel="noreferrer"
-              >
-                Creative Tim
-              </a>{" "}
-              for a better web.
+              © {new Date().getFullYear()} CreatorFlow
             </div>
+            <p className="text-sm text-muted mb-0 mt-2 text-center text-lg-start">
+              {copy.tagline}
+            </p>
           </div>
-          <div className="col-lg-6">
-            <ul className="nav nav-footer justify-content-center justify-content-lg-end">
+          <div className="col-lg-7">
+            <ul className="nav nav-footer justify-content-center justify-content-lg-end gap-1">
               <li className="nav-item">
-                <a
-                  href="https://www.creative-tim.com"
-                  className="nav-link text-muted"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Creative Tim
-                </a>
+                <Link href="/" className="nav-link text-muted">
+                  {copy.home}
+                </Link>
               </li>
               <li className="nav-item">
-                <a
-                  href="https://www.creative-tim.com/presentation"
-                  className="nav-link text-muted"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  About Us
-                </a>
+                <Link href="/#workflow" className="nav-link text-muted">
+                  {copy.workflow}
+                </Link>
               </li>
               <li className="nav-item">
-                <a
-                  href="https://www.creative-tim.com/blog"
-                  className="nav-link text-muted"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Blog
-                </a>
+                <Link href="/#pricing" className="nav-link text-muted">
+                  {copy.pricing}
+                </Link>
               </li>
               <li className="nav-item">
-                <a
-                  href="https://www.creative-tim.com/license"
-                  className="nav-link pe-0 text-muted"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  License
-                </a>
+                <Link href="/profile" className="nav-link pe-0 text-muted">
+                  {copy.profile}
+                </Link>
               </li>
             </ul>
           </div>
@@ -314,24 +376,30 @@ export default function ArgonPage({
   activeRoute,
   children,
   bodyClass = "g-sidenav-show bg-gray-100",
-  background = <div className="min-height-300 bg-dark position-absolute w-100" />,
-  mainClassName = "main-content position-relative border-radius-lg",
+  background = (
+    <div
+      className="position-absolute w-100"
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at 12% 18%, rgba(15, 133, 144, 0.18), transparent 18%), radial-gradient(circle at 88% 16%, rgba(245, 154, 83, 0.14), transparent 16%), linear-gradient(180deg, #081420 0%, #0d2235 33%, #f3f6fa 33%, #f6f8fb 100%)",
+        minHeight: "19rem"
+      }}
+    />
+  ),
+  mainClassName = "main-content position-relative border-radius-lg creatorflow-internal-main",
   topbarProps,
-  includeChartJs = false,
-  showNavbarFixed = true
+  includeChartJs = false
 }) {
   return (
     <>
       <DashboardBodyClass className={bodyClass} />
       {includeChartJs ? <Script src="/assets/js/plugins/chartjs.min.js" strategy="afterInteractive" /> : null}
-      <Script src="https://buttons.github.io/buttons.js" strategy="afterInteractive" />
       {background}
       <ArgonSidebar activeRoute={activeRoute} />
       <main className={mainClassName}>
         <ArgonTopbar pageTitle={pageTitle} {...topbarProps} />
         {children}
       </main>
-      <DashboardConfigurator showNavbarFixed={showNavbarFixed} />
     </>
   );
 }

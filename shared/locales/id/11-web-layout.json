@@ -1,0 +1,57 @@
+{
+  "web": {
+    "layout": {
+      "nav": {
+        "dashboard": "Ringkasan",
+        "tables": "Pipeline",
+        "billing": "Paket",
+        "virtualReality": "Ops center",
+        "profile": "Profil",
+        "accountPages": "Workspace"
+      },
+      "sidebar": {
+        "eyebrow": "CreatorFlow pro",
+        "title": "Rapikan output tim tanpa pindah-pindah tool.",
+        "body": "Pantau paket, seat, dan ritme produksi dari satu workspace yang sama.",
+        "cta": "Lihat paket workspace"
+      },
+      "topbar": {
+        "pages": "Workspace",
+        "workspaceLabel": "Workspace",
+        "workspaceValue": "CreatorFlow Studio",
+        "outputLabel": "Output minggu ini",
+        "outputValue": "148 draft",
+        "profileCta": "Buka profil",
+        "notificationsTitle": "Pulse workspace",
+        "notificationsSubtitle": "Update singkat yang perlu tim lihat hari ini.",
+        "notifications": [
+          {
+            "time": "7 menit lalu",
+            "title": "12 draft baru masuk ke queue review TikTok Shop.",
+            "icon": "ni ni-check-bold",
+            "tone": "success"
+          },
+          {
+            "time": "28 menit lalu",
+            "title": "Paket workspace akan diperbarui dalam 4 hari.",
+            "icon": "ni ni-credit-card",
+            "tone": "warning"
+          },
+          {
+            "time": "1 jam lalu",
+            "title": "Eksperimen angle urgency naik 18% di channel seller.",
+            "icon": "ni ni-chart-bar-32",
+            "tone": "info"
+          }
+        ]
+      },
+      "footer": {
+        "tagline": "Dibangun untuk seller, affiliate, dan tim kecil yang ingin output lebih rapi tanpa workflow yang berat.",
+        "home": "Beranda",
+        "workflow": "Alur kerja",
+        "pricing": "Harga",
+        "profile": "Profil"
+      }
+    }
+  }
+}

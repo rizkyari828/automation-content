@@ -1,0 +1,93 @@
+{
+  "web": {
+    "authShell": {
+      "brand": "Argon Dashboard 3",
+      "dashboard": "Dashboard",
+      "profile": "Profile",
+      "signUp": "Sign Up",
+      "signIn": "Sign In",
+      "freeDownload": "Free Download",
+      "footerLinks": [
+        "Company",
+        "About Us",
+        "Team",
+        "Products",
+        "Blog",
+        "Pricing"
+      ],
+      "copyrightTemplate": "Copyright © {{year}} Soft by Creative Tim."
+    },
+    "signInPage": {
+      "title": "Sign In",
+      "subtitle": "Enter your email and password to sign in",
+      "email": "Email",
+      "password": "Password",
+      "forgotPassword": "Forgot password?",
+      "emailDivider": "Or continue with email and password",
+      "signingIn": "Signing in...",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign up",
+      "sideQuote": "\"Attention is the new currency\"",
+      "sideBody": "The more effortless the writing looks, the more effort the writer actually put into the process.",
+      "fallbackError": "Unable to sign in"
+    },
+    "signUpPage": {
+      "welcome": "Welcome!",
+      "intro": "Use these forms to sign in or create a new account in your project for free.",
+      "createWorkspace": "Create CreatorFlow workspace",
+      "fullName": "Full name",
+      "workspaceName": "Workspace name",
+      "email": "Email",
+      "password": "Password",
+      "emailDivider": "Or create your workspace manually",
+      "creating": "Creating workspace...",
+      "signUp": "Sign up",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign in",
+      "fallbackError": "Unable to create account"
+    },
+    "forgotPasswordPage": {
+      "title": "Reset password",
+      "subtitle": "Request a one-time code and set a fresh password for your CreatorFlow account.",
+      "email": "Email",
+      "code": "OTP code",
+      "newPassword": "New password",
+      "requestCode": "Send reset code",
+      "requesting": "Sending code...",
+      "requestSuccess": "If the email exists, a reset code has been sent.",
+      "requestFallbackError": "Unable to send reset code",
+      "resetPassword": "Reset password",
+      "resetting": "Resetting password...",
+      "resetSuccess": "Password reset successful",
+      "resetFallbackError": "Unable to reset password",
+      "requestAnotherCode": "Request another code",
+      "backToSignIn": "Back to sign in",
+      "sideTitle": "Recovery without support tickets",
+      "sideBody": "This flow keeps password recovery direct on the product, with a short OTP email and no confusing detours."
+    },
+    "socialAuth": {
+      "signInTitle": "Sign in faster with",
+      "registerTitle": "Create your account with",
+      "provisioningHint": "SSO will automatically create or connect a default workspace for your account the first time you continue.",
+      "providers": {
+        "google": "Continue with Google",
+        "twitter": "Continue with X / Twitter",
+        "facebook": "Continue with Facebook",
+        "apple": "Continue with Apple"
+      }
+    },
+    "sessionPanel": {
+      "loadingTitle": "Checking session",
+      "loadingBody": "Syncing access token and workspace context from CreatorFlow API.",
+      "signedInTemplate": "Welcome back{{name}}.",
+      "workspace": "Workspace",
+      "role": "Role",
+      "signingOut": "Signing out...",
+      "signOut": "Sign out",
+      "inactiveTitle": "Session not active",
+      "inactiveFallback": "Sign in to unlock workspace data.",
+      "goToSignIn": "Go to sign in"
+    }
+  }
+}

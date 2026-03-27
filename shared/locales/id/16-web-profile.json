@@ -1,0 +1,106 @@
+{
+  "web": {
+    "profilePage": {
+      "pageTitle": "Profil workspace",
+      "loadingTitle": "Memuat profil",
+      "loadingBody": "Mengambil detail akun, workspace, dan provider yang terhubung.",
+      "loadError": "Tidak bisa memuat profil",
+      "heroEyebrow": "Pusat akun",
+      "fallbackName": "Pengguna CreatorFlow",
+      "verified": "Email terverifikasi",
+      "unverified": "Email belum terverifikasi",
+      "memberRole": "anggota",
+      "editTitle": "Edit profil",
+      "editBody": "Jaga identitas akun dan detail workspace tetap rapi untuk operasional tim.",
+      "fullNameLabel": "Nama lengkap",
+      "emailLabel": "Alamat email",
+      "workspaceNameLabel": "Nama workspace",
+      "workspaceNameManageHint": "Nama workspace hanya bisa diubah oleh role yang punya akses manajemen workspace.",
+      "aboutLabel": "Tentang",
+      "save": "Simpan perubahan",
+      "saving": "Menyimpan...",
+      "savedSuccess": "Profil berhasil disimpan",
+      "saveError": "Tidak bisa menyimpan profil",
+      "verificationTitle": "Verifikasi email",
+      "verificationBody": "Minta kode OTP, lalu masukkan di sini untuk memverifikasi alamat email Anda.",
+      "verificationDoneBody": "Email Anda sudah terverifikasi. Anda bisa lanjut memakai CreatorFlow seperti biasa.",
+      "verificationCodeLabel": "Kode verifikasi",
+      "sendCode": "Kirim kode OTP",
+      "sendingCode": "Mengirim kode...",
+      "verifyCode": "Verifikasi email",
+      "verifying": "Memverifikasi...",
+      "codeSentSuccess": "Kode verifikasi dikirim",
+      "sendCodeError": "Tidak bisa mengirim kode verifikasi",
+      "verifySuccess": "Email berhasil diverifikasi",
+      "verifyError": "Tidak bisa memverifikasi email",
+      "verifiedAtTemplate": "Terverifikasi pada {{date}}",
+      "workspaceMembersTitle": "Anggota workspace",
+      "workspaceMembersBody": "Atur peran setiap anggota supaya alur kerja tim tetap aman dan jelas.",
+      "workspaceMembersLoading": "Memuat anggota workspace...",
+      "workspaceMembersEmpty": "Belum ada anggota workspace.",
+      "workspaceOwnerLockHint": "Pemindahan owner belum tersedia di versi ini.",
+      "joinedAtTemplate": "Bergabung pada {{date}}",
+      "workspaceMembersUpdateSuccess": "Peran anggota berhasil diperbarui",
+      "workspaceMembersUpdateError": "Tidak bisa memperbarui peran anggota",
+      "securityTitle": "Status keamanan",
+      "statusLabel": "Status",
+      "workspaceRoleLabel": "Peran workspace",
+      "platformRoleLabel": "Peran platform",
+      "lastLoginLabel": "Login terakhir",
+      "workspaceTitle": "Workspace",
+      "authorizationTitle": "Akses dan otorisasi",
+      "permissionsLabel": "Jumlah permission",
+      "workspaceFeaturesTitle": "Modul workspace",
+      "workspaceFeaturesManageBody": "Aktifkan atau nonaktifkan modul workspace sesuai kebutuhan tim.",
+      "workspaceFeaturesReadBody": "Daftar modul aktif untuk workspace saat ini.",
+      "workspaceFeaturesLoading": "Memuat modul workspace...",
+      "workspaceFeaturesDefaultSetting": "Menggunakan pengaturan default workspace",
+      "workspaceFeaturesUpdatedByTemplate": "Terakhir diubah oleh {{email}}",
+      "workspaceFeaturesUpdateSuccess": "Pengaturan modul berhasil diperbarui",
+      "workspaceFeaturesUpdateError": "Tidak bisa memperbarui modul workspace",
+      "workspaceFeaturesEmpty": "Data modul workspace belum tersedia.",
+      "enabled": "Aktif",
+      "disabled": "Nonaktif",
+      "updatedAtTemplate": "Diperbarui pada {{date}}",
+      "providersTitle": "Akun terhubung",
+      "providersEmpty": "Belum ada akun sosial yang terhubung.",
+      "connectedLabel": "Terhubung",
+      "connectedAtTemplate": "Terhubung pada {{date}}",
+      "workspaceRoleOptions": [
+        {
+          "label": "Owner",
+          "value": "owner"
+        },
+        {
+          "label": "Admin",
+          "value": "admin"
+        },
+        {
+          "label": "Editor",
+          "value": "editor"
+        },
+        {
+          "label": "Viewer",
+          "value": "viewer"
+        }
+      ],
+      "featureLabels": {
+        "assets": "Asset library",
+        "billing": "Billing",
+        "content": "Generasi konten",
+        "media": "Render media",
+        "publishing": "Publishing",
+        "sso": "Single sign-on",
+        "team": "Manajemen tim",
+        "trend": "Trend intelligence",
+        "workspace_settings": "Pengaturan workspace"
+      },
+      "providerNames": {
+        "google": "Google",
+        "twitter": "X / Twitter",
+        "facebook": "Facebook",
+        "apple": "Apple"
+      }
+    }
+  }
+}

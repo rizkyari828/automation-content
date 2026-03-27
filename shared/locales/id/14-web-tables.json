@@ -1,0 +1,138 @@
+{
+  "web": {
+    "tablesPage": {
+      "pageTitle": "Pipeline konten",
+      "pipelineTitle": "Pipeline channel aktif",
+      "pipelineBody": "Lihat jalur konten dari brief sampai jadwal publish dalam satu tabel operasional.",
+      "pipelineLabels": {
+        "channel": "Channel",
+        "campaign": "Campaign",
+        "owner": "PIC",
+        "drafts": "Draft",
+        "stage": "Tahap",
+        "status": "Status"
+      },
+      "pipelineRows": [
+        {
+          "channel": "TikTok Shop",
+          "slot": "Slot publish: malam ini",
+          "campaign": "Flash sale serum pencerah",
+          "angle": "Hook urgency + testimoni",
+          "owner": "Growth seller",
+          "drafts": "8",
+          "stage": "Review akhir",
+          "status": "Siap publish",
+          "statusClass": "bg-gradient-success",
+          "icon": "ni ni-button-play",
+          "iconBackground": "#eaf4ff",
+          "iconColor": "#102c45"
+        },
+        {
+          "channel": "Shopee Video",
+          "slot": "Slot publish: besok pagi",
+          "campaign": "Bundling promo payday",
+          "angle": "Offer first + CTA hemat",
+          "owner": "Marketplace ops",
+          "drafts": "6",
+          "stage": "Rapikan caption",
+          "status": "Perlu revisi",
+          "statusClass": "bg-gradient-warning",
+          "icon": "ni ni-cart",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        },
+        {
+          "channel": "Instagram Reels",
+          "slot": "Slot publish: besok siang",
+          "campaign": "Story before-after produk",
+          "angle": "Problem-solution",
+          "owner": "Brand content",
+          "drafts": "4",
+          "stage": "Approval brand",
+          "status": "Menunggu",
+          "statusClass": "bg-gradient-info",
+          "icon": "ni ni-camera-compact",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "channel": "WhatsApp Broadcast",
+          "slot": "Slot publish: setelah launch",
+          "campaign": "Recap promo mingguan",
+          "angle": "Proof + CTA checkout",
+          "owner": "Tim CRM",
+          "drafts": "3",
+          "stage": "Sudah dijadwalkan",
+          "status": "Antre",
+          "statusClass": "bg-gradient-secondary",
+          "icon": "ni ni-chat-round",
+          "iconBackground": "#f0f4fa",
+          "iconColor": "#46607d"
+        }
+      ],
+      "experimentsTitle": "Eksperimen angle",
+      "experimentsBody": "Pantau eksperimen yang sedang berjalan supaya keputusan scale lebih cepat.",
+      "experimentsLabels": {
+        "hypothesis": "Hipotesis",
+        "variant": "Varian",
+        "owner": "PIC",
+        "lift": "Lift",
+        "decision": "Keputusan"
+      },
+      "experiments": [
+        {
+          "hypothesis": "Opening 2 detik dengan hasil akhir produk",
+          "variant": "A vs B",
+          "owner": "Content lead",
+          "lift": "+18%",
+          "liftClass": "text-success",
+          "decision": "Scale",
+          "decisionClass": "bg-gradient-success"
+        },
+        {
+          "hypothesis": "CTA urgensi dibanding CTA edukasi",
+          "variant": "C vs D",
+          "owner": "Affiliate ops",
+          "lift": "+6%",
+          "liftClass": "text-success",
+          "decision": "Lanjut test",
+          "decisionClass": "bg-gradient-info"
+        },
+        {
+          "hypothesis": "Hook testimonial pengguna real",
+          "variant": "E vs F",
+          "owner": "Marketplace ops",
+          "lift": "-2%",
+          "liftClass": "text-danger",
+          "decision": "Stop",
+          "decisionClass": "bg-gradient-secondary"
+        }
+      ],
+      "actionsTitle": "Aksi prioritas hari ini",
+      "actionsBody": "Tiga hal paling penting supaya queue publish tetap lancar.",
+      "actions": [
+        {
+          "title": "Finalisasi 6 draft Shopee Video",
+          "body": "Selesaikan revisi caption dan cek CTA sebelum batch pagi.",
+          "icon": "ni ni-check-bold",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "title": "Approve 4 assets Reels",
+          "body": "Pastikan urutan visual dan claim promo sudah sesuai guideline brand.",
+          "icon": "ni ni-like-2",
+          "iconBackground": "#eaf4ff",
+          "iconColor": "#102c45"
+        },
+        {
+          "title": "Duplikasi CTA pemenang",
+          "body": "Gunakan CTA terbaik kemarin ke batch konten affiliate berikutnya.",
+          "icon": "ni ni-send",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "web": {
+    "virtualRealityPage": {
+      "pageTitle": "Ops center",
+      "heroEyebrow": "Mission control",
+      "heroTitle": "Pantau operasi konten yang berdampak ke penjualan dalam satu layar.",
+      "heroBody": "Dari alert campaign sampai checklist publish, tim bisa bergerak cepat tanpa kehilangan konteks.",
+      "heroBadges": [
+        "24 campaign aktif",
+        "81 draft menunggu keputusan",
+        "3 channel siap batch malam ini"
+      ],
+      "alertsTitle": "Alert prioritas",
+      "alertsBody": "Sinyal yang perlu tindakan cepat agar momentum campaign tetap terjaga.",
+      "alerts": [
+        {
+          "title": "Queue TikTok Shop hampir penuh",
+          "body": "Tambahkan reviewer kedua supaya batch malam tidak tertunda.",
+          "time": "5 menit lalu",
+          "badge": "Urgent",
+          "badgeClass": "bg-gradient-warning",
+          "icon": "ni ni-bell-55",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        },
+        {
+          "title": "Performa hook testimonial naik tajam",
+          "body": "Konten proof-led naik 18% dibanding angle generic minggu lalu.",
+          "time": "32 menit lalu",
+          "badge": "Opportunity",
+          "badgeClass": "bg-gradient-success",
+          "icon": "ni ni-chart-bar-32",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "title": "2 aset Shopee Video menunggu legal check",
+          "body": "Tinjau claim promo sebelum dipublish agar tidak perlu take down ulang.",
+          "time": "1 jam lalu",
+          "badge": "Review",
+          "badgeClass": "bg-gradient-info",
+          "icon": "ni ni-single-copy-04",
+          "iconBackground": "#eaf4ff",
+          "iconColor": "#102c45"
+        }
+      ],
+      "queueTitle": "Queue per channel",
+      "queueBody": "Snapshot status jalur distribusi utama untuk 24 jam ke depan.",
+      "queues": [
+        {
+          "channel": "TikTok Shop",
+          "window": "Window publish: 20.00 - 22.00",
+          "summary": "8 draft siap review, 2 menunggu final caption.",
+          "status": "Siap gerak",
+          "statusClass": "bg-gradient-success"
+        },
+        {
+          "channel": "Shopee Video",
+          "window": "Window publish: 08.00 - 10.00",
+          "summary": "6 draft terjadwal, butuh approval legal untuk 2 aset.",
+          "status": "Perlu review",
+          "statusClass": "bg-gradient-warning"
+        },
+        {
+          "channel": "Instagram Reels",
+          "window": "Window publish: 12.00 - 14.00",
+          "summary": "4 draft masuk QA visual, siap dilempar ke scheduler.",
+          "status": "On track",
+          "statusClass": "bg-gradient-info"
+        }
+      ],
+      "checklistTitle": "Checklist launch hari ini",
+      "checklistBody": "Pastikan langkah inti selesai sebelum jam publish puncak dimulai.",
+      "checklist": [
+        {
+          "task": "Validasi CTA batch TikTok Shop",
+          "owner": "PIC: Aldi (Growth seller)",
+          "status": "Berjalan",
+          "statusClass": "bg-gradient-info"
+        },
+        {
+          "task": "Approve 2 claim promo Shopee",
+          "owner": "PIC: Nadya (Marketplace ops)",
+          "status": "Butuh aksi",
+          "statusClass": "bg-gradient-warning"
+        },
+        {
+          "task": "Queue 4 konten recap WhatsApp",
+          "owner": "PIC: Tim CRM",
+          "status": "Selesai",
+          "statusClass": "bg-gradient-success"
+        }
+      ]
+    }
+  }
+}

@@ -66,6 +66,12 @@ Mode full stack sekali jalan:
 npm run stack:up
 ```
 
+Mode hanya web UI:
+
+```bash
+npm run dev:web | npm run dev --workspace automation-content-ui | docker compose up -d web-ui
+```
+
 Alternatif kalau lebih suka target singkat:
 
 ```bash

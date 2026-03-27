@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_spacing.dart';
 
 class AssetsScreen extends StatelessWidget {
@@ -7,13 +8,14 @@ class AssetsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      children: const [
+      children: [
         _AssetCard(
-          title: 'Asset Library',
-          subtitle:
-              'Desktop can use denser grids here, while mobile stays card and filter driven.',
+          title: strings.assetLibrary,
+          subtitle: strings.assetLibraryBody,
         ),
       ],
     );

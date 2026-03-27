@@ -1,0 +1,57 @@
+{
+  "web": {
+    "layout": {
+      "nav": {
+        "dashboard": "Overview",
+        "tables": "Pipeline",
+        "billing": "Plan",
+        "virtualReality": "Ops center",
+        "profile": "Profile",
+        "accountPages": "Workspace"
+      },
+      "sidebar": {
+        "eyebrow": "CreatorFlow pro",
+        "title": "Keep team output organized without jumping between tools.",
+        "body": "Track plan, seats, and production rhythm from the same workspace.",
+        "cta": "View workspace plan"
+      },
+      "topbar": {
+        "pages": "Workspace",
+        "workspaceLabel": "Workspace",
+        "workspaceValue": "CreatorFlow Studio",
+        "outputLabel": "Output this week",
+        "outputValue": "148 drafts",
+        "profileCta": "Open profile",
+        "notificationsTitle": "Workspace pulse",
+        "notificationsSubtitle": "Short updates the team should see today.",
+        "notifications": [
+          {
+            "time": "7 minutes ago",
+            "title": "12 new drafts entered the TikTok Shop review queue.",
+            "icon": "ni ni-check-bold",
+            "tone": "success"
+          },
+          {
+            "time": "28 minutes ago",
+            "title": "The workspace plan renews in 4 days.",
+            "icon": "ni ni-credit-card",
+            "tone": "warning"
+          },
+          {
+            "time": "1 hour ago",
+            "title": "The urgency-angle experiment is up 18% in seller channels.",
+            "icon": "ni ni-chart-bar-32",
+            "tone": "info"
+          }
+        ]
+      },
+      "footer": {
+        "tagline": "Built for sellers, affiliates, and lean teams that want cleaner output without a heavy workflow.",
+        "home": "Home",
+        "workflow": "Workflow",
+        "pricing": "Pricing",
+        "profile": "Profile"
+      }
+    }
+  }
+}

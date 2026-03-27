@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_spacing.dart';
 
 class BillingScreen extends StatelessWidget {
@@ -7,13 +8,14 @@ class BillingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
+
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      children: const [
+      children: [
         _BillingCard(
-          title: 'Billing Overview',
-          subtitle:
-              'Payment methods, invoices, and transactions from the web billing page can stack cleanly here.',
+          title: strings.billingOverview,
+          subtitle: strings.billingOverviewBody,
         ),
       ],
     );

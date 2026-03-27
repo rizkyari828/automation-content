@@ -1,7 +1,7 @@
 import BillingPage from "../../components/billing/billing-page.jsx";
 
 export const metadata = {
-  title: "Billing"
+  title: "Workspace Plan"
 };
 
 export default function BillingRoute() {

@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { authenticateUserRequest, ensureWorkspaceScope } from "../../lib/auth.js";
+import { ensureWorkspacePermission } from "../../lib/authorization.js";
 import { query, withTransaction } from "../../lib/database.js";
 import { badRequest, internalError } from "../../lib/http.js";
 
@@ -45,6 +46,14 @@ export function registerTrendRoutes(app: FastifyInstance) {
       const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
       if (workspaceError) {
         return workspaceError;
+      }
+
+      const permissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "trend",
+        permission: "trend.collect"
+      });
+      if (permissionError) {
+        return permissionError;
       }
 
       if (!workspaceId) {
@@ -219,6 +228,14 @@ export function registerTrendRoutes(app: FastifyInstance) {
       return workspaceError;
     }
 
+    const permissionError = await ensureWorkspacePermission(request, reply, {
+      feature: "trend",
+      permission: "trend.read"
+    });
+    if (permissionError) {
+      return permissionError;
+    }
+
     if (!workspaceId) {
       return badRequest(reply, "workspaceId is required");
     }
@@ -265,6 +282,14 @@ export function registerTrendRoutes(app: FastifyInstance) {
     const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
     if (workspaceError) {
       return workspaceError;
+    }
+
+    const permissionError = await ensureWorkspacePermission(request, reply, {
+      feature: "trend",
+      permission: "trend.read"
+    });
+    if (permissionError) {
+      return permissionError;
     }
 
     if (!workspaceId) {
@@ -343,6 +368,22 @@ export function registerTrendRoutes(app: FastifyInstance) {
       const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
       if (workspaceError) {
         return workspaceError;
+      }
+
+      const trendPermissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "trend",
+        permission: "trend.read"
+      });
+      if (trendPermissionError) {
+        return trendPermissionError;
+      }
+
+      const contentPermissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "content",
+        permission: "content.generate"
+      });
+      if (contentPermissionError) {
+        return contentPermissionError;
       }
 
       if (!workspaceId || !request.userAuth?.userId) {

@@ -1,0 +1,187 @@
+{
+  "web": {
+    "rtlPage": {
+      "pageTitle": "RTL",
+      "stats": [
+        {
+          "label": "Uang Hari Ini",
+          "value": "$53,000",
+          "change": "+55%",
+          "changeClassName": "text-success",
+          "icon": "ni ni-money-coins"
+        },
+        {
+          "label": "Pengguna Hari Ini",
+          "value": "2,300",
+          "change": "+33%",
+          "changeClassName": "text-success",
+          "icon": "ni ni-world"
+        },
+        {
+          "label": "Klien Baru",
+          "value": "+3,462",
+          "change": "-2%",
+          "changeClassName": "text-danger",
+          "icon": "ni ni-paper-diploma"
+        },
+        {
+          "label": "Penjualan",
+          "value": "$103,430",
+          "change": "+5%",
+          "changeClassName": "text-success",
+          "icon": "ni ni-cart"
+        }
+      ],
+      "heroEyebrow": "Dibuat oleh developer",
+      "heroTitle": "Soft UI Dashboard",
+      "heroBody": "Dari warna, kartu, dan tipografi sampai elemen yang lebih kompleks, halaman ini sekarang mengikuti sistem bilingual yang sama dengan bagian produk lainnya.",
+      "readDocs": "Baca dokumentasi",
+      "storyTitle": "Bekerja dengan roket",
+      "storyBody": "Halaman ini tetap kami pertahankan sebagai visual sandbox, sambil menyelaraskan switch bahasa dan pola navigasi dengan pengalaman produk utama.",
+      "activeUsers": "Pengguna aktif",
+      "activeUsersChange": "+23% sejak minggu lalu",
+      "activeUsersItems": [
+        {
+          "label": "Pengguna",
+          "value": "36K",
+          "progressClassName": "w-60",
+          "iconClassName": "bg-gradient-primary"
+        },
+        {
+          "label": "Klik",
+          "value": "2m",
+          "progressClassName": "w-90",
+          "iconClassName": "bg-gradient-info"
+        },
+        {
+          "label": "Penjualan",
+          "value": "435$",
+          "progressClassName": "w-30",
+          "iconClassName": "bg-gradient-warning"
+        },
+        {
+          "label": "Item",
+          "value": "43",
+          "progressClassName": "w-50",
+          "iconClassName": "bg-gradient-danger"
+        }
+      ],
+      "salesOverview": "Ringkasan penjualan",
+      "salesOverviewChange": "4% lebih tinggi di 2021",
+      "projectsTitle": "Proyek",
+      "projectsSummary": "30 selesai bulan ini",
+      "tableHeaders": {
+        "project": "Proyek",
+        "members": "Anggota",
+        "budget": "Anggaran",
+        "completion": "Penyelesaian"
+      },
+      "ordersOverview": "Ringkasan pesanan",
+      "ordersSummary": "24% bulan ini",
+      "teamMember": "Anggota tim",
+      "timeline": [
+        {
+          "icon": "ni ni-bell-55 text-success text-gradient",
+          "title": "$2400, perubahan desain",
+          "date": "22 DES 7:20 PM"
+        },
+        {
+          "icon": "ni ni-html5 text-danger text-gradient",
+          "title": "Pesanan baru #1832412",
+          "date": "21 DES 11 PM"
+        },
+        {
+          "icon": "ni ni-cart text-info text-gradient",
+          "title": "Pembayaran server untuk April",
+          "date": "21 DES 9:34 PM"
+        },
+        {
+          "icon": "ni ni-credit-card text-warning text-gradient",
+          "title": "Kartu baru ditambahkan untuk pesanan #4395133",
+          "date": "20 DES 2:20 AM"
+        },
+        {
+          "icon": "ni ni-key-25 text-primary text-gradient",
+          "title": "Buka paket untuk development",
+          "date": "18 DES 4:54 AM"
+        },
+        {
+          "icon": "ni ni-money-coins text-dark text-gradient",
+          "title": "Pesanan baru #9583120",
+          "date": "17 DES"
+        }
+      ],
+      "projects": [
+        {
+          "logo": "/assets/img/small-logos/logo-xd.svg",
+          "title": "Versi Soft UI XD",
+          "budget": "$14,000",
+          "completion": "60%",
+          "progressClassName": "w-60",
+          "members": [
+            "/assets/img/team-1.jpg",
+            "/assets/img/team-2.jpg",
+            "/assets/img/team-3.jpg",
+            "/assets/img/team-4.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-atlassian.svg",
+          "title": "Tambahkan progress track ke app internal",
+          "budget": "$3,000",
+          "completion": "10%",
+          "progressClassName": "w-10",
+          "members": [
+            "/assets/img/team-2.jpg",
+            "/assets/img/team-4.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-slack.svg",
+          "title": "Perbaiki error platform",
+          "budget": "Belum diatur",
+          "completion": "100%",
+          "progressClassName": "w-100 bg-gradient-success",
+          "members": [
+            "/assets/img/team-3.jpg",
+            "/assets/img/team-1.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-spotify.svg",
+          "title": "Luncurkan aplikasi mobile kami",
+          "budget": "$20,500",
+          "completion": "100%",
+          "progressClassName": "w-100 bg-gradient-success",
+          "members": [
+            "/assets/img/team-4.jpg",
+            "/assets/img/team-3.jpg",
+            "/assets/img/team-4.jpg",
+            "/assets/img/team-1.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-jira.svg",
+          "title": "Tambahkan halaman pricing baru",
+          "budget": "$500",
+          "completion": "25%",
+          "progressClassName": "w-25",
+          "members": [
+            "/assets/img/team-4.jpg"
+          ]
+        },
+        {
+          "logo": "/assets/img/small-logos/logo-invision.svg",
+          "title": "Desain ulang toko online",
+          "budget": "$2,000",
+          "completion": "40%",
+          "progressClassName": "w-40",
+          "members": [
+            "/assets/img/team-1.jpg",
+            "/assets/img/team-4.jpg"
+          ]
+        }
+      ]
+    }
+  }
+}

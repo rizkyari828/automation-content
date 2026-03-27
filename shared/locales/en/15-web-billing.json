@@ -1,0 +1,163 @@
+{
+  "web": {
+    "billingPage": {
+      "pageTitle": "Workspace plan",
+      "planEyebrow": "Active plan",
+      "planName": "CreatorFlow Growth",
+      "planNote": "Built for sellers and affiliates that need consistent daily output.",
+      "planStatus": "Active",
+      "kpis": [
+        {
+          "label": "Seats in use",
+          "value": "8 of 12",
+          "note": "4 seats are still available"
+        },
+        {
+          "label": "Draft limit",
+          "value": "1,480 / month",
+          "note": "62% of this month capacity"
+        },
+        {
+          "label": "Render queue",
+          "value": "36 assets",
+          "note": "Average completion 2.1 hours"
+        }
+      ],
+      "renewalTitle": "Next billing cycle",
+      "renewalBody": "Track billing date, payment methods, and package details without leaving the workspace.",
+      "nextChargeLabel": "Next charge",
+      "nextChargeValue": "IDR 1,490,000 / month",
+      "nextChargeBadge": "Auto renewal",
+      "renewalHighlights": [
+        "Team seats remain active during renewal.",
+        "Invoices are sent automatically to the workspace owner email.",
+        "Plan changes can be scheduled before the billing date."
+      ],
+      "managePlanCta": "Manage plan and add-ons",
+      "paymentTitle": "Payment methods",
+      "paymentBody": "Choose the most familiar payment flow for day-to-day team operations.",
+      "paymentMethods": [
+        {
+          "name": "BCA Virtual Account",
+          "detail": "Monthly auto debit enabled",
+          "note": "Verified as the primary workspace method",
+          "badge": "Primary",
+          "badgeClass": "bg-gradient-success",
+          "icon": "ni ni-credit-card",
+          "iconBackground": "#e8f8f5",
+          "iconColor": "#0f8590"
+        },
+        {
+          "name": "Visa business card",
+          "detail": "Backup when auto debit fails",
+          "note": "Card holder: Rani Setiawan",
+          "badge": "Backup",
+          "badgeClass": "bg-gradient-info",
+          "icon": "ni ni-money-coins",
+          "iconBackground": "#edf4ff",
+          "iconColor": "#102c45"
+        },
+        {
+          "name": "Business QRIS",
+          "detail": "Available for add-on top-ups",
+          "note": "Used for extra render credit purchases",
+          "badge": "Optional",
+          "badgeClass": "bg-gradient-secondary",
+          "icon": "ni ni-mobile-button",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        }
+      ],
+      "invoicesTitle": "Recent invoices",
+      "invoicesBody": "Payment documents ready to share with your finance team.",
+      "viewInvoicesCta": "View all invoices",
+      "invoices": [
+        {
+          "period": "March 2026",
+          "code": "INV-CF-2026-0318",
+          "amount": "IDR 1,490,000",
+          "status": "Paid"
+        },
+        {
+          "period": "February 2026",
+          "code": "INV-CF-2026-0220",
+          "amount": "IDR 1,490,000",
+          "status": "Paid"
+        },
+        {
+          "period": "January 2026",
+          "code": "INV-CF-2026-0118",
+          "amount": "IDR 1,290,000",
+          "status": "Paid"
+        }
+      ],
+      "seatTitle": "Seat and team usage",
+      "seatBody": "Check who is active and how the workspace is being used across members.",
+      "seatTableLabels": {
+        "member": "Member",
+        "role": "Role",
+        "usage": "Usage",
+        "status": "Status"
+      },
+      "seats": [
+        {
+          "member": "Rani Setiawan",
+          "email": "rani@creatorflow.id",
+          "role": "Owner",
+          "usage": "214 drafts this month",
+          "status": "Active",
+          "statusClass": "bg-gradient-success"
+        },
+        {
+          "member": "Aldi Pratama",
+          "email": "aldi@creatorflow.id",
+          "role": "Content Lead",
+          "usage": "166 drafts this month",
+          "status": "Active",
+          "statusClass": "bg-gradient-success"
+        },
+        {
+          "member": "Nadya Kusuma",
+          "email": "nadya@creatorflow.id",
+          "role": "Affiliate Ops",
+          "usage": "91 drafts this month",
+          "status": "Needs review",
+          "statusClass": "bg-gradient-warning"
+        },
+        {
+          "member": "Rifqi Alfarizi",
+          "email": "rifqi@creatorflow.id",
+          "role": "Editor",
+          "usage": "57 drafts this month",
+          "status": "Active",
+          "statusClass": "bg-gradient-info"
+        }
+      ],
+      "transactionsTitle": "Payment activity",
+      "transactionsBody": "Recent movements across plan renewal, add-ons, and render credits.",
+      "transactions": [
+        {
+          "title": "Growth plan renewal",
+          "time": "Mar 27, 2026 at 09:42 WIB",
+          "amount": "-IDR 1,490,000",
+          "amountClass": "text-danger",
+          "note": "Invoice INV-CF-2026-0318"
+        },
+        {
+          "title": "Render credit top-up",
+          "time": "Mar 25, 2026 at 16:08 WIB",
+          "amount": "-IDR 250,000",
+          "amountClass": "text-danger",
+          "note": "Added 120 render credits"
+        },
+        {
+          "title": "Duplicate payment refund",
+          "time": "Mar 21, 2026 at 10:21 WIB",
+          "amount": "+IDR 250,000",
+          "amountClass": "text-success",
+          "note": "Returned to BCA Virtual Account"
+        }
+      ]
+    }
+  }
+}

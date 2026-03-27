@@ -10,6 +10,28 @@ Designed for those who like bold elements and beautiful websites. Made of hundre
 
 We created many examples for pages like Sign In, Profile and so on. Just choose between a Basic Design, an illustration or a cover and you are good to go!
 
+## CreatorFlow Auth Notes
+
+Repo ini menambahkan layer auth CreatorFlow di atas template Argon Dashboard:
+
+- email/password sign in dan sign up
+- web SSO untuk Google, X/Twitter, Facebook, dan Apple
+- profile page yang sekarang juga memuat management role member workspace
+- profile page yang sekarang juga memuat toggle feature workspace
+- responsive auth entry screens yang tetap 1 kolom di mobile dan berubah jadi grid tombol provider saat ruang cukup
+
+Setup yang perlu dipastikan:
+
+- jalankan migration identity OAuth terbaru
+- isi credential provider OAuth di root env
+- arahkan redirect URI provider ke route auth CreatorFlow yang benar
+
+SSO web dijalankan lewat route Next `/api/auth/sso/[provider]`, lalu token web tetap disinkronkan lewat cookie layer Next.
+
+Checklist QA gabungan web dan native ada di [docs/auth-responsive-qa-matrix.md](/Users/tovantest/Developer/Web-Front-End/automation-content/docs/auth-responsive-qa-matrix.md).
+
+Dokumen role, permission, dan feature toggle untuk tim ada di [docs/creatorflow-authorization-role-model.md](/Users/tovantest/Developer/Web-Front-End/automation-content/docs/creatorflow-authorization-role-model.md).
+
 **Fully Coded Elements**
 
 Argon Dashboard 3 is built with over 70 frontend individual elements, like buttons, inputs, navbars, navtabs, cards or alerts, giving you the freedom of choosing and combining. All components can take variations in colour, that you can easily modify using SASS files and classes.

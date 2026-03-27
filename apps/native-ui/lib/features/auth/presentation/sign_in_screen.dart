@@ -3,10 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../app/router.dart';
 import '../../../core/config/app_config.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/creatorflow_primitives.dart';
+import 'auth_layout.dart';
 import 'auth_controller.dart';
+import 'social_auth_section.dart';
 
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key});
@@ -35,10 +38,9 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final strings = AppStrings.of(context);
     final authState = ref.watch(authControllerProvider);
     final config = ref.watch(appConfigProvider);
-    final width = MediaQuery.sizeOf(context).width;
-    final showSidePanel = width >= 960;
 
     ref.listen(authControllerProvider, (previous, next) {
       final session = next.maybeWhen(
@@ -53,169 +55,113 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
 
       if (next.hasError && mounted) {
         final message = next.error.toString().replaceFirst('Bad state: ', '');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message)));
       }
     });
 
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
+    return AuthLayout(
+      title: strings.signInTitle,
+      subtitle: strings.signInSubtitle(config.appName),
+      sideEyebrow: 'AI content commerce OS',
+      sideTitle: strings.attentionQuote,
+      sideBody: strings.signInSideBody,
+      formChild: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight - (AppSpacing.lg * 2),
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 440),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Sign In',
-                                style:
-                                    Theme.of(context).textTheme.headlineLarge,
-                              ),
-                              const SizedBox(height: AppSpacing.sm),
-                              Text(
-                                'Enter your email and password to access ${config.appName}. Native auth will call api-gateway directly.',
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                              const SizedBox(height: AppSpacing.xl),
-                              TextField(
-                                controller: _emailController,
-                                decoration: const InputDecoration(
-                                  labelText: 'Email',
-                                  hintText: 'name@creatorflow.app',
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.md),
-                              TextField(
-                                controller: _passwordController,
-                                obscureText: true,
-                                decoration: const InputDecoration(
-                                  labelText: 'Password',
-                                  hintText: 'Enter your password',
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.lg),
-                              ElevatedButton(
-                                onPressed: authState.isLoading
-                                    ? null
-                                    : () {
-                                        ref
-                                            .read(
-                                                authControllerProvider.notifier)
-                                            .signIn(
-                                              email: _emailController.text,
-                                              password:
-                                                  _passwordController.text,
-                                            );
-                                      },
-                                child: Text(
-                                  authState.isLoading
-                                      ? 'Connecting...'
-                                      : 'Enter Workspace',
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.md),
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context)
-                                      .pushNamed(AppRouter.signUpRoute);
-                                },
-                                child: const Text(
-                                  'Need an account? Create workspace',
-                                ),
-                              ),
-                              const SizedBox(height: AppSpacing.lg),
-                              Container(
-                                padding: const EdgeInsets.all(AppSpacing.md),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.md),
-                                  border: Border.all(color: AppColors.border),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Native auth contract',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.xs),
-                                    Text(
-                                      'Client type: ${config.clientType}. API base URL: ${config.apiBaseUrl}.',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  );
-                },
+            SocialAuthSection(
+              busy: authState.isLoading,
+              intent: 'sign_in',
+              onProviderTap: (provider) {
+                ref
+                    .read(authControllerProvider.notifier)
+                    .signInWithProvider(provider);
+              },
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            TextField(
+              controller: _emailController,
+              decoration: InputDecoration(
+                labelText: strings.email,
+                hintText: strings.emailHint,
               ),
             ),
-            if (showSidePanel)
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.all(AppSpacing.lg),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.lg),
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        AppColors.primaryDark,
-                        AppColors.primary,
-                        AppColors.accent,
-                      ],
-                    ),
-                  ),
-                  child: const Padding(
-                    padding: EdgeInsets.all(AppSpacing.xxl),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          'Attention is the new currency.',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        SizedBox(height: AppSpacing.md),
-                        Text(
-                          'This native shell reuses the current web visual direction while staying mobile and desktop friendly.',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: strings.password,
+                hintText: strings.passwordHint,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: authState.isLoading
+                    ? null
+                    : () {
+                        ref.read(authControllerProvider.notifier).signIn(
+                              email: _emailController.text,
+                              password: _passwordController.text,
+                            );
+                      },
+                child: Text(
+                  authState.isLoading
+                      ? strings.connecting
+                      : strings.enterWorkspace,
                 ),
               ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+            Wrap(
+              spacing: AppSpacing.md,
+              runSpacing: AppSpacing.sm,
+              children: [
+                TextButton(
+                  onPressed: authState.isLoading
+                      ? null
+                      : () {
+                          Navigator.of(
+                            context,
+                          ).pushNamed(AppRouter.forgotPasswordRoute);
+                        },
+                  child: Text(strings.forgotPasswordLink),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushNamed(AppRouter.signUpRoute);
+                  },
+                  child: Text(strings.needAccount),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            PremiumSurfaceCard(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              color: AppColors.surface,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    strings.authContract.toUpperCase(),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    strings.authClientInfo(
+                      config.clientType,
+                      config.apiBaseUrl,
+                    ),
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
     );
   }
 }

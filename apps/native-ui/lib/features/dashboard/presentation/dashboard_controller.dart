@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/localization/app_locale_controller.dart';
+import '../../../core/localization/app_strings.dart';
 import '../../../core/networking/api_client.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/presentation/auth_controller.dart';
@@ -53,15 +55,20 @@ class DashboardController extends AsyncNotifier<DashboardState> {
   @override
   Future<DashboardState> build() async {
     final apiClient = ref.watch(apiClientProvider);
+    final language = ref.watch(appLocaleProvider).maybeWhen(
+          data: (language) => language,
+          orElse: () => AppLanguage.english,
+        );
+    final strings = AppStrings.fromLanguageCode(language.code);
     final session = await ref.watch(authControllerProvider.future);
 
     if (!session.isAuthenticated || session.accessToken == null) {
-      return const DashboardState(
-        categories: [],
-        countries: [],
-        highlightBody: 'Sign in to load workspace and trend data.',
-        highlightTitle: 'Welcome to CreatorFlow',
-        metrics: [],
+      return DashboardState(
+        categories: const [],
+        countries: const [],
+        highlightBody: strings.signInToLoadWorkspace,
+        highlightTitle: strings.welcomeCreatorFlow,
+        metrics: const [],
       );
     }
 
@@ -76,26 +83,26 @@ class DashboardController extends AsyncNotifier<DashboardState> {
       metrics: [
         DashboardMetric(
           accent: AppColors.primary,
-          delta: session.workspaceRole ?? 'member',
-          label: 'Workspace',
+          delta: session.workspaceRole ?? strings.member,
+          label: strings.workspaceMetric,
           value: session.workspaceName ?? '-',
         ),
         DashboardMetric(
           accent: AppColors.success,
-          delta: 'active recommendations',
-          label: 'Watchlist Items',
+          delta: strings.activeRecommendations,
+          label: strings.watchlistItems,
           value: '${watchlist.length}',
         ),
         DashboardMetric(
           accent: AppColors.warning,
-          delta: latestDigest?.period ?? 'not ready yet',
-          label: 'Latest Digest',
+          delta: latestDigest?.period ?? strings.notReadyYet,
+          label: strings.latestDigest,
           value: '${latestDigest?.items.length ?? 0}',
         ),
         DashboardMetric(
           accent: AppColors.accent,
-          delta: session.status ?? 'connected',
-          label: 'Client Type',
+          delta: session.status ?? strings.connected,
+          label: strings.clientType,
           value: session.clientType.toUpperCase(),
         ),
       ],
@@ -113,13 +120,13 @@ class DashboardController extends AsyncNotifier<DashboardState> {
       categories: [
         DashboardListItem(
           icon: Icons.account_circle_rounded,
-          subtitle: session.workspaceRole ?? 'member',
+          subtitle: session.workspaceRole ?? strings.member,
           title: session.email ?? '-',
         ),
         DashboardListItem(
           icon: Icons.badge_rounded,
-          subtitle: session.status ?? 'active',
-          title: session.fullName ?? 'Profile incomplete',
+          subtitle: session.status ?? strings.active,
+          title: session.fullName ?? strings.profileIncomplete,
         ),
         DashboardListItem(
           icon: Icons.folder_shared_rounded,
@@ -129,12 +136,13 @@ class DashboardController extends AsyncNotifier<DashboardState> {
         DashboardListItem(
           icon: Icons.api_rounded,
           subtitle: session.apiBaseUrl,
-          title: 'Native auth ready',
+          title: strings.nativeAuthReady,
         ),
       ],
-      highlightBody: latestDigest?.summary ??
-          'No digest available yet. Create trend data from the API to enrich this screen.',
-      highlightTitle: 'Workspace ${session.workspaceName ?? 'overview'}',
+      highlightBody: latestDigest?.summary ?? strings.noDigestYet,
+      highlightTitle: strings.workspaceOverview(
+        session.workspaceName ?? strings.overview,
+      ),
     );
   }
 }

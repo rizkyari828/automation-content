@@ -1,0 +1,106 @@
+{
+  "web": {
+    "profilePage": {
+      "pageTitle": "Workspace profile",
+      "loadingTitle": "Loading profile",
+      "loadingBody": "Fetching account, workspace, and connected provider details.",
+      "loadError": "Unable to load profile",
+      "heroEyebrow": "Account center",
+      "fallbackName": "CreatorFlow User",
+      "verified": "Email verified",
+      "unverified": "Email not verified",
+      "memberRole": "member",
+      "editTitle": "Edit profile",
+      "editBody": "Keep account identity and workspace details clean for team operations.",
+      "fullNameLabel": "Full name",
+      "emailLabel": "Email address",
+      "workspaceNameLabel": "Workspace name",
+      "workspaceNameManageHint": "Workspace name can only be changed by roles with workspace management access.",
+      "aboutLabel": "About",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "savedSuccess": "Profile saved successfully",
+      "saveError": "Unable to save profile",
+      "verificationTitle": "Email verification",
+      "verificationBody": "Request an OTP code, then enter it here to verify your email address.",
+      "verificationDoneBody": "Your email is already verified. You can continue using CreatorFlow normally.",
+      "verificationCodeLabel": "Verification code",
+      "sendCode": "Send OTP code",
+      "sendingCode": "Sending code...",
+      "verifyCode": "Verify email",
+      "verifying": "Verifying...",
+      "codeSentSuccess": "Verification code sent",
+      "sendCodeError": "Unable to send verification code",
+      "verifySuccess": "Email verified",
+      "verifyError": "Unable to verify email",
+      "verifiedAtTemplate": "Verified on {{date}}",
+      "workspaceMembersTitle": "Workspace members",
+      "workspaceMembersBody": "Assign the right role for each teammate to keep operations secure and clear.",
+      "workspaceMembersLoading": "Loading workspace members...",
+      "workspaceMembersEmpty": "No workspace members found.",
+      "workspaceOwnerLockHint": "Owner transfer is not enabled in this version yet.",
+      "joinedAtTemplate": "Joined on {{date}}",
+      "workspaceMembersUpdateSuccess": "Workspace role updated successfully",
+      "workspaceMembersUpdateError": "Unable to update workspace member",
+      "securityTitle": "Security status",
+      "statusLabel": "Status",
+      "workspaceRoleLabel": "Workspace role",
+      "platformRoleLabel": "Platform role",
+      "lastLoginLabel": "Last login",
+      "workspaceTitle": "Workspace",
+      "authorizationTitle": "Authorization",
+      "permissionsLabel": "Permissions",
+      "workspaceFeaturesTitle": "Workspace modules",
+      "workspaceFeaturesManageBody": "Enable or disable modules based on team needs.",
+      "workspaceFeaturesReadBody": "Active modules for the current workspace.",
+      "workspaceFeaturesLoading": "Loading workspace modules...",
+      "workspaceFeaturesDefaultSetting": "Uses the workspace default setting",
+      "workspaceFeaturesUpdatedByTemplate": "Last updated by {{email}}",
+      "workspaceFeaturesUpdateSuccess": "Workspace module updated successfully",
+      "workspaceFeaturesUpdateError": "Unable to update workspace module",
+      "workspaceFeaturesEmpty": "No workspace module data available.",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "updatedAtTemplate": "Updated on {{date}}",
+      "providersTitle": "Connected accounts",
+      "providersEmpty": "No social account is connected yet.",
+      "connectedLabel": "Connected",
+      "connectedAtTemplate": "Connected on {{date}}",
+      "workspaceRoleOptions": [
+        {
+          "label": "Owner",
+          "value": "owner"
+        },
+        {
+          "label": "Admin",
+          "value": "admin"
+        },
+        {
+          "label": "Editor",
+          "value": "editor"
+        },
+        {
+          "label": "Viewer",
+          "value": "viewer"
+        }
+      ],
+      "featureLabels": {
+        "assets": "Asset library",
+        "billing": "Billing",
+        "content": "Content generation",
+        "media": "Media rendering",
+        "publishing": "Publishing",
+        "sso": "Single sign-on",
+        "team": "Team management",
+        "trend": "Trend intelligence",
+        "workspace_settings": "Workspace settings"
+      },
+      "providerNames": {
+        "google": "Google",
+        "twitter": "X / Twitter",
+        "facebook": "Facebook",
+        "apple": "Apple"
+      }
+    }
+  }
+}

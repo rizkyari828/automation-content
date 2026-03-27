@@ -9,6 +9,7 @@
     "packages/*"
   ],
   "scripts": {
+    "i18n:generate": "node ./scripts/generate-locales.mjs",
     "dev:web": "npm run dev --workspace automation-content-ui",
     "dev:gateway": "npm run dev --workspace @creatorflow/api-gateway",
     "build:web": "npm run build --workspace automation-content-ui",

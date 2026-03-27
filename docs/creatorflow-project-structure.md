@@ -214,6 +214,9 @@ Isi saat ini:
 
 ```text
 docs/
+  README.md
+  creatorflow-product-foundation.md
+  creatorflow-next-development-brief.md
   creatorflow-microservice-blueprint.md
   creatorflow-database-architecture.md
   creatorflow-email-architecture.md
