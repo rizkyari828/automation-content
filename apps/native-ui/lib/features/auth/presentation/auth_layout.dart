@@ -26,7 +26,14 @@ class AuthLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final showSidePanel = width >= 980;
+    final showSidePanel = width >= 1180;
+    final showStackedShowcase = width >= 760 && width < 1180;
+    final horizontalPadding = width < 640
+        ? AppSpacing.md
+        : width < 960
+            ? AppSpacing.lg
+            : AppSpacing.xl;
+    final cardPadding = width < 640 ? AppSpacing.lg : AppSpacing.xl;
 
     return Scaffold(
       body: PremiumBackdrop(
@@ -34,107 +41,72 @@ class AuthLayout extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+                padding: EdgeInsets.all(horizontalPadding),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - (AppSpacing.lg * 2),
+                    minHeight: constraints.maxHeight - (horizontalPadding * 2),
                   ),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 1360),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Expanded(
-                            flex: showSidePanel ? 5 : 1,
-                            child: PremiumSurfaceCard(
-                              padding: const EdgeInsets.all(AppSpacing.xl),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Expanded(
-                                        child: CreatorFlowMark(),
-                                      ),
-                                      const LocaleSwitcher(compact: true),
-                                    ],
-                                  ),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  Text(
-                                    title,
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.headlineLarge,
-                                  ),
-                                  const SizedBox(height: AppSpacing.sm),
-                                  ConstrainedBox(
-                                    constraints:
-                                        const BoxConstraints(maxWidth: 520),
-                                    child: Text(
-                                      subtitle,
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.bodyLarge?.copyWith(
-                                            color: AppColors.muted,
-                                          ),
+                      child: showSidePanel
+                          ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(
+                                  flex: 5,
+                                  child: PremiumSurfaceCard(
+                                    padding: EdgeInsets.all(cardPadding),
+                                    child: _AuthFormPanel(
+                                      title: title,
+                                      subtitle: subtitle,
+                                      formChild: formChild,
                                     ),
                                   ),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  formChild,
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (showSidePanel) ...[
-                            const SizedBox(width: AppSpacing.lg),
-                            Expanded(
-                              flex: 4,
-                              child: PremiumGradientCard(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    if ((sideEyebrow ?? '').isNotEmpty) ...[
-                                      SectionEyebrow(sideEyebrow!, onDark: true),
-                                      const SizedBox(height: AppSpacing.md),
-                                    ],
-                                    ConstrainedBox(
-                                      constraints:
-                                          const BoxConstraints(maxWidth: 520),
-                                      child: Text(
-                                        sideTitle,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .headlineLarge
-                                            ?.copyWith(
-                                              color: Colors.white,
-                                              fontSize: 42,
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(height: AppSpacing.md),
-                                    ConstrainedBox(
-                                      constraints:
-                                          const BoxConstraints(maxWidth: 560),
-                                      child: Text(
-                                        sideBody,
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodyLarge?.copyWith(
-                                              color: Colors.white
-                                                  .withValues(alpha: 0.8),
-                                            ),
-                                      ),
-                                    ),
-                                  ],
                                 ),
-                              ),
+                                const SizedBox(width: AppSpacing.lg),
+                                Expanded(
+                                  flex: 4,
+                                  child: PremiumGradientCard(
+                                    child: _AuthShowcase(
+                                      sideEyebrow: sideEyebrow,
+                                      sideTitle: sideTitle,
+                                      sideBody: sideBody,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                if (showStackedShowcase)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.lg,
+                                    ),
+                                    child: PremiumGradientCard(
+                                      padding: const EdgeInsets.all(
+                                        AppSpacing.lg,
+                                      ),
+                                      child: _AuthShowcase(
+                                        sideEyebrow: sideEyebrow,
+                                        sideTitle: sideTitle,
+                                        sideBody: sideBody,
+                                        compact: true,
+                                      ),
+                                    ),
+                                  ),
+                                PremiumSurfaceCard(
+                                  padding: EdgeInsets.all(cardPadding),
+                                  child: _AuthFormPanel(
+                                    title: title,
+                                    subtitle: subtitle,
+                                    formChild: formChild,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
-                        ],
-                      ),
                     ),
                   ),
                 ),
@@ -143,6 +115,105 @@ class AuthLayout extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AuthFormPanel extends StatelessWidget {
+  const _AuthFormPanel({
+    required this.title,
+    required this.subtitle,
+    required this.formChild,
+  });
+
+  final String title;
+  final String subtitle;
+  final Widget formChild;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Expanded(
+              child: CreatorFlowMark(),
+            ),
+            const LocaleSwitcher(compact: true),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                fontSize: MediaQuery.sizeOf(context).width < 640 ? 34 : null,
+              ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Text(
+            subtitle,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppColors.muted,
+                ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        formChild,
+      ],
+    );
+  }
+}
+
+class _AuthShowcase extends StatelessWidget {
+  const _AuthShowcase({
+    required this.sideEyebrow,
+    required this.sideTitle,
+    required this.sideBody,
+    this.compact = false,
+  });
+
+  final String? sideEyebrow;
+  final String sideTitle;
+  final String sideBody;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: compact
+          ? MainAxisAlignment.start
+          : MainAxisAlignment.end,
+      children: [
+        if ((sideEyebrow ?? '').isNotEmpty) ...[
+          SectionEyebrow(sideEyebrow!, onDark: true),
+          const SizedBox(height: AppSpacing.md),
+        ],
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: compact ? 620 : 520),
+          child: Text(
+            sideTitle,
+            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  color: Colors.white,
+                  fontSize: compact ? 34 : 42,
+                ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: compact ? 640 : 560),
+          child: Text(
+            sideBody,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
+          ),
+        ),
+      ],
     );
   }
 }

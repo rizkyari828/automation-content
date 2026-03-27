@@ -481,7 +481,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadius.lg),
                     gradient: const LinearGradient(
-                      colors: [AppColors.primaryDark, AppColors.primary],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppColors.ink,
+                        AppColors.primaryDark,
+                        AppColors.primary,
+                        AppColors.accentWarm,
+                      ],
+                      stops: [0, 0.45, 0.76, 1],
                     ),
                   ),
                   child: Wrap(

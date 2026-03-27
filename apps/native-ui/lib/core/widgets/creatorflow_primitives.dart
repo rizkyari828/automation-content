@@ -62,10 +62,12 @@ class CreatorFlowMark extends StatelessWidget {
     super.key,
     this.compact = false,
     this.onDark = false,
+    this.iconOnly = false,
   });
 
   final bool compact;
   final bool onDark;
+  final bool iconOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -113,27 +115,29 @@ class CreatorFlowMark extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: AppSpacing.md),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'CreatorFlow',
-              style: titleStyle?.copyWith(
-                color: titleColor,
-                fontWeight: FontWeight.w800,
+        if (!iconOnly) ...[
+          const SizedBox(width: AppSpacing.md),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'CreatorFlow',
+                style: titleStyle?.copyWith(
+                  color: titleColor,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            Text(
-              'COMMERCE OS',
-              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: subtitleColor,
-                    letterSpacing: 2.2,
-                  ),
-            ),
-          ],
-        ),
+              Text(
+                'COMMERCE OS',
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: subtitleColor,
+                      letterSpacing: 2.2,
+                    ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

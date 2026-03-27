@@ -88,7 +88,9 @@ class AppShell extends ConsumerWidget {
         .maybeWhen(data: (session) => session, orElse: () => null);
     final destinations = _destinations(strings, session);
     final width = MediaQuery.sizeOf(context).width;
-    final useSidebar = width >= 1040;
+    final useFullSidebar = width >= 1260;
+    final useCompactSidebar = width >= 920 && width < 1260;
+    final useSidebar = useFullSidebar || useCompactSidebar;
     final selectedIndex = ref.watch(appShellIndexProvider);
     final safeSelectedIndex = destinations.isEmpty
         ? 0
@@ -125,35 +127,51 @@ class AppShell extends ConsumerWidget {
                 ? Row(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(
-                        width: 292,
-                        child: _DesktopSidebar(
-                          destinations: destinations,
-                          selectedIndex: safeSelectedIndex,
-                          onSelect: (index) {
-                            ref
-                                .read(appShellIndexProvider.notifier)
-                                .selectIndex(index);
-                          },
-                          onBillingTap: () {
-                            final billingIndex = destinations.indexWhere(
-                              (destination) => destination.label == strings.billing,
-                            );
-
-                            if (billingIndex >= 0) {
+                      if (useFullSidebar)
+                        SizedBox(
+                          width: 292,
+                          child: _DesktopSidebar(
+                            destinations: destinations,
+                            selectedIndex: safeSelectedIndex,
+                            onSelect: (index) {
                               ref
                                   .read(appShellIndexProvider.notifier)
-                                  .selectIndex(billingIndex);
-                            }
-                          },
+                                  .selectIndex(index);
+                            },
+                            onBillingTap: () {
+                              final billingIndex = destinations.indexWhere(
+                                (destination) =>
+                                    destination.label == strings.billing,
+                              );
+
+                              if (billingIndex >= 0) {
+                                ref
+                                    .read(appShellIndexProvider.notifier)
+                                    .selectIndex(billingIndex);
+                              }
+                            },
+                          ),
+                        )
+                      else
+                        SizedBox(
+                          width: 104,
+                          child: _CompactSidebar(
+                            destinations: destinations,
+                            selectedIndex: safeSelectedIndex,
+                            onSelect: (index) {
+                              ref
+                                  .read(appShellIndexProvider.notifier)
+                                  .selectIndex(index);
+                            },
+                          ),
                         ),
-                      ),
                       const SizedBox(width: AppSpacing.lg),
                       Expanded(
                         child: _ContentArea(
                           selected: selected,
                           session: session,
                           strings: strings,
+                          compactHeader: useCompactSidebar,
                           onSignOut: () {
                             ref
                                 .read(authControllerProvider.notifier)
@@ -168,6 +186,7 @@ class AppShell extends ConsumerWidget {
                     session: session,
                     strings: strings,
                     compact: true,
+                    compactHeader: true,
                     onSignOut: () {
                       ref.read(authControllerProvider.notifier).signOut();
                     },
@@ -258,7 +277,7 @@ class _DesktopSidebar extends StatelessWidget {
                   onTap: () => onSelect(index),
                 );
               },
-              separatorBuilder: (_, __) =>
+              separatorBuilder: (_, index) =>
                   const SizedBox(height: AppSpacing.xs),
               itemCount: destinations.length,
             ),
@@ -297,6 +316,75 @@ class _DesktopSidebar extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactSidebar extends StatelessWidget {
+  const _CompactSidebar({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+
+  final List<_ShellDestination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    return PremiumSurfaceCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.lg,
+      ),
+      child: Column(
+        children: [
+          const CreatorFlowMark(compact: true, iconOnly: true),
+          const SizedBox(height: AppSpacing.xl),
+          Expanded(
+            child: ListView.separated(
+              padding: EdgeInsets.zero,
+              itemCount: destinations.length,
+              separatorBuilder: (_, index) =>
+                  const SizedBox(height: AppSpacing.sm),
+              itemBuilder: (context, index) {
+                final destination = destinations[index];
+                final active = index == selectedIndex;
+
+                return Tooltip(
+                  message: destination.label,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      onTap: () => onSelect(index),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: active
+                              ? const Color(0xFFF3F7FB)
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                        ),
+                        child: Icon(
+                          destination.icon,
+                          size: 22,
+                          color: active
+                              ? AppColors.primaryDark
+                              : AppColors.mutedStrong,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -394,6 +482,7 @@ class _ContentArea extends StatelessWidget {
     required this.strings,
     required this.onSignOut,
     this.compact = false,
+    this.compactHeader = false,
   });
 
   final _ShellDestination selected;
@@ -401,6 +490,7 @@ class _ContentArea extends StatelessWidget {
   final AppStrings strings;
   final VoidCallback onSignOut;
   final bool compact;
+  final bool compactHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -412,7 +502,7 @@ class _ContentArea extends StatelessWidget {
             horizontal: compact ? AppSpacing.lg : AppSpacing.xl,
             vertical: compact ? AppSpacing.lg : AppSpacing.xl,
           ),
-          child: compact
+          child: compact || compactHeader
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
