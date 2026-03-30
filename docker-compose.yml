@@ -122,8 +122,8 @@ services:
   media-processing-service:
     profiles: ["full"]
     build:
-      context: ./services/media-processing-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/media-processing-service/Dockerfile
     container_name: creatorflow-media-processing-service
     environment:
       APP_ENV: production
@@ -140,6 +140,8 @@ services:
         condition: service_healthy
     ports:
       - "${MEDIA_PROCESSING_PORT:-4100}:4100"
+    volumes:
+      - media-render-cache:/app/.creatorflow
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:4100/health"]
       interval: 15s
@@ -150,8 +152,8 @@ services:
   media-processing-worker:
     profiles: ["full"]
     build:
-      context: ./services/media-processing-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: services/media-processing-service/Dockerfile
     container_name: creatorflow-media-processing-worker
     command: ["media-worker"]
     environment:
@@ -166,6 +168,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    volumes:
+      - media-render-cache:/app/.creatorflow
     restart: unless-stopped
 
   publishing-service:
@@ -218,5 +222,6 @@ services:
     restart: unless-stopped
 
 volumes:
+  media-render-cache:
   postgres-data:
   redis-data:

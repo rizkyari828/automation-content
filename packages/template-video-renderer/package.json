@@ -1,0 +1,29 @@
+{
+  "name": "@creatorflow/template-video-renderer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Remotion-based template renderer for CreatorFlow Phase 1A promo videos",
+  "scripts": {
+    "render:sample": "remotion render src/index.ts creatorflow-template-video out/sample-beauty-promo.mp4",
+    "render:job": "node ./scripts/render-template-video.mjs",
+    "studio": "remotion studio src/index.ts"
+  },
+  "engines": {
+    "node": ">=22 <23"
+  },
+  "dependencies": {
+    "@remotion/bundler": "4.0.441",
+    "@remotion/cli": "4.0.441",
+    "@remotion/renderer": "4.0.441",
+    "ast-types": "^0.16.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "remotion": "4.0.441"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^5.9.2"
+  }
+}

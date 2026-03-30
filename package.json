@@ -27,6 +27,7 @@
     "stack:rebuild": "COMPOSE_PROFILES=full docker compose up -d --build --force-recreate",
     "db:migrate": "npm run migrate:up --workspace @creatorflow/database",
     "db:status": "npm run migrate:status --workspace @creatorflow/database",
+    "bootstrap:superadmin": "npm run seed:superadmin --workspace @creatorflow/database",
     "audit:deps": "npm audit --workspaces --include-workspace-root",
     "outdated:deps": "npm outdated --workspaces"
   },

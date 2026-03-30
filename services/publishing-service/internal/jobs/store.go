@@ -24,6 +24,15 @@ type CreatePublishJobInput struct {
 	WorkspaceID        string
 }
 
+type DispatchablePublishJob struct {
+	AssetID            string
+	CaptionID          string
+	ConnectedAccountID string
+	JobID              string
+	PlatformCode       string
+	WorkspaceID        string
+}
+
 type PublishJob struct {
 	JobID            string  `json:"jobId"`
 	LastErrorMessage *string `json:"lastErrorMessage,omitempty"`
@@ -135,4 +144,111 @@ func (s *Store) GetPublishJob(ctx context.Context, jobID string) (PublishJob, er
 	}
 
 	return job, err
+}
+
+func (s *Store) ClaimNextPublishJob(ctx context.Context, workerID string, leaseSeconds int) (*DispatchablePublishJob, error) {
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	row := tx.QueryRow(
+		ctx,
+		`
+      WITH candidate AS (
+        SELECT id
+        FROM publishing.publish_jobs
+        WHERE status IN ('scheduled', 'queued')
+          AND scheduled_for <= NOW()
+        ORDER BY scheduled_for ASC, created_at ASC
+        FOR UPDATE SKIP LOCKED
+        LIMIT 1
+      )
+      UPDATE publishing.publish_jobs AS job
+      SET
+        status = 'processing',
+        attempts = attempts + 1,
+        lease_owner = $1,
+        leased_until = NOW() + make_interval(secs => $2),
+        updated_at = NOW()
+      FROM candidate
+      WHERE job.id = candidate.id
+      RETURNING
+        job.id,
+        COALESCE(job.asset_id::text, ''),
+        COALESCE(job.caption_id::text, ''),
+        COALESCE(job.connected_account_id::text, ''),
+        job.platform_code,
+        job.workspace_id
+    `,
+		workerID,
+		leaseSeconds,
+	)
+
+	var job DispatchablePublishJob
+	if err := row.Scan(
+		&job.JobID,
+		&job.AssetID,
+		&job.CaptionID,
+		&job.ConnectedAccountID,
+		&job.PlatformCode,
+		&job.WorkspaceID,
+	); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+
+	return &job, nil
+}
+
+func (s *Store) MarkPublishJobPublished(ctx context.Context, jobID string) error {
+	_, err := s.pool.Exec(
+		ctx,
+		`
+      UPDATE publishing.publish_jobs
+      SET
+        status = 'published',
+        published_at = NOW(),
+        lease_owner = NULL,
+        leased_until = NULL,
+        last_error_code = NULL,
+        last_error_message = NULL,
+        updated_at = NOW()
+      WHERE id = $1
+    `,
+		jobID,
+	)
+
+	return err
+}
+
+func (s *Store) MarkPublishJobFailed(ctx context.Context, jobID string, errorCode string, errorMessage string) error {
+	_, err := s.pool.Exec(
+		ctx,
+		`
+      UPDATE publishing.publish_jobs
+      SET
+        status = 'failed',
+        lease_owner = NULL,
+        leased_until = NULL,
+        last_error_code = NULLIF($2, ''),
+        last_error_message = NULLIF($3, ''),
+        updated_at = NOW()
+      WHERE id = $1
+    `,
+		jobID,
+		errorCode,
+		errorMessage,
+	)
+
+	return err
 }

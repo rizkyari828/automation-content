@@ -6,6 +6,7 @@ Isi utamanya:
 
 - `contracts/http` untuk `OpenAPI`
 - `contracts/events` untuk event schema `JSON Schema`
+- `contracts/media` untuk schema pipeline media lintas service yang belum tepat menjadi `OpenAPI` atau event
 
 Prinsip:
 

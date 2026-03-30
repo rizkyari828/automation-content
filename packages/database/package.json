@@ -7,7 +7,8 @@
   "scripts": {
     "migrations:list": "find migrations -type f | sort",
     "migrate:up": "node ./scripts/migrate.mjs up",
-    "migrate:status": "node ./scripts/migrate.mjs status"
+    "migrate:status": "node ./scripts/migrate.mjs status",
+    "seed:superadmin": "node ./scripts/bootstrap-superadmin.mjs"
   },
   "dependencies": {
     "pg": "^8.16.3"

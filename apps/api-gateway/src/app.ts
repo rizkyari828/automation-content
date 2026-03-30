@@ -9,6 +9,7 @@ import {
 } from "@creatorflow/logger";
 import type { RequestContext } from "@creatorflow/logger";
 import { getConfig } from "./config.js";
+import { registerAnalyticsLiteRoutes } from "./modules/analytics-lite/routes.js";
 import { registerAssetRoutes } from "./modules/assets/routes.js";
 import { registerContentRoutes } from "./modules/content/routes.js";
 import { registerIdentityRoutes } from "./modules/identity/routes.js";
@@ -115,6 +116,7 @@ export function buildApp() {
   });
 
   registerIdentityRoutes(app);
+  registerAnalyticsLiteRoutes(app);
   registerContentRoutes(app);
   registerAssetRoutes(app);
   registerTrendRoutes(app);

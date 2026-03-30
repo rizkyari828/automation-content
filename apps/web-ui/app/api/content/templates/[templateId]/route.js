@@ -1,0 +1,22 @@
+import { createJsonResponse } from "../../../../../lib/auth/cookies.js";
+import { gatewayFetchWithSession, syncGatewaySessionToResponse } from "../../../../../lib/auth/gateway-session.js";
+import { readJson } from "../../../../../lib/auth/gateway.js";
+
+export async function PATCH(request, { params }) {
+  const body = await request.text();
+  const resolvedParams = await params;
+  const result = await gatewayFetchWithSession(request, `/v1/content/templates/${resolvedParams.templateId}`, {
+    method: "PATCH",
+    headers: {
+      "content-type": "application/json"
+    },
+    body
+  });
+  const payload = await readJson(result.gatewayResponse);
+  const response = createJsonResponse(payload ?? { message: "Unable to update content template" }, {
+    status: result.gatewayResponse.status || 500
+  });
+
+  syncGatewaySessionToResponse(response, result);
+  return response;
+}

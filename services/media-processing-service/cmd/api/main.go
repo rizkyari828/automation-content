@@ -11,6 +11,7 @@ import (
 	"github.com/creatorflow/automation-content/services/media-processing-service/internal/auth"
 	"github.com/creatorflow/automation-content/services/media-processing-service/internal/jobs"
 	"github.com/creatorflow/automation-content/services/media-processing-service/internal/observability"
+	"github.com/creatorflow/automation-content/services/media-processing-service/internal/render"
 )
 
 func main() {
@@ -69,6 +70,12 @@ func main() {
 		}
 
 		var body struct {
+			AspectRatio       string         `json:"aspectRatio"`
+			DurationSeconds   int            `json:"durationSeconds"`
+			Mode              string         `json:"renderMode"`
+			Options           map[string]any `json:"options"`
+			PreferredProvider string         `json:"preferredProvider"`
+			Prompt            string         `json:"prompt"`
 			RequestedByUserID string `json:"requestedByUserId"`
 			ScriptID          string `json:"scriptId"`
 			SourceAssetID     string `json:"sourceAssetId"`
@@ -83,15 +90,46 @@ func main() {
 			return
 		}
 
-		if body.WorkspaceID == "" || body.SourceAssetID == "" {
+		if body.WorkspaceID == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{
 				"error":   "invalid_request",
-				"message": "workspaceId and sourceAssetId are required",
+				"message": "workspaceId is required",
+			})
+			return
+		}
+
+		spec := render.NormalizeSpec(render.RequestSpec{
+			AspectRatio:       body.AspectRatio,
+			DurationSeconds:   body.DurationSeconds,
+			Mode:              body.Mode,
+			Options:           body.Options,
+			PreferredProvider: body.PreferredProvider,
+			Prompt:            body.Prompt,
+		})
+
+			templateSpecPresent := false
+			if spec.Options != nil {
+				_, templateSpecPresent = spec.Options["templateRenderSpec"]
+			}
+
+			if body.SourceAssetID == "" && spec.Prompt == "" && !(spec.Mode == render.ModeTemplatePromo && templateSpecPresent) {
+				writeJSON(w, http.StatusBadRequest, map[string]string{
+					"error":   "invalid_request",
+					"message": render.ErrMissingPromptOrSource.Error(),
+			})
+			return
+		}
+
+		if err := render.ValidateSpec(spec, body.SourceAssetID); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": err.Error(),
 			})
 			return
 		}
 
 		job, err := store.CreateRenderJob(r.Context(), jobs.CreateRenderJobInput{
+			RenderSpec:         spec,
 			RequestedByUserID: body.RequestedByUserID,
 			ScriptID:          body.ScriptID,
 			SourceAssetID:     body.SourceAssetID,
@@ -156,6 +194,125 @@ func main() {
 		writeJSON(w, http.StatusOK, job)
 	}))
 
+	mux.HandleFunc("/internal/v1/render-jobs-output/", auth.RequireInternalServiceAuth(auth.Config{
+		Audience: config.InternalServiceAudience,
+		Issuer:   config.InternalServiceIssuer,
+		Secret:   config.InternalServiceSecret,
+	}, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		jobID := strings.TrimPrefix(r.URL.Path, "/internal/v1/render-jobs-output/")
+		if jobID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": "jobId is required",
+			})
+			return
+		}
+
+		output, err := store.GetRenderJobOutput(r.Context(), jobID)
+		if errors.Is(err, jobs.ErrRenderJobNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{
+				"error":   "render_job_not_found",
+				"message": "Render job was not found",
+			})
+			return
+		}
+		if errors.Is(err, jobs.ErrRenderOutputNotReady) {
+			writeJSON(w, http.StatusConflict, map[string]string{
+				"error":   "render_output_not_ready",
+				"message": "Rendered output is not ready yet",
+			})
+			return
+		}
+		if err != nil {
+			logger.Error("render job output lookup failed", map[string]any{
+				"correlationId": requestCorrelationID(r.Context()),
+				"errorMessage":  err.Error(),
+				"jobId":         jobID,
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error":   "render_output_lookup_failed",
+				"message": "Failed to load render output",
+			})
+			return
+		}
+
+		serveRenderArtifact(w, r, logger, renderArtifactResponse{
+			filePath:      output.FilePath,
+			jobID:         jobID,
+			mimeType:      output.MimeType,
+			openErrorCode: "render_output_open_failed",
+			openLabel:     "render output",
+			statErrorCode: "render_output_stat_failed",
+		})
+	}))
+
+	mux.HandleFunc("/internal/v1/render-jobs-poster/", auth.RequireInternalServiceAuth(auth.Config{
+		Audience: config.InternalServiceAudience,
+		Issuer:   config.InternalServiceIssuer,
+		Secret:   config.InternalServiceSecret,
+	}, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		jobID := strings.TrimPrefix(r.URL.Path, "/internal/v1/render-jobs-poster/")
+		if jobID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": "jobId is required",
+			})
+			return
+		}
+
+		output, err := store.GetRenderJobOutput(r.Context(), jobID)
+		if errors.Is(err, jobs.ErrRenderJobNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{
+				"error":   "render_job_not_found",
+				"message": "Render job was not found",
+			})
+			return
+		}
+		if errors.Is(err, jobs.ErrRenderOutputNotReady) || output.PosterFilePath == "" {
+			writeJSON(w, http.StatusConflict, map[string]string{
+				"error":   "render_poster_not_ready",
+				"message": "Render poster is not ready yet",
+			})
+			return
+		}
+		if err != nil {
+			logger.Error("render poster lookup failed", map[string]any{
+				"correlationId": requestCorrelationID(r.Context()),
+				"errorMessage":  err.Error(),
+				"jobId":         jobID,
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error":   "render_poster_lookup_failed",
+				"message": "Failed to load render poster",
+			})
+			return
+		}
+
+		mimeType := output.PosterMimeType
+		if mimeType == "" {
+			mimeType = "image/jpeg"
+		}
+
+		serveRenderArtifact(w, r, logger, renderArtifactResponse{
+			filePath:      output.PosterFilePath,
+			jobID:         jobID,
+			mimeType:      mimeType,
+			openErrorCode: "render_poster_open_failed",
+			openLabel:     "render poster",
+			statErrorCode: "render_poster_stat_failed",
+		})
+	}))
+
 	logger.Info("service starting", map[string]any{
 		"component":               "api",
 		"databaseUrlConfigured":   config.DatabaseURL != "",
@@ -170,6 +327,53 @@ func main() {
 		})
 		os.Exit(1)
 	}
+}
+
+type renderArtifactResponse struct {
+	filePath      string
+	jobID         string
+	mimeType      string
+	openErrorCode string
+	openLabel     string
+	statErrorCode string
+}
+
+func serveRenderArtifact(w http.ResponseWriter, r *http.Request, logger *observability.Logger, input renderArtifactResponse) {
+	file, err := os.Open(input.filePath)
+	if err != nil {
+		logger.Error(input.openLabel+" open failed", map[string]any{
+			"correlationId": requestCorrelationID(r.Context()),
+			"errorMessage":  err.Error(),
+			"filePath":      input.filePath,
+			"jobId":         input.jobID,
+		})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{
+			"error":   input.openErrorCode,
+			"message": "Failed to open " + input.openLabel,
+		})
+		return
+	}
+	defer file.Close()
+
+	fileInfo, err := file.Stat()
+	if err != nil {
+		logger.Error(input.openLabel+" stat failed", map[string]any{
+			"correlationId": requestCorrelationID(r.Context()),
+			"errorMessage":  err.Error(),
+			"filePath":      input.filePath,
+			"jobId":         input.jobID,
+		})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{
+			"error":   input.statErrorCode,
+			"message": "Failed to read " + input.openLabel,
+		})
+		return
+	}
+
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Cache-Control", "private, max-age=300")
+	w.Header().Set("Content-Type", input.mimeType)
+	http.ServeContent(w, r, fileInfo.Name(), fileInfo.ModTime(), file)
 }
 
 type serviceConfig struct {

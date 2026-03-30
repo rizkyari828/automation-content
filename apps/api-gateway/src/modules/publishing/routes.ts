@@ -20,13 +20,160 @@ type PublishJobResponse = {
 };
 
 type OwnershipRow = {
+  account_label?: string;
+  external_account_id?: string;
   id: string;
   platform_code?: string;
+  status?: string;
 };
 
 const PLATFORM_CODES = new Set(["tiktok", "instagram", "facebook", "youtube"]);
 
 export function registerPublishingRoutes(app: FastifyInstance) {
+  app.get(
+    "/v1/publishing/connected-accounts",
+    { preHandler: authenticateUserRequest },
+    async (request, reply) => {
+      const querystring = request.query as {
+        platformCode?: string;
+        workspaceId?: string;
+      };
+
+      try {
+        const workspaceId = querystring.workspaceId ?? request.userAuth?.workspaceId;
+        const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
+        if (workspaceError) {
+          return workspaceError;
+        }
+
+        const permissionError = await ensureWorkspacePermission(request, reply, {
+          feature: "publishing",
+          permission: "publishing.read"
+        });
+        if (permissionError) {
+          return permissionError;
+        }
+
+        if (!workspaceId) {
+          return badRequest(reply, "workspaceId is required");
+        }
+
+        if (querystring.platformCode && !PLATFORM_CODES.has(querystring.platformCode)) {
+          return badRequest(reply, "platformCode is invalid");
+        }
+
+        const result = await query<OwnershipRow>(
+          `
+            SELECT
+              id,
+              platform_code,
+              account_label,
+              external_account_id,
+              status
+            FROM publishing.connected_accounts
+            WHERE workspace_id = $1
+              AND ($2::text IS NULL OR platform_code = $2)
+            ORDER BY created_at DESC
+          `,
+          [workspaceId, querystring.platformCode ?? null]
+        );
+
+        return reply.send({
+          items: result.rows.map((row) => ({
+            id: row.id,
+            platformCode: row.platform_code,
+            accountLabel: row.account_label,
+            externalAccountId: row.external_account_id,
+            status: row.status
+          }))
+        });
+      } catch (error) {
+        request.log.error(error);
+        return internalError(reply);
+      }
+    }
+  );
+
+  app.post(
+    "/v1/publishing/connected-accounts",
+    { preHandler: authenticateUserRequest },
+    async (request, reply) => {
+      const body = request.body as {
+        accountLabel?: string;
+        externalAccountId?: string;
+        platformCode?: string;
+        workspaceId?: string;
+      };
+
+      if (!body.accountLabel || !body.platformCode) {
+        return badRequest(reply, "accountLabel and platformCode are required");
+      }
+
+      if (!PLATFORM_CODES.has(body.platformCode)) {
+        return badRequest(reply, "platformCode is invalid");
+      }
+
+      try {
+        const workspaceId = body.workspaceId ?? request.userAuth?.workspaceId;
+        const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
+        if (workspaceError) {
+          return workspaceError;
+        }
+
+        const permissionError = await ensureWorkspacePermission(request, reply, {
+          feature: "publishing",
+          permission: "publishing.write"
+        });
+        if (permissionError) {
+          return permissionError;
+        }
+
+        if (!workspaceId) {
+          return badRequest(reply, "workspaceId is required");
+        }
+
+        const externalAccountId = createConnectedAccountExternalId(body.externalAccountId, body.accountLabel);
+        const result = await query<OwnershipRow>(
+          `
+            INSERT INTO publishing.connected_accounts (
+              workspace_id,
+              platform_code,
+              account_label,
+              external_account_id,
+              status
+            )
+            VALUES ($1, $2, $3, $4, 'active')
+            RETURNING
+              id,
+              platform_code,
+              account_label,
+              external_account_id,
+              status
+          `,
+          [workspaceId, body.platformCode, body.accountLabel.trim(), externalAccountId]
+        );
+
+        const account = result.rows[0];
+        return reply.code(201).send({
+          account: {
+            id: account.id,
+            platformCode: account.platform_code,
+            accountLabel: account.account_label,
+            externalAccountId: account.external_account_id,
+            status: account.status
+          }
+        });
+      } catch (error) {
+        if (error instanceof Error && error.message.includes("connected_accounts_external_unique")) {
+          return badRequest(reply, "externalAccountId is already connected");
+        }
+
+        request.log.error(error);
+        return internalError(reply);
+      }
+    }
+  );
+
   app.post(
     "/v1/publishing/publish-jobs",
     { preHandler: authenticateUserRequest },
@@ -204,4 +351,14 @@ export function registerPublishingRoutes(app: FastifyInstance) {
 function stripWorkspaceId(job: PublishJobResponse) {
   const { workspaceId: _, ...publicJob } = job;
   return publicJob;
+}
+
+function createConnectedAccountExternalId(input: string | undefined, accountLabel: string) {
+  const candidate = (input ?? accountLabel)
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return candidate || randomUUID().slice(0, 12);
 }

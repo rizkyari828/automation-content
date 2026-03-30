@@ -3,6 +3,7 @@
     "layout": {
       "nav": {
         "dashboard": "Ringkasan",
+        "content": "Studio konten",
         "tables": "Pipeline",
         "billing": "Paket",
         "virtualReality": "Ops center",

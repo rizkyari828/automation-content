@@ -84,7 +84,7 @@ components:
           const: ok
     CreateRenderJobRequest:
       type: object
-      required: [workspaceId, sourceAssetId]
+      required: [workspaceId, renderMode]
       properties:
         workspaceId:
           type: string
@@ -95,6 +95,22 @@ components:
         scriptId:
           type: string
           format: uuid
+        renderMode:
+          type: string
+          enum: [template_promo, ai_text_to_video, ai_image_to_video, ai_video_to_video]
+        preferredProvider:
+          type: string
+        prompt:
+          type: string
+        aspectRatio:
+          type: string
+          default: "9:16"
+        durationSeconds:
+          type: integer
+          minimum: 0
+        options:
+          type: object
+          additionalProperties: true
         requestedByUserId:
           type: string
           format: uuid
@@ -124,6 +140,15 @@ components:
         outputAssetId:
           type: string
           format: uuid
+        providerName:
+          type: string
+        providerJobId:
+          type: string
+        preferredProvider:
+          type: string
+        renderMode:
+          type: string
+          enum: [template_promo, ai_text_to_video, ai_image_to_video, ai_video_to_video]
         startedAt:
           type: string
           format: date-time

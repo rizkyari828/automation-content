@@ -124,6 +124,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/GenerateScriptResponse"
+  /v1/content/template-plans:preview:
+    post:
+      tags: [Content]
+      summary: Preview a template render spec and scene plan for template video rendering
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewTemplatePlanRequest"
+      responses:
+        "200":
+          description: Template plan preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewTemplatePlanResponse"
   /v1/assets/upload-url:
     post:
       tags: [Assets]
@@ -449,6 +468,78 @@ components:
         status:
           type: string
           enum: [queued, ready]
+    PreviewTemplatePlanRequest:
+      type: object
+      required: [niche, objective, product, script]
+      properties:
+        workspaceId:
+          type: string
+          format: uuid
+        niche:
+          type: string
+          enum: [beauty, gadget, fashion]
+        objective:
+          type: string
+          enum: [promo_offer, problem_solution, testimonial_style, comparison]
+        variant:
+          type: string
+        aspectRatio:
+          type: string
+          enum: ["9:16", "1:1", "16:9"]
+        durationSeconds:
+          type: integer
+          minimum: 0
+        musicMode:
+          type: string
+          enum: [none, clean, upbeat, dramatic]
+        brandTone:
+          type: string
+          enum: [soft, confident, direct, playful, premium]
+        imageAssetIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+        product:
+          type: object
+          required: [title]
+          properties:
+            title:
+              type: string
+            subtitle:
+              type: string
+            description:
+              type: string
+            priceText:
+              type: string
+            offerText:
+              type: string
+            ctaText:
+              type: string
+        script:
+          type: object
+          required: [hook, body, cta]
+          properties:
+            hook:
+              type: string
+            body:
+              type: string
+            cta:
+              type: string
+            subtitleLines:
+              type: array
+              items:
+                type: string
+    PreviewTemplatePlanResponse:
+      type: object
+      required: [templateRenderSpec, scenePlan]
+      properties:
+        templateRenderSpec:
+          type: object
+          additionalProperties: true
+        scenePlan:
+          type: object
+          additionalProperties: true
     CreateUploadRequest:
       type: object
       required: [assetType, fileName]
@@ -486,7 +577,6 @@ components:
           format: date-time
     CreateRenderJobGatewayRequest:
       type: object
-      required: [sourceAssetId]
       properties:
         workspaceId:
           type: string
@@ -497,6 +587,25 @@ components:
         scriptId:
           type: string
           format: uuid
+        renderMode:
+          type: string
+          enum: [template_promo, ai_text_to_video, ai_image_to_video, ai_video_to_video]
+        preferredProvider:
+          type: string
+        prompt:
+          type: string
+        aspectRatio:
+          type: string
+          default: "9:16"
+        durationSeconds:
+          type: integer
+          minimum: 0
+        options:
+          type: object
+          additionalProperties: true
+        templateRenderSpec:
+          type: object
+          additionalProperties: true
     RenderJobGatewayResponse:
       type: object
       required: [jobId, status]
@@ -510,6 +619,15 @@ components:
         outputAssetId:
           type: string
           format: uuid
+        providerName:
+          type: string
+        providerJobId:
+          type: string
+        preferredProvider:
+          type: string
+        renderMode:
+          type: string
+          enum: [template_promo, ai_text_to_video, ai_image_to_video, ai_video_to_video]
         startedAt:
           type: string
           format: date-time

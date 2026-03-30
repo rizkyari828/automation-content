@@ -3,6 +3,7 @@
     "layout": {
       "nav": {
         "dashboard": "Overview",
+        "content": "Content studio",
         "tables": "Pipeline",
         "billing": "Plan",
         "virtualReality": "Ops center",

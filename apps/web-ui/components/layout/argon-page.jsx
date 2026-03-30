@@ -10,6 +10,7 @@ import { useWebMessages } from "../i18n/web-locale.jsx";
 
 const MAIN_NAV_ITEMS = [
   { href: "/dashboard", icon: "ni ni-shop", key: "dashboard", routeKey: "dashboard" },
+  { href: "/content", icon: "ni ni-collection", key: "content", routeKey: "content" },
   { href: "/tables", icon: "ni ni-bullet-list-67", key: "tables", routeKey: "tables" },
   { href: "/billing", icon: "ni ni-money-coins", key: "billing", routeKey: "billing" },
   { href: "/virtual-reality", icon: "ni ni-chart-pie-35", key: "virtualReality", routeKey: "virtual-reality" }
@@ -20,6 +21,10 @@ const ACCOUNT_NAV_ITEMS = [
 ];
 
 const NAV_ACCESS_RULES = {
+  content: {
+    feature: "content",
+    permission: "content.read"
+  },
   billing: {
     feature: "billing",
     permission: "billing.read"

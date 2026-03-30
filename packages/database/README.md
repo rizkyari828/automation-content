@@ -74,6 +74,7 @@ Baseline MVP saat ini mencakup:
 
 - `npm run migrate:status --workspace @creatorflow/database`
 - `npm run migrate:up --workspace @creatorflow/database`
+- `npm run seed:superadmin --workspace @creatorflow/database`
 
 Default `DATABASE_URL` runner:
 
@@ -99,6 +100,7 @@ Atau jika ingin langsung dari workspace package:
 ```bash
 npm run migrate:up --workspace @creatorflow/database
 npm run migrate:status --workspace @creatorflow/database
+npm run seed:superadmin --workspace @creatorflow/database
 ```
 
 ## Notes
@@ -106,3 +108,4 @@ npm run migrate:status --workspace @creatorflow/database
 - `migrate.mjs` memakai advisory lock agar apply migration tidak balapan
 - migration yang sudah applied tidak boleh diedit; buat file migration baru untuk perubahan schema berikutnya
 - folder domain tanpa file `.sql` masih valid sebagai placeholder roadmap
+- `bootstrap-superadmin.mjs` dipakai untuk local dev account dan aman dijalankan berulang

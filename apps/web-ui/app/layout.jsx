@@ -229,6 +229,142 @@ export default function RootLayout({ children }) {
             align-items: stretch;
           }
 
+          .cf-content-hero-body {
+            max-width: 56ch;
+            line-height: 1.75;
+          }
+
+          .cf-content-stat {
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 0.95rem;
+            padding: 0.95rem 1rem;
+          }
+
+          .cf-content-output-block + .cf-content-output-block {
+            margin-top: 1rem;
+          }
+
+          .cf-content-draft-item {
+            background: #f8fafc;
+            border: 1px solid #e4ebf4;
+            border-radius: 1rem;
+            padding: 1rem 1rem 0.95rem;
+            transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+          }
+
+          .cf-content-draft-item.is-active,
+          .cf-content-draft-item:hover {
+            border-color: rgba(15, 133, 144, 0.36);
+            box-shadow: 0 18px 34px rgba(16, 44, 69, 0.08);
+            transform: translateY(-1px);
+          }
+
+          .cf-content-mini-stat {
+            background: #f8fafc;
+            border: 1px solid #e4ebf4;
+            border-radius: 0.9rem;
+            padding: 0.9rem 1rem;
+          }
+
+          .cf-content-mode-grid {
+            display: grid;
+            gap: 0.9rem;
+            grid-template-columns: repeat(1, minmax(0, 1fr));
+          }
+
+          .cf-content-mode-card {
+            background:
+              radial-gradient(circle at top right, rgba(55, 201, 177, 0.08), transparent 34%),
+              #f8fafc;
+            border: 1px solid #e4ebf4;
+            border-radius: 1rem;
+            padding: 1rem;
+            transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+          }
+
+          .cf-content-mode-card.is-selected,
+          .cf-content-mode-card:hover {
+            box-shadow: 0 18px 34px rgba(16, 44, 69, 0.08);
+            transform: translateY(-1px);
+          }
+
+          .cf-content-session-note,
+          .cf-content-checkpoint,
+          .cf-content-snapshot {
+            background: #f8fafc;
+            border: 1px solid #e4ebf4;
+            border-radius: 1rem;
+            padding: 1rem;
+          }
+
+          .cf-content-session-note {
+            align-items: flex-start;
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+          }
+
+          .cf-content-snapshot-row + .cf-content-snapshot-row {
+            margin-top: 0.85rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid #e4ebf4;
+          }
+
+          .cf-content-snapshot-row span {
+            color: #67748e;
+            display: block;
+            font-size: 0.76rem;
+            margin-bottom: 0.22rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+          }
+
+          .cf-content-snapshot-row strong {
+            color: #102c45;
+            display: block;
+            font-size: 0.92rem;
+            line-height: 1.55;
+          }
+
+          .cf-content-progress-item {
+            align-items: center;
+            display: flex;
+            gap: 0.75rem;
+          }
+
+          .cf-content-progress-dot {
+            background: #d7e0eb;
+            border-radius: 999px;
+            height: 0.75rem;
+            width: 0.75rem;
+            box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.72);
+          }
+
+          .cf-content-progress-dot.is-done {
+            background: linear-gradient(135deg, #0f8590 0%, #37c9b1 100%);
+          }
+
+          .cf-content-advanced {
+            border: 1px dashed #d6e1ee;
+            border-radius: 1rem;
+            padding: 0.85rem 1rem 1rem;
+          }
+
+          .cf-content-advanced summary {
+            color: #102c45;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            list-style: none;
+            text-transform: uppercase;
+          }
+
+          .cf-content-advanced summary::-webkit-details-marker {
+            display: none;
+          }
+
           .creatorflow-internal-main .card {
             border: 1px solid #e4ebf4;
             border-radius: 1rem;
@@ -361,6 +497,12 @@ export default function RootLayout({ children }) {
 
           .cf-surface-card {
             overflow: hidden;
+          }
+
+          @media (min-width: 992px) {
+            .cf-content-mode-grid {
+              grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
           }
 
           .cf-internal-page .table > thead th {

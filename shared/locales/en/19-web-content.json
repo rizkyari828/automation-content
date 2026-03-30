@@ -1,0 +1,574 @@
+{
+  "web": {
+    "contentPage": {
+      "pageTitle": "Content Studio",
+      "heroEyebrow": "Affiliate-first lane",
+      "heroTitle": "Turn one product brief into a usable promo draft in the same session.",
+      "heroBody": "This first studio version keeps the workflow tight for affiliate execution: one offer, one angle, one clear CTA, and a draft the team can immediately review or duplicate.",
+      "heroStats": [
+        {
+          "label": "Primary channel",
+          "value": "TikTok Shop"
+        },
+        {
+          "label": "Draft shape",
+          "value": "Hook + script + CTA"
+        },
+        {
+          "label": "Team goal",
+          "value": "Fast first publish"
+        }
+      ],
+      "modeSelectorTitle": "Choose how the studio should work",
+      "modeSelectorBody": "Start with the level of control that feels right. The engine stays the same, only the guidance changes.",
+      "modeSelectorBadge": "Default: Assisted",
+      "modeSelected": "In use",
+      "sessionStateTitle": "Session state",
+      "sessionStateFresh": "A new draft will autosave in this browser while you shape the brief.",
+      "sessionStateRestored": "Your last progress was restored from the previous session at {{savedAt}}.",
+      "sessionStateFreshFallback": "a moment ago",
+      "workflowModeLabels": {
+        "quick": "Quick",
+        "assisted": "Assisted",
+        "manual": "Manual"
+      },
+      "workflowModes": [
+        {
+          "value": "quick",
+          "title": "Quick",
+          "body": "AI helps from brief to first draft, with one short checkpoint before it moves ahead.",
+          "badge": "Fastest",
+          "cta": "Use this mode"
+        },
+        {
+          "value": "assisted",
+          "title": "Assisted",
+          "body": "AI suggests and drafts, but you still approve the important decisions along the way.",
+          "badge": "Recommended",
+          "cta": "Use this mode"
+        },
+        {
+          "value": "manual",
+          "title": "Manual",
+          "body": "You keep full control. Best for operators or teams that already have their own formula.",
+          "badge": "Advanced",
+          "cta": "Use this mode"
+        }
+      ],
+      "playbookTitle": "What to optimize first",
+      "playbookBody": "Keep the first affiliate batch narrow so the team can learn faster.",
+      "playbooks": [
+        {
+          "title": "Lead with the buyer pain",
+          "body": "Open with the specific frustration that makes the product feel urgent, not with a feature list.",
+          "badge": "Hook priority",
+          "icon": "ni ni-user-run",
+          "iconBackground": "#eef4fb",
+          "iconColor": "#102c45"
+        },
+        {
+          "title": "One offer per draft",
+          "body": "Avoid stacking multiple promos in the same script. Each draft should carry one clean conversion thesis.",
+          "badge": "Conversion hygiene",
+          "icon": "ni ni-tag",
+          "iconBackground": "#ebfbf6",
+          "iconColor": "#0f8590"
+        },
+        {
+          "title": "Keep the CTA direct",
+          "body": "For affiliate flow, the ending should push one action only: click, check, or compare now.",
+          "badge": "Closing rule",
+          "icon": "ni ni-send",
+          "iconBackground": "#fff3e8",
+          "iconColor": "#f59a53"
+        }
+      ],
+      "generatorTitle": "Brief intake",
+      "generatorBody": "Start with the minimum context needed to generate a first promo draft and video plan.",
+      "modeCheckpoints": {
+        "quick": {
+          "eyebrow": "Quick mode",
+          "title": "We will capture this brief first before AI moves into the first draft.",
+          "body": "Best for sellers who want speed without losing the core context."
+        },
+        "assisted": {
+          "eyebrow": "Assisted mode",
+          "title": "AI helps assemble the draft, while you keep the important review moments.",
+          "body": "This is the default because it balances speed and control the best."
+        },
+        "manual": {
+          "eyebrow": "Manual mode",
+          "title": "Core inputs stay with you, and AI only helps when you ask for it.",
+          "body": "Best for agency workflows, operators, or more precise experimentation."
+        }
+      },
+      "advancedTitle": "Advanced settings",
+      "advancedBody": "Keep these optional at first. The studio can already plan a usable video from the core brief.",
+      "fields": {
+        "sourceType": {
+          "label": "Source type"
+        },
+        "languageCode": {
+          "label": "Output language"
+        },
+        "niche": {
+          "label": "Template niche"
+        },
+        "objective": {
+          "label": "Video objective"
+        },
+        "title": {
+          "label": "Product or campaign title",
+          "placeholder": "Example: Serum brightening for acne marks"
+        },
+        "productUrl": {
+          "label": "Product URL",
+          "placeholder": "https://..."
+        },
+        "offerText": {
+          "label": "Offer text",
+          "placeholder": "Example: Ramadan payday 35% off"
+        },
+        "priceText": {
+          "label": "Price anchor",
+          "placeholder": "Example: From Rp129.000"
+        },
+        "ctaText": {
+          "label": "Video CTA",
+          "placeholder": "Example: Check the promo before it runs out"
+        },
+        "brandTone": {
+          "label": "Brand tone"
+        },
+        "promptHint": {
+          "label": "Affiliate angle notes",
+          "placeholder": "Example: target women 22-30, focus on before-after proof, push Ramadan payday offer"
+        }
+      },
+      "sourceTypeOptions": [
+        {
+          "value": "product",
+          "label": "Product link"
+        },
+        {
+          "value": "manual",
+          "label": "Manual brief"
+        },
+        {
+          "value": "ai_generate",
+          "label": "AI idea seed"
+        },
+        {
+          "value": "long_video",
+          "label": "Long video source"
+        }
+      ],
+      "languageOptions": [
+        {
+          "value": "id",
+          "label": "Bahasa Indonesia"
+        },
+        {
+          "value": "en",
+          "label": "English"
+        }
+      ],
+      "nicheOptions": [
+        {
+          "value": "beauty",
+          "label": "Beauty"
+        },
+        {
+          "value": "gadget",
+          "label": "Gadget"
+        },
+        {
+          "value": "fashion",
+          "label": "Fashion"
+        }
+      ],
+      "objectiveOptions": [
+        {
+          "value": "promo_offer",
+          "label": "Promo offer"
+        },
+        {
+          "value": "problem_solution",
+          "label": "Problem solution"
+        },
+        {
+          "value": "testimonial_style",
+          "label": "Testimonial style"
+        },
+        {
+          "value": "comparison",
+          "label": "Comparison"
+        }
+      ],
+      "brandToneOptions": [
+        {
+          "value": "direct",
+          "label": "Direct"
+        },
+        {
+          "value": "premium",
+          "label": "Premium"
+        },
+        {
+          "value": "soft",
+          "label": "Soft"
+        },
+        {
+          "value": "playful",
+          "label": "Playful"
+        }
+      ],
+      "generatorNote": "For simple UX, keep the first pass focused on title, niche, objective, and one clear angle.",
+      "actions": {
+        "generate": "Generate draft",
+        "generateByMode": {
+          "quick": "Confirm brief & continue",
+          "assisted": "Generate draft",
+          "manual": "Generate from my input"
+        },
+        "generating": "Generating...",
+        "planning": "Planning scenes...",
+        "previewPlan": "Preview video plan",
+        "reset": "Reset brief"
+      },
+      "previewTitle": "Output preview",
+      "previewBody": "The latest selected draft from your workspace appears here.",
+      "previewSampleBody": "A sample draft is shown below until the workspace has its first generated script.",
+      "sampleBadge": "Sample",
+      "previewMeta": {
+        "title": "Draft title",
+        "createdAt": "Created",
+        "sampleLabel": "Starter example",
+        "hook": "Hook",
+        "body": "Script body",
+        "cta": "CTA"
+      },
+      "sampleDraft": {
+        "title": "Flash sale affiliate push for acne serum",
+        "hook": "Hook: Dark spots still visible even after trying multiple products?",
+        "body": "Opening: show the most relatable skin frustration first. Body: explain how the serum helps fade post-acne marks and why this payday offer makes it easier to try now. CTA: ask viewers to open the product link and compare the promo before stock runs out.",
+        "cta": "Check the product link now and lock the promo price.",
+        "languageCode": "id",
+        "sourceType": "product"
+      },
+      "recentTitle": "Recent drafts",
+      "recentBody": "These are the latest scripts saved into the current workspace.",
+      "recentEmpty": "No drafts yet. Generate the first affiliate draft from the brief form.",
+      "loading": "Loading recent drafts...",
+      "statusLabels": {
+        "draft": "Draft",
+        "ready": "Ready",
+        "archived": "Archived"
+      },
+      "sourceTypeLabels": {
+        "manual": "Manual brief",
+        "product": "Product link",
+        "ai_generate": "AI idea seed",
+        "long_video": "Long video"
+      },
+      "templateLibraryTitle": "Template library",
+      "templateLibraryBody": "Choose an official or workspace template to fill the brief faster while keeping the output consistent.",
+      "templateScopes": [
+        {
+          "value": "official",
+          "label": "Official"
+        },
+        {
+          "value": "workspace",
+          "label": "Workspace"
+        }
+      ],
+      "templateScopeLabels": {
+        "official": "Official template",
+        "workspace": "Workspace template"
+      },
+      "templateStatusLabels": {
+        "published": "Published",
+        "draft": "Draft"
+      },
+      "templateActions": {
+        "use": "Use template",
+        "applied": "In use",
+        "clone": "Clone to workspace",
+        "duplicate": "Duplicate"
+      },
+      "templateLoading": "Loading templates...",
+      "templateEmpty": "No templates available in this scope yet.",
+      "templateAppliedSuccess": "The {{templateTitle}} template was applied to the brief.",
+      "templateCloneSuccess": "The {{templateTitle}} template was cloned into the workspace.",
+      "templateCloneError": "The official template could not be cloned into the workspace right now.",
+      "templateLoadError": "The studio templates could not be loaded right now.",
+      "superadminTitle": "Official template manager",
+      "superadminBody": "Superadmin only: create, save drafts, publish, or archive official templates right from the studio.",
+      "superadminBadge": "Superadmin",
+      "superadminFields": {
+        "template": {
+          "label": "Official template",
+          "placeholder": "Choose a template to edit"
+        },
+        "title": {
+          "label": "Template name",
+          "placeholder": "Example: Beauty payday promo"
+        },
+        "useCaseBadge": {
+          "label": "Use case badge",
+          "placeholder": "Example: Beauty first"
+        },
+        "key": {
+          "label": "Template key",
+          "placeholder": "Example: beauty/promo_offer/payday"
+        },
+        "status": {
+          "label": "Status"
+        },
+        "body": {
+          "label": "Template summary",
+          "placeholder": "Describe when this template works best."
+        },
+        "variableTitle": {
+          "label": "Example product title",
+          "placeholder": "Example: Brightening serum for acne marks"
+        }
+      },
+      "superadminActions": {
+        "new": "New template",
+        "save": "Save draft",
+        "saving": "Saving...",
+        "publish": "Publish",
+        "archive": "Archive"
+      },
+      "superadminValidation": "Template name and template key are required.",
+      "superadminLoadError": "Official templates could not be loaded right now.",
+      "superadminSaveSuccess": "The official template was saved successfully.",
+      "superadminSaveError": "The official template could not be saved right now.",
+      "superadminPublishSuccess": "The official template was published successfully.",
+      "superadminArchiveSuccess": "The official template was archived successfully.",
+      "superadminStatusError": "The official template status could not be changed right now.",
+      "workspaceManagerTitle": "Workspace template manager",
+      "workspaceManagerBody": "Clone an official template, then tailor it for your own team. Workspace templates can be saved as drafts, published, or archived without changing the global version.",
+      "workspaceManagerBadge": "Workspace",
+      "workspaceManagerFields": {
+        "template": {
+          "label": "Workspace template",
+          "placeholder": "Choose a workspace template to edit"
+        },
+        "title": {
+          "label": "Template name",
+          "placeholder": "Example: Beauty payday for the affiliate team"
+        },
+        "useCaseBadge": {
+          "label": "Use case badge",
+          "placeholder": "Example: Campaign pod"
+        },
+        "key": {
+          "label": "Template key",
+          "placeholder": "Example: beauty/promo_offer/team-payday"
+        },
+        "status": {
+          "label": "Status"
+        },
+        "body": {
+          "label": "Template summary",
+          "placeholder": "Describe when this workspace template works best."
+        },
+        "variableTitle": {
+          "label": "Example product title",
+          "placeholder": "Example: Brightening serum payday affiliate team"
+        }
+      },
+      "workspaceManagerActions": {
+        "new": "New workspace template",
+        "save": "Save draft",
+        "saving": "Saving...",
+        "duplicate": "Duplicate",
+        "publish": "Publish",
+        "archive": "Archive"
+      },
+      "workspaceManagerValidation": "Workspace template name and template key are required.",
+      "workspaceManagerLoadError": "Workspace templates could not be loaded right now.",
+      "workspaceManagerSaveSuccess": "The workspace template was saved successfully.",
+      "workspaceManagerSaveError": "The workspace template could not be saved right now.",
+      "workspaceManagerDuplicateSuccess": "The {{templateTitle}} template was duplicated in the workspace.",
+      "workspaceManagerDuplicateError": "The workspace template could not be duplicated right now.",
+      "workspaceManagerPublishSuccess": "The workspace template was published successfully.",
+      "workspaceManagerArchiveSuccess": "The workspace template was archived successfully.",
+      "workspaceManagerStatusError": "The workspace template status could not be changed right now.",
+      "workflowTitle": "Affiliate studio rhythm",
+      "workflowBody": "A simple sequence so the first batch can move from idea to publish without too much friction.",
+      "workflowItems": [
+        {
+          "step": "Step 1",
+          "title": "Lock the offer",
+          "body": "Choose one promo hook: payday price, voucher, social proof, or urgency. Avoid mixing them all in one draft.",
+          "badge": "Offer-first"
+        },
+        {
+          "step": "Step 2",
+          "title": "Generate the first draft",
+          "body": "Use the brief form to create the initial hook, body copy, and CTA that the team can react to quickly.",
+          "badge": "Fast draft"
+        },
+        {
+          "step": "Step 3",
+          "title": "Duplicate what wins",
+          "body": "When one line feels sharp, clone it into the next batch instead of rewriting from zero.",
+          "badge": "Scale"
+        }
+      ],
+      "snapshotTitle": "Brief summary",
+      "snapshotBody": "The studio condenses the core inputs so you can quickly see what is ready and what still needs attention.",
+      "snapshotSavedAt": "Saved {{savedAt}}",
+      "snapshotSavedEmpty": "Not saved yet",
+      "snapshotMeta": {
+        "mode": "Mode",
+        "niche": "Niche",
+        "objective": "Objective"
+      },
+      "snapshotFields": {
+        "title": "Title",
+        "offer": "Offer",
+        "cta": "CTA"
+      },
+      "snapshotFallbacks": {
+        "title": "Not filled yet",
+        "offer": "Will be inferred from the core brief",
+        "cta": "The studio will suggest a first CTA"
+      },
+      "snapshotProgress": {
+        "brief": "The core brief is clear enough",
+        "script": "The first script draft is available",
+        "plan": "The video plan is ready for render"
+      },
+      "snapshotStatus": {
+        "done": "Done",
+        "next": "Next"
+      },
+      "planTitle": "Video plan",
+      "planBody": "A simple preview of how the promo draft will turn into a render-ready 9:16 video sequence.",
+      "planLoading": "Planning scenes...",
+      "planEmpty": "Preview the video plan to see the first video flow.",
+      "planFallbackText": "Scene text is being prepared.",
+      "planMeta": {
+        "niche": "Niche",
+        "objective": "Objective",
+        "scenes": "Scenes",
+        "layout": "Layout"
+      },
+      "nicheLabels": {
+        "beauty": "Beauty",
+        "gadget": "Gadget",
+        "fashion": "Fashion"
+      },
+      "objectiveLabels": {
+        "promo_offer": "Promo offer",
+        "problem_solution": "Problem solution",
+        "testimonial_style": "Testimonial style",
+        "comparison": "Comparison"
+      },
+      "sceneLabels": {
+        "hook": "Opening",
+        "problem": "Buyer pain",
+        "benefit": "Main benefit",
+        "offer": "Offer",
+        "proof": "Proof",
+        "cta": "CTA",
+        "closing": "Closing"
+      },
+      "layoutLabels": {
+        "hero": "Hero",
+        "split": "Split",
+        "stacked": "Stacked",
+        "product-focus": "Product focus",
+        "caption-led": "Caption led"
+      },
+      "launchPadTitle": "Ready for render",
+      "launchPadBody": "Use this rhythm so the first batch can move from brief to video without confusing the team.",
+      "renderReadyTitle": "When it is ready to render",
+      "renderReadyBody": "The studio will pass this brief into the 9:16 video template flow for the first affiliate batch.",
+      "validationTitle": "A product or campaign title is required before generating a draft.",
+      "planSuccess": "The video plan was generated successfully.",
+      "planError": "Unable to preview the video plan right now.",
+      "renderCardTitle": "Video render",
+      "renderHint": "When the video plan looks right, send it into the template renderer for the first 9:16 job.",
+      "renderStatusBody": "Current render status: {{status}}.",
+      "renderJobTitle": "Active render job",
+      "renderPreviewTitle": "Video preview",
+      "renderPreviewBody": "The first render appears here right away so the team can review it before publishing.",
+      "publishCardTitle": "Publish handoff",
+      "publishHint": "Export the MP4 or send it to the TikTok queue for the next handoff step.",
+      "publishStatusBody": "Current publish queue status: {{status}}.",
+      "publishQueueNote": "Phase 1A sends this into the publish queue. Platform delivery workers can be expanded next.",
+      "publishSubmitMissingAsset": "Render the video first so the studio has an MP4 to hand off.",
+      "publishSubmitLocked": "This account does not have access to send publish jobs yet.",
+      "publishSubmitSuccess": "The video was sent to the TikTok publish queue.",
+      "publishSubmitError": "The publish queue could not accept this video right now.",
+      "publishAccountLoadError": "Connected publishing accounts could not be loaded right now.",
+      "publishAccountValidation": "A TikTok account label is required before adding a connected account.",
+      "publishAccountCreateSuccess": "The TikTok publishing account was added successfully.",
+      "publishAccountCreateError": "The TikTok publishing account could not be added right now.",
+      "publishAccountNote": "For Phase 1A, this works as a lightweight account registry so the team can route videos to the right destination.",
+      "publishAccountFields": {
+        "account": {
+          "label": "TikTok account",
+          "placeholder": "Choose a publish target"
+        },
+        "platform": {
+          "label": "Platform"
+        },
+        "accountLabel": {
+          "label": "Account label",
+          "placeholder": "Example: CreatorFlow TikTok Shop"
+        },
+        "externalAccountId": {
+          "label": "Account handle or external ID",
+          "placeholder": "Example: @creatorflowshop"
+        }
+      },
+      "renderDurationLabel": "{{duration}} total",
+      "renderTimelineTitle": "Scene timeline",
+      "renderTimelineBody": "Use this quick strip to confirm pacing before opening the full video.",
+      "renderActions": {
+        "submit": "Render video",
+        "submitting": "Submitting render...",
+        "locked": "Render access needed",
+        "open": "Open video",
+        "download": "Download MP4"
+      },
+      "publishActions": {
+        "queue": "Send to TikTok queue",
+        "submitting": "Sending to queue...",
+        "locked": "Publish access needed"
+      },
+      "publishAccountActions": {
+        "create": "Add TikTok account",
+        "creating": "Adding account..."
+      },
+      "renderJobStatusLabels": {
+        "queued": "Queued",
+        "processing": "Processing",
+        "completed": "Completed",
+        "failed": "Failed"
+      },
+      "publishJobStatusLabels": {
+        "scheduled": "Scheduled",
+        "queued": "Queued",
+        "processing": "Processing",
+        "published": "Published",
+        "failed": "Failed",
+        "canceled": "Canceled"
+      },
+      "renderSubmitMissingPlan": "Preview the video plan before sending a render.",
+      "renderSubmitLocked": "This account does not have access to submit video renders yet.",
+      "renderSubmitSuccess": "The video render job was submitted successfully.",
+      "renderSubmitError": "The video render job could not be submitted right now.",
+      "generateSuccess": "A new content draft was generated and added to the studio.",
+      "generateError": "Unable to generate a content draft right now.",
+      "loadError": "Unable to load recent content drafts."
+    }
+  }
+}

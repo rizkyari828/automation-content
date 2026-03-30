@@ -153,6 +153,85 @@ export async function callInternalService<T>(
   };
 }
 
+export async function fetchInternalServiceResponse(
+  request: FastifyRequest,
+  options: InternalServiceRequestOptions
+): Promise<Response> {
+  const method = options.method ?? "GET";
+  const timeoutMs = options.timeoutMs ?? 5_000;
+  const target = getDownstreamTarget(options.service);
+  const requestContext = getOutboundRequestContext(request);
+  const accessToken = await createInternalServiceToken({
+    audience: target.audience,
+    scope: options.scope,
+    serviceName: getConfig().serviceName
+  });
+  const url = createDownstreamUrl(target.baseUrl, options.path);
+  const headers: Record<string, string> = {
+    authorization: `Bearer ${accessToken}`,
+    ...buildInternalContextHeaders(requestContext),
+    ...options.headers
+  };
+
+  let body: string | undefined;
+  if (options.body !== undefined) {
+    body = JSON.stringify(options.body);
+    headers["content-type"] = "application/json";
+  }
+
+  request.log.info(
+    {
+      correlationId: requestContext.correlationId,
+      downstreamMethod: method,
+      downstreamPath: options.path,
+      downstreamService: target.serviceName
+    },
+    "downstream raw request started"
+  );
+
+  try {
+    const response = await fetch(url, {
+      body,
+      headers,
+      method,
+      signal: AbortSignal.timeout(timeoutMs)
+    });
+
+    request.log.info(
+      {
+        correlationId: requestContext.correlationId,
+        downstreamMethod: method,
+        downstreamPath: options.path,
+        downstreamService: target.serviceName,
+        httpStatusCode: response.status
+      },
+      "downstream raw request completed"
+    );
+
+    return response;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+
+    request.log.error(
+      {
+        correlationId: requestContext.correlationId,
+        downstreamMethod: method,
+        downstreamPath: options.path,
+        downstreamService: target.serviceName,
+        errorMessage
+      },
+      "downstream raw request failed"
+    );
+
+    throw new DownstreamServiceError({
+      message: `Failed to reach ${target.serviceName}`,
+      responseBody: { error: errorMessage },
+      service: target.serviceName,
+      statusCode: 502
+    });
+  }
+}
+
 function getDownstreamTarget(service: DownstreamServiceName): DownstreamServiceTarget {
   const config = getConfig();
 

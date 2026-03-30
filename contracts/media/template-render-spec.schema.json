@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://creatorflow.local/contracts/media/template-render-spec.schema.json",
+  "title": "template.render.spec",
+  "type": "object",
+  "required": [
+    "version",
+    "renderMode",
+    "templateKey",
+    "niche",
+    "objective",
+    "aspectRatio",
+    "product",
+    "script"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "const": 1
+    },
+    "renderMode": {
+      "type": "string",
+      "const": "template_promo"
+    },
+    "templateKey": {
+      "type": "string",
+      "pattern": "^[a-z0-9_-]+\\/[a-z0-9_-]+(?:\\/[a-z0-9_-]+)?$"
+    },
+    "niche": {
+      "type": "string",
+      "enum": ["beauty", "gadget", "fashion"]
+    },
+    "objective": {
+      "type": "string",
+      "enum": ["promo_offer", "problem_solution", "testimonial_style", "comparison"]
+    },
+    "aspectRatio": {
+      "type": "string",
+      "enum": ["9:16", "1:1", "16:9"]
+    },
+    "durationSeconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "musicMode": {
+      "type": "string",
+      "enum": ["none", "clean", "upbeat", "dramatic"]
+    },
+    "brandTone": {
+      "type": "string",
+      "enum": ["soft", "confident", "direct", "playful", "premium"]
+    },
+    "product": {
+      "type": "object",
+      "required": ["title"],
+      "properties": {
+        "title": {
+          "type": "string"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "priceText": {
+          "type": "string"
+        },
+        "offerText": {
+          "type": "string"
+        },
+        "ctaText": {
+          "type": "string"
+        },
+        "imageAssetIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "script": {
+      "type": "object",
+      "required": ["hook", "body", "cta"],
+      "properties": {
+        "hook": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "cta": {
+          "type": "string"
+        },
+        "subtitleLines": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "branding": {
+      "type": "object",
+      "properties": {
+        "palette": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "maxItems": 4
+        },
+        "logoAssetId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "fontFamily": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "scenePlan": {
+      "$ref": "./template-scene-plan.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

@@ -45,6 +45,40 @@ Default local ports:
 - PostgreSQL `5433`
 - Redis `6380`
 
+## Default Dev Superadmin
+
+Untuk local development, repo sekarang menyediakan bootstrap account `superadmin`.
+
+Setelah infra dan migration siap, jalankan:
+
+```bash
+npm run bootstrap:superadmin
+```
+
+Default login dev:
+
+- email: `superadmin@creatorflow.local`
+- password: `creatorflow-dev-superadmin`
+
+Default workspace:
+
+- name: `CreatorFlow Control Room`
+- slug: `creatorflow-control-room`
+
+Semua nilai ini bisa dioverride lewat `.env`:
+
+- `BOOTSTRAP_SUPERADMIN_EMAIL`
+- `BOOTSTRAP_SUPERADMIN_PASSWORD`
+- `BOOTSTRAP_SUPERADMIN_FULL_NAME`
+- `BOOTSTRAP_SUPERADMIN_WORKSPACE_NAME`
+- `BOOTSTRAP_SUPERADMIN_WORKSPACE_SLUG`
+
+Catatan:
+
+- bootstrap ini idempotent dan aman dijalankan berulang untuk local dev
+- command ini akan memastikan user tersebut punya role platform `superadmin`
+- command ini juga akan memastikan password login cocok dengan nilai bootstrap terbaru
+
 ## Running With Docker Compose
 
 Saat ini `docker compose` bisa dipakai dalam dua mode:
