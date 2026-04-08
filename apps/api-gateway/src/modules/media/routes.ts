@@ -48,7 +48,7 @@ export function registerMediaRoutes(app: FastifyInstance) {
         (body.sourceAssetId ? "template_promo" : "ai_text_to_video");
       const isTemplateRender = renderMode === "template_promo";
 
-      if (!body.sourceAssetId && !body.prompt && !(isTemplateRender && body.templateRenderSpec)) {
+      if (!body.sourceAssetId && !body.prompt && !(isTemplateRender && hasRenderableTemplateSpec(body.templateRenderSpec))) {
         return badRequest(reply, "sourceAssetId or prompt is required");
       }
 
@@ -102,8 +102,11 @@ export function registerMediaRoutes(app: FastifyInstance) {
         }
       }
 
-      if (renderMode === "template_promo" && !body.templateRenderSpec) {
-        return badRequest(reply, "templateRenderSpec is required for template_promo render jobs");
+      if (renderMode === "template_promo" && !hasRenderableTemplateSpec(body.templateRenderSpec)) {
+        return badRequest(
+          reply,
+          "templateRenderSpec must include templateKey and at least one scene for template_promo render jobs"
+        );
       }
 
       const options = {
@@ -324,4 +327,23 @@ export function registerMediaRoutes(app: FastifyInstance) {
 function stripWorkspaceId(job: RenderJobResponse) {
   const { workspaceId: _, ...publicJob } = job;
   return publicJob;
+}
+
+function hasRenderableTemplateSpec(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (typeof record.templateKey !== "string" || record.templateKey.trim() === "") {
+    return false;
+  }
+
+  const scenePlan = record.scenePlan;
+  if (!scenePlan || typeof scenePlan !== "object" || Array.isArray(scenePlan)) {
+    return false;
+  }
+
+  const scenes = (scenePlan as Record<string, unknown>).scenes;
+  return Array.isArray(scenes) && scenes.length > 0;
 }

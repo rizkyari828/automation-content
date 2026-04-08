@@ -270,17 +270,81 @@ export default function RootLayout({ children }) {
           .cf-content-mode-grid {
             display: grid;
             gap: 0.9rem;
-            grid-template-columns: repeat(1, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          }
+
+          .cf-content-flow-nav {
+            display: grid;
+            gap: 0.85rem;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          }
+
+          .cf-content-flow-step {
+            align-content: start;
+            background: #f8fafc;
+            border: 1px solid #e4ebf4;
+            border-radius: 1rem;
+            color: #67748e;
+            display: grid;
+            gap: 0.28rem;
+            min-width: 0;
+            padding: 0.95rem 1rem;
+            text-align: left;
+            transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+          }
+
+          .cf-content-flow-step strong {
+            color: #102c45;
+            font-size: 0.92rem;
+            line-height: 1.35;
+          }
+
+          .cf-content-flow-step span {
+            font-size: 0.76rem;
+            line-height: 1.45;
+          }
+
+          .cf-content-flow-step-index {
+            color: #94a3b8;
+            font-size: 0.69rem !important;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+          }
+
+          .cf-content-flow-step.is-active,
+          .cf-content-flow-step:hover {
+            border-color: rgba(15, 133, 144, 0.28);
+            box-shadow: 0 18px 34px rgba(16, 44, 69, 0.08);
+            transform: translateY(-1px);
           }
 
           .cf-content-mode-card {
+            align-content: start;
             background:
               radial-gradient(circle at top right, rgba(55, 201, 177, 0.08), transparent 34%),
               #f8fafc;
             border: 1px solid #e4ebf4;
             border-radius: 1rem;
+            display: grid;
+            gap: 0.75rem;
+            min-width: 0;
             padding: 1rem;
             transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+          }
+
+          .cf-content-mode-card .badge {
+            display: inline-flex;
+            justify-content: center;
+            line-height: 1.2;
+            max-width: 100%;
+            text-align: center;
+            white-space: normal;
+          }
+
+          .cf-content-mode-card h6,
+          .cf-content-mode-card p {
+            min-width: 0;
           }
 
           .cf-content-mode-card.is-selected,
@@ -499,12 +563,6 @@ export default function RootLayout({ children }) {
             overflow: hidden;
           }
 
-          @media (min-width: 992px) {
-            .cf-content-mode-grid {
-              grid-template-columns: repeat(3, minmax(0, 1fr));
-            }
-          }
-
           .cf-internal-page .table > thead th {
             letter-spacing: 0.08em;
             font-size: 0.64rem;
@@ -619,9 +677,6 @@ export default function RootLayout({ children }) {
           <IconRuntime />
           <Script src="/assets/js/core/popper.min.js" strategy="afterInteractive" />
           <Script src="/assets/js/core/bootstrap.min.js" strategy="afterInteractive" />
-          <Script src="/assets/js/plugins/perfect-scrollbar.min.js" strategy="afterInteractive" />
-          <Script src="/assets/js/plugins/smooth-scrollbar.min.js" strategy="afterInteractive" />
-          <Script src="/assets/js/argon-dashboard.min.js?v=2.1.0" strategy="afterInteractive" />
         </WebLocaleProvider>
       </body>
     </html>

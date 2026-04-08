@@ -19,6 +19,7 @@ var (
 	ErrMissingSourceAsset    = errors.New("sourceAssetId is required for the selected render mode")
 	ErrMissingPromptOrSource = errors.New("sourceAssetId or prompt is required")
 	ErrMissingTemplateSpec   = errors.New("templateRenderSpec is required for template promo render mode")
+	ErrInvalidTemplateSpec   = errors.New("templateRenderSpec must include templateKey and at least one scene")
 )
 
 type RequestSpec struct {
@@ -59,8 +60,12 @@ func ValidateSpec(spec RequestSpec, sourceAssetID string) error {
 		if spec.Options == nil {
 			return ErrMissingTemplateSpec
 		}
-		if _, ok := spec.Options["templateRenderSpec"]; !ok {
+		templateSpec, ok := spec.Options["templateRenderSpec"]
+		if !ok {
 			return ErrMissingTemplateSpec
+		}
+		if !hasRenderableTemplateSpec(templateSpec) {
+			return ErrInvalidTemplateSpec
 		}
 	case ModeTextToVideo:
 		if spec.Prompt == "" {
@@ -78,4 +83,24 @@ func ValidateSpec(spec RequestSpec, sourceAssetID string) error {
 	}
 
 	return nil
+}
+
+func hasRenderableTemplateSpec(value any) bool {
+	record, ok := value.(map[string]any)
+	if !ok {
+		return false
+	}
+
+	templateKey, ok := record["templateKey"].(string)
+	if !ok || templateKey == "" {
+		return false
+	}
+
+	scenePlan, ok := record["scenePlan"].(map[string]any)
+	if !ok {
+		return false
+	}
+
+	scenes, ok := scenePlan["scenes"].([]any)
+	return ok && len(scenes) > 0
 }

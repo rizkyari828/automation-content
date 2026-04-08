@@ -12,6 +12,25 @@ const INITIAL_STATE = {
   user: null,
   workspace: null
 };
+const SESSION_ERROR_PATTERNS = [
+  "missing refresh token",
+  "missing bearer token",
+  "invalid or expired access token",
+  "session expired"
+];
+
+function normalizeInactiveMessage(message, fallback) {
+  if (typeof message !== "string") {
+    return fallback;
+  }
+
+  const normalized = message.toLowerCase();
+  if (SESSION_ERROR_PATTERNS.some((pattern) => normalized.includes(pattern))) {
+    return fallback;
+  }
+
+  return message;
+}
 
 export default function SessionPanel() {
   const router = useRouter();
@@ -37,7 +56,7 @@ export default function SessionPanel() {
         setState({
           authenticated: false,
           loading: false,
-          message: payload?.message ?? copy.inactiveFallback,
+          message: normalizeInactiveMessage(payload?.message, copy.inactiveFallback),
           user: null,
           workspace: null
         });

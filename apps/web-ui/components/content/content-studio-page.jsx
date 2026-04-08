@@ -7,12 +7,19 @@ import { useWebLocale, useWebMessages } from "../i18n/web-locale.jsx";
 import ArgonPage, { ArgonFooter } from "../layout/argon-page.jsx";
 
 const DEFAULT_WORKFLOW_MODE = "assisted";
+const DEFAULT_STUDIO_STEP = "mode";
 const STUDIO_STORAGE_KEY = "creatorflow.content-studio.session.v1";
 const DEFAULT_TEMPLATE_SCOPE = "official";
 const DEFAULT_CONNECTED_ACCOUNT_FORM = {
   accountLabel: "",
   externalAccountId: "",
   platformCode: "tiktok"
+};
+const INITIAL_SESSION_STATE = {
+  authenticated: false,
+  authorization: null,
+  loading: true,
+  message: null
 };
 
 const DEFAULT_FORM = {
@@ -70,6 +77,14 @@ const STATUS_BADGE_CLASS = {
   draft: "bg-gradient-warning",
   ready: "bg-gradient-success"
 };
+const AUTH_FAILURE_PATTERNS = [
+  "missing bearer token",
+  "missing refresh token",
+  "invalid or expired access token",
+  "session expired",
+  "unable to load session"
+];
+const STUDIO_STEP_ORDER = ["mode", "brief", "review", "templates", "render"];
 
 function createStudioSessionId() {
   if (typeof window !== "undefined" && typeof window.crypto?.randomUUID === "function") {
@@ -180,6 +195,81 @@ function HeroCard({ copy }) {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StudioFlowNav({ activeStep, copy, onSelectStep, steps, workflowMode }) {
+  return (
+    <div className="card cf-surface-card">
+      <div className="card-body p-3">
+        <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div>
+            <h6 className="mb-1">{copy.studioFlowTitle}</h6>
+            <p className="text-sm mb-0">{copy.studioFlowBody}</p>
+          </div>
+          <span className="badge bg-light text-dark border">
+            {copy.workflowModeLabels[workflowMode] ?? workflowMode}
+          </span>
+        </div>
+        <div className="cf-content-flow-nav mt-3">
+          {steps.map((step, index) => {
+            const active = step.value === activeStep;
+
+            return (
+              <button
+                key={step.value}
+                type="button"
+                className={`cf-content-flow-step${active ? " is-active" : ""}`}
+                onClick={() => onSelectStep(step.value)}
+              >
+                <span className="cf-content-flow-step-index">{String(index + 1).padStart(2, "0")}</span>
+                <strong>{step.label}</strong>
+                <span>{step.body}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StageIntroCard({
+  actions,
+  body,
+  eyebrow,
+  progressLabel,
+  title
+}) {
+  return (
+    <div className="card cf-surface-card">
+      <div className="card-body p-3">
+        <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div>
+            <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">{eyebrow}</p>
+            <h5 className="mb-1">{title}</h5>
+            <p className="text-sm mb-0">{body}</p>
+          </div>
+          <div className="d-flex flex-column align-items-start align-items-md-end gap-2">
+            <span className="badge bg-light text-dark border">{progressLabel}</span>
+            {actions?.length ? (
+              <div className="d-flex flex-wrap gap-2 justify-content-md-end">
+                {actions.map((action) => (
+                  <button
+                    key={action.label}
+                    type="button"
+                    className={`btn btn-sm mb-0 ${action.variant === "primary" ? "btn-primary" : "btn-outline-dark"}`}
+                    onClick={action.onClick}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -298,6 +388,8 @@ function PlaybookCard({ copy }) {
 }
 
 function GeneratorCard({
+  authLocked,
+  authMessage,
   copy,
   form,
   modeCopy,
@@ -467,11 +559,16 @@ function GeneratorCard({
             </div>
           </div>
           <p className="text-xs text-secondary mt-3 mb-0">{copy.generatorNote}</p>
+          {authLocked ? (
+            <div className="alert alert-light border text-dark mt-3 mb-0" role="status">
+              <span className="text-sm">{authMessage}</span>
+            </div>
+          ) : null}
           <div className="d-flex flex-wrap gap-2 mt-4">
-            <button className="btn btn-primary mb-0" type="submit" disabled={submitting}>
+            <button className="btn btn-primary mb-0" type="submit" disabled={submitting || authLocked}>
               {submitting ? copy.actions.generating : primaryActionLabel}
             </button>
-            <button className="btn btn-outline-primary mb-0" type="button" onClick={onPreviewPlan} disabled={planning}>
+            <button className="btn btn-outline-primary mb-0" type="button" onClick={onPreviewPlan} disabled={planning || authLocked}>
               {planning ? copy.actions.planning : copy.actions.previewPlan}
             </button>
             <button className="btn btn-outline-dark mb-0" type="button" onClick={onReset} disabled={submitting}>
@@ -655,6 +752,13 @@ function PlanPreviewCard({
   const publishStatus = publishJob?.status
     ? copy.publishJobStatusLabels?.[publishJob.status] ?? publishJob.status
     : null;
+  const renderStatusBody = renderJob?.status === "queued"
+    ? copy.renderQueuedBody
+    : renderJob?.status === "processing"
+      ? copy.renderProcessingBody
+      : renderStatus
+        ? copy.renderStatusBody.replace("{{status}}", renderStatus)
+        : copy.renderHint;
   const totalFrames =
     plan?.scenePlan?.scenes?.reduce((sum, scene) => sum + (scene.durationFrames ?? 0), 0) ?? 0;
   const durationLabel = formatDurationLabel(plan?.scenePlan?.durationSeconds ?? plan?.templateRenderSpec?.durationSeconds ?? 0);
@@ -736,11 +840,7 @@ function PlanPreviewCard({
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 pt-3 border-top">
               <div>
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">{copy.renderCardTitle}</p>
-                <p className="text-sm mb-0">
-                  {renderStatus
-                    ? copy.renderStatusBody.replace("{{status}}", renderStatus)
-                    : copy.renderHint}
-                </p>
+                <p className="text-sm mb-0">{renderStatusBody}</p>
               </div>
               <div className="d-flex flex-wrap gap-2 align-items-center">
                 {renderJob?.jobId ? (
@@ -757,6 +857,11 @@ function PlanPreviewCard({
                 )}
               </div>
             </div>
+            {renderJob?.status === "failed" && renderJob?.lastErrorMessage ? (
+              <div className="alert alert-danger text-sm py-2 px-3 mt-3 mb-0" role="alert">
+                {renderJob.lastErrorMessage}
+              </div>
+            ) : null}
             {renderJob?.jobId ? (
               <div className="cf-content-checkpoint mt-3">
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">{copy.renderJobTitle}</p>
@@ -1332,9 +1437,23 @@ function createTrackedProperties(form, workflowMode, extras = {}) {
   };
 }
 
+function isAuthFailure(status, message) {
+  if (status === 401) {
+    return true;
+  }
+
+  if (typeof message !== "string") {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return AUTH_FAILURE_PATTERNS.some((pattern) => normalized.includes(pattern));
+}
+
 export default function ContentStudioPage() {
   const copy = useWebMessages().web.contentPage;
   const { locale } = useWebLocale();
+  const [activeStudioStep, setActiveStudioStep] = useState(DEFAULT_STUDIO_STEP);
   const [workflowMode, setWorkflowMode] = useState(DEFAULT_WORKFLOW_MODE);
   const [form, setForm] = useState(DEFAULT_FORM);
   const [scripts, setScripts] = useState([]);
@@ -1349,7 +1468,7 @@ export default function ContentStudioPage() {
   const [templates, setTemplates] = useState([]);
   const [templateLoading, setTemplateLoading] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState(null);
-  const [sessionAuthorization, setSessionAuthorization] = useState(null);
+  const [sessionState, setSessionState] = useState(INITIAL_SESSION_STATE);
   const [superadminTemplates, setSuperadminTemplates] = useState([]);
   const [superadminLoading, setSuperadminLoading] = useState(true);
   const [superadminSaving, setSuperadminSaving] = useState(false);
@@ -1387,6 +1506,10 @@ export default function ContentStudioPage() {
 
       if (typeof saved?.workflowMode === "string") {
         setWorkflowMode(saved.workflowMode);
+      }
+
+      if (typeof saved?.activeStudioStep === "string" && STUDIO_STEP_ORDER.includes(saved.activeStudioStep)) {
+        setActiveStudioStep(saved.activeStudioStep);
       }
 
       if (typeof saved?.templateScope === "string") {
@@ -1458,17 +1581,32 @@ export default function ContentStudioPage() {
         }
 
         if (!response.ok || !payload?.authenticated) {
-          setSessionAuthorization(null);
+          setSessionState({
+            authenticated: false,
+            authorization: null,
+            loading: false,
+            message: copy.authRequiredMessage
+          });
           return;
         }
 
-        setSessionAuthorization(payload.authorization ?? null);
+        setSessionState({
+          authenticated: true,
+          authorization: payload.authorization ?? null,
+          loading: false,
+          message: null
+        });
       } catch {
         if (!active) {
           return;
         }
 
-        setSessionAuthorization(null);
+        setSessionState({
+          authenticated: false,
+          authorization: null,
+          loading: false,
+          message: copy.authRequiredMessage
+        });
       }
     }
 
@@ -1477,9 +1615,63 @@ export default function ContentStudioPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [copy.authRequiredMessage]);
+
+  const sessionResolved = !sessionState.loading;
+  const isAuthenticated = sessionState.authenticated;
+  const sessionAuthorization = sessionState.authorization;
+  const authRequiredMessage = sessionState.message ?? copy.authRequiredMessage;
+
+  function markSessionInactive(message = copy.authRequiredMessage) {
+    setSessionState({
+      authenticated: false,
+      authorization: null,
+      loading: false,
+      message
+    });
+  }
+
+  function getRequestErrorMessage(response, payload, fallbackMessage) {
+    if (isAuthFailure(response.status, payload?.message)) {
+      markSessionInactive(copy.authRequiredMessage);
+      return copy.authRequiredMessage;
+    }
+
+    return payload?.message ?? fallbackMessage;
+  }
+
+  function ensureAuthenticated() {
+    if (sessionState.loading) {
+      setFeedback({
+        type: "error",
+        message: copy.authCheckingMessage
+      });
+      return false;
+    }
+
+    if (!sessionState.authenticated) {
+      setFeedback({
+        type: "error",
+        message: authRequiredMessage
+      });
+      return false;
+    }
+
+    return true;
+  }
 
   useEffect(() => {
+    if (!sessionResolved) {
+      return undefined;
+    }
+
+    if (!isAuthenticated) {
+      setLoading(false);
+      setScripts([]);
+      setSelectedScriptId(null);
+      return undefined;
+    }
+
     let active = true;
 
     async function loadScripts(preferredId) {
@@ -1496,6 +1688,14 @@ export default function ContentStudioPage() {
         }
 
         if (!response.ok) {
+          if (isAuthFailure(response.status, payload?.message)) {
+            setScripts([]);
+            setSelectedScriptId(null);
+            setFeedback(null);
+            markSessionInactive(copy.authRequiredMessage);
+            return;
+          }
+
           setScripts([]);
           setFeedback({
             type: "error",
@@ -1530,9 +1730,20 @@ export default function ContentStudioPage() {
     return () => {
       active = false;
     };
-  }, [copy.loadError]);
+  }, [copy.authRequiredMessage, copy.loadError, isAuthenticated, sessionResolved]);
 
   useEffect(() => {
+    if (!sessionResolved) {
+      return undefined;
+    }
+
+    if (!isAuthenticated) {
+      setTemplateLoading(false);
+      setTemplates([]);
+      setSelectedTemplateId(null);
+      return undefined;
+    }
+
     let active = true;
 
     async function loadTemplates() {
@@ -1549,6 +1760,14 @@ export default function ContentStudioPage() {
         }
 
         if (!response.ok) {
+          if (isAuthFailure(response.status, payload?.message)) {
+            setTemplates([]);
+            setSelectedTemplateId(null);
+            setFeedback(null);
+            markSessionInactive(copy.authRequiredMessage);
+            return;
+          }
+
           setTemplates([]);
           setFeedback((current) => current ?? {
             type: "error",
@@ -1584,7 +1803,7 @@ export default function ContentStudioPage() {
     return () => {
       active = false;
     };
-  }, [copy.templateLoadError, templateScope]);
+  }, [copy.authRequiredMessage, copy.templateLoadError, isAuthenticated, sessionResolved, templateScope]);
 
   const isSuperadmin = sessionAuthorization?.platformRoleCode === "superadmin";
   const canCloneTemplates =
@@ -1606,11 +1825,15 @@ export default function ContentStudioPage() {
   const canManagePublishAccounts = canSubmitPublishJobs;
 
   useEffect(() => {
-    if (!isSuperadmin) {
+    if (!sessionResolved) {
+      return undefined;
+    }
+
+    if (!isAuthenticated || !isSuperadmin) {
       setSuperadminTemplates([]);
       setSuperadminLoading(false);
       setTemplateEditorForm(createTemplateEditorForm(null));
-      return;
+      return undefined;
     }
 
     let active = true;
@@ -1629,6 +1852,13 @@ export default function ContentStudioPage() {
         }
 
         if (!response.ok) {
+          if (isAuthFailure(response.status, payload?.message)) {
+            setSuperadminTemplates([]);
+            setFeedback(null);
+            markSessionInactive(copy.authRequiredMessage);
+            return;
+          }
+
           setSuperadminTemplates([]);
           setFeedback((current) => current ?? {
             type: "error",
@@ -1665,14 +1895,18 @@ export default function ContentStudioPage() {
     return () => {
       active = false;
     };
-  }, [copy.superadminLoadError, isSuperadmin]);
+  }, [copy.authRequiredMessage, copy.superadminLoadError, isAuthenticated, isSuperadmin, sessionResolved]);
 
   useEffect(() => {
-    if (!canManageWorkspaceTemplates) {
+    if (!sessionResolved) {
+      return undefined;
+    }
+
+    if (!isAuthenticated || !canManageWorkspaceTemplates) {
       setWorkspaceTemplates([]);
       setWorkspaceTemplateLoading(false);
       setWorkspaceTemplateEditorForm(createTemplateEditorForm(null));
-      return;
+      return undefined;
     }
 
     let active = true;
@@ -1691,6 +1925,13 @@ export default function ContentStudioPage() {
         }
 
         if (!response.ok) {
+          if (isAuthFailure(response.status, payload?.message)) {
+            setWorkspaceTemplates([]);
+            setFeedback(null);
+            markSessionInactive(copy.authRequiredMessage);
+            return;
+          }
+
           setWorkspaceTemplates([]);
           setFeedback((current) => current ?? {
             type: "error",
@@ -1727,13 +1968,17 @@ export default function ContentStudioPage() {
     return () => {
       active = false;
     };
-  }, [canManageWorkspaceTemplates, copy.workspaceManagerLoadError]);
+  }, [canManageWorkspaceTemplates, copy.authRequiredMessage, copy.workspaceManagerLoadError, isAuthenticated, sessionResolved]);
 
   useEffect(() => {
-    if (!canReadPublishJobs && !canManagePublishAccounts) {
+    if (!sessionResolved) {
+      return undefined;
+    }
+
+    if (!isAuthenticated || (!canReadPublishJobs && !canManagePublishAccounts)) {
       setConnectedAccounts([]);
       setConnectedAccountLoading(false);
-      return;
+      return undefined;
     }
 
     let active = true;
@@ -1752,6 +1997,13 @@ export default function ContentStudioPage() {
         }
 
         if (!response.ok) {
+          if (isAuthFailure(response.status, payload?.message)) {
+            setConnectedAccounts([]);
+            setFeedback(null);
+            markSessionInactive(copy.authRequiredMessage);
+            return;
+          }
+
           setConnectedAccounts([]);
           setFeedback((current) => current ?? {
             type: "error",
@@ -1787,7 +2039,7 @@ export default function ContentStudioPage() {
     return () => {
       active = false;
     };
-  }, [canManagePublishAccounts, canReadPublishJobs, copy.publishAccountLoadError]);
+  }, [canManagePublishAccounts, canReadPublishJobs, copy.authRequiredMessage, copy.publishAccountLoadError, isAuthenticated, sessionResolved]);
 
   useEffect(() => {
     if (!renderJob?.jobId || !canReadRenderJobs) {
@@ -1866,6 +2118,7 @@ export default function ContentStudioPage() {
     }
 
     const payload = {
+      activeStudioStep,
       connectedAccountForm,
       form,
       publishJob,
@@ -1882,10 +2135,10 @@ export default function ContentStudioPage() {
 
     window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(payload));
     setLastSavedAt(payload.updatedAt);
-  }, [connectedAccountForm, form, publishJob, renderJob, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
+  }, [activeStudioStep, connectedAccountForm, form, publishJob, renderJob, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
 
   const trackStudioEvent = async (eventName, properties = {}) => {
-    if (!studioSessionId) {
+    if (!studioSessionId || !isAuthenticated) {
       return;
     }
 
@@ -1945,6 +2198,77 @@ export default function ContentStudioPage() {
     fields: copy.workspaceManagerFields,
     title: copy.workspaceManagerTitle
   };
+  const studioSteps = copy.studioSteps ?? [];
+  const activeStepIndex = Math.max(0, STUDIO_STEP_ORDER.indexOf(activeStudioStep));
+  const activeStepNumber = activeStepIndex + 1;
+  const totalStudioSteps = STUDIO_STEP_ORDER.length;
+  const stageProgressLabel = (copy.stageStepTemplate ?? "{{current}} / {{total}}")
+    .replace("{{current}}", String(activeStepNumber))
+    .replace("{{total}}", String(totalStudioSteps));
+
+  function moveToStep(nextStep) {
+    if (!STUDIO_STEP_ORDER.includes(nextStep)) {
+      return;
+    }
+
+    setActiveStudioStep(nextStep);
+    setFeedback(null);
+  }
+
+  const stageSection = copy.stageSections?.[activeStudioStep] ?? {
+    body: copy.generatorBody,
+    eyebrow: copy.stageDefaultEyebrow,
+    title: copy.pageTitle
+  };
+  const stageActions = [];
+
+  if (activeStudioStep === "mode") {
+    stageActions.push({
+      label: copy.stageActions.startAi,
+      onClick: () => moveToStep("brief"),
+      variant: "primary"
+    });
+    stageActions.push({
+      label: copy.stageActions.openManual,
+      onClick: () => {
+        setWorkflowMode("manual");
+        moveToStep("brief");
+      },
+      variant: "secondary"
+    });
+  }
+
+  if (activeStudioStep === "brief") {
+    stageActions.push({
+      label: copy.stageActions.openTemplates,
+      onClick: () => moveToStep("templates"),
+      variant: "secondary"
+    });
+  }
+
+  if (activeStudioStep === "review") {
+    stageActions.push({
+      label: copy.stageActions.editBrief,
+      onClick: () => moveToStep("brief"),
+      variant: "secondary"
+    });
+  }
+
+  if (activeStudioStep === "templates") {
+    stageActions.push({
+      label: copy.stageActions.backToBrief,
+      onClick: () => moveToStep("brief"),
+      variant: "secondary"
+    });
+  }
+
+  if (activeStudioStep === "render") {
+    stageActions.push({
+      label: copy.stageActions.backToReview,
+      onClick: () => moveToStep("review"),
+      variant: "secondary"
+    });
+  }
 
   async function refreshTemplateCollections({
     libraryScope = templateScope,
@@ -1952,6 +2276,10 @@ export default function ContentStudioPage() {
     preferredOfficialId = null,
     preferredWorkspaceId = null
   } = {}) {
+    if (!isAuthenticated) {
+      throw new Error(authRequiredMessage);
+    }
+
     const [libraryResponse, superadminResponse, workspaceResponse] = await Promise.all([
       fetch(`/api/content/templates?scope=${libraryScope}`, {
         credentials: "same-origin"
@@ -1970,7 +2298,7 @@ export default function ContentStudioPage() {
 
     const libraryPayload = await libraryResponse.json().catch(() => null);
     if (!libraryResponse.ok) {
-      throw new Error(libraryPayload?.message ?? copy.templateLoadError);
+      throw new Error(getRequestErrorMessage(libraryResponse, libraryPayload, copy.templateLoadError));
     }
 
     const libraryItems = Array.isArray(libraryPayload?.items) ? libraryPayload.items : [];
@@ -1984,7 +2312,7 @@ export default function ContentStudioPage() {
     if (superadminResponse) {
       const adminPayload = await superadminResponse.json().catch(() => null);
       if (!superadminResponse.ok) {
-        throw new Error(adminPayload?.message ?? copy.superadminLoadError);
+        throw new Error(getRequestErrorMessage(superadminResponse, adminPayload, copy.superadminLoadError));
       }
 
       const adminItems = Array.isArray(adminPayload?.items) ? adminPayload.items : [];
@@ -1999,7 +2327,7 @@ export default function ContentStudioPage() {
     if (workspaceResponse) {
       const workspacePayload = await workspaceResponse.json().catch(() => null);
       if (!workspaceResponse.ok) {
-        throw new Error(workspacePayload?.message ?? copy.workspaceManagerLoadError);
+        throw new Error(getRequestErrorMessage(workspaceResponse, workspacePayload, copy.workspaceManagerLoadError));
       }
 
       const workspaceItems = Array.isArray(workspacePayload?.items) ? workspacePayload.items : [];
@@ -2098,6 +2426,7 @@ export default function ContentStudioPage() {
     }));
     setTemplatePlan(null);
     setRenderJob(null);
+    setActiveStudioStep("brief");
     setFeedback({
       type: "success",
       message: copy.templateAppliedSuccess.replace("{{templateTitle}}", template.title)
@@ -2113,7 +2442,7 @@ export default function ContentStudioPage() {
   }
 
   async function handleCloneTemplate(template) {
-    if (!canCloneTemplates) {
+    if (!ensureAuthenticated() || !canCloneTemplates) {
       return;
     }
 
@@ -2132,7 +2461,7 @@ export default function ContentStudioPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(result?.message ?? copy.templateCloneError);
+        throw new Error(getRequestErrorMessage(response, result, copy.templateCloneError));
       }
 
       setTemplateScope("workspace");
@@ -2178,7 +2507,7 @@ export default function ContentStudioPage() {
   }
 
   async function handleDuplicateWorkspaceTemplate(template) {
-    if (!canManageWorkspaceTemplates) {
+    if (!ensureAuthenticated() || !canManageWorkspaceTemplates) {
       return;
     }
 
@@ -2198,7 +2527,7 @@ export default function ContentStudioPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(result?.message ?? copy.workspaceManagerDuplicateError);
+        throw new Error(getRequestErrorMessage(response, result, copy.workspaceManagerDuplicateError));
       }
 
       setTemplateScope("workspace");
@@ -2234,6 +2563,10 @@ export default function ContentStudioPage() {
   }
 
   async function handleSaveSuperadminTemplate() {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
     if (!templateEditorForm.title.trim() || !templateEditorForm.key.trim()) {
       setFeedback({
         type: "error",
@@ -2282,7 +2615,7 @@ export default function ContentStudioPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(result?.message ?? copy.superadminSaveError);
+        throw new Error(getRequestErrorMessage(response, result, copy.superadminSaveError));
       }
 
       const savedTemplateId = result?.item?.id ?? templateEditorForm.id ?? null;
@@ -2305,7 +2638,7 @@ export default function ContentStudioPage() {
   }
 
   async function handleChangeOfficialTemplateStatus(action) {
-    if (!templateEditorForm.id) {
+    if (!ensureAuthenticated() || !templateEditorForm.id) {
       return;
     }
 
@@ -2324,7 +2657,7 @@ export default function ContentStudioPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(result?.message ?? copy.superadminStatusError);
+        throw new Error(getRequestErrorMessage(response, result, copy.superadminStatusError));
       }
 
       await refreshTemplateCollections({
@@ -2346,6 +2679,10 @@ export default function ContentStudioPage() {
   }
 
   async function handleSaveWorkspaceTemplate() {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
     if (!workspaceTemplateEditorForm.title.trim() || !workspaceTemplateEditorForm.key.trim()) {
       setFeedback({
         type: "error",
@@ -2394,7 +2731,7 @@ export default function ContentStudioPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(result?.message ?? copy.workspaceManagerSaveError);
+        throw new Error(getRequestErrorMessage(response, result, copy.workspaceManagerSaveError));
       }
 
       const savedTemplateId = result?.item?.id ?? workspaceTemplateEditorForm.id ?? null;
@@ -2417,7 +2754,7 @@ export default function ContentStudioPage() {
   }
 
   async function handleChangeWorkspaceTemplateStatus(action) {
-    if (!workspaceTemplateEditorForm.id) {
+    if (!ensureAuthenticated() || !workspaceTemplateEditorForm.id) {
       return;
     }
 
@@ -2436,7 +2773,7 @@ export default function ContentStudioPage() {
       const result = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(result?.message ?? copy.workspaceManagerStatusError);
+        throw new Error(getRequestErrorMessage(response, result, copy.workspaceManagerStatusError));
       }
 
       await refreshTemplateCollections({
@@ -2466,13 +2803,17 @@ export default function ContentStudioPage() {
   }
 
   async function refreshConnectedAccounts(preferredId = null) {
+    if (!isAuthenticated) {
+      throw new Error(authRequiredMessage);
+    }
+
     const response = await fetch("/api/publishing/connected-accounts?platformCode=tiktok", {
       credentials: "same-origin"
     });
     const payload = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(payload?.message ?? copy.publishAccountLoadError);
+      throw new Error(getRequestErrorMessage(response, payload, copy.publishAccountLoadError));
     }
 
     const items = Array.isArray(payload?.items) ? payload.items : [];
@@ -2483,6 +2824,10 @@ export default function ContentStudioPage() {
   }
 
   async function handleCreateConnectedAccount() {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
     if (!connectedAccountForm.accountLabel.trim()) {
       setFeedback({
         type: "error",
@@ -2510,7 +2855,7 @@ export default function ContentStudioPage() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(payload?.message ?? copy.publishAccountCreateError);
+        throw new Error(getRequestErrorMessage(response, payload, copy.publishAccountCreateError));
       }
 
       const accountId = payload?.account?.id ?? null;
@@ -2531,6 +2876,10 @@ export default function ContentStudioPage() {
   }
 
   async function handleRenderPlan() {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
     if (!templatePlan?.templateRenderSpec) {
       setFeedback({
         type: "error",
@@ -2569,10 +2918,11 @@ export default function ContentStudioPage() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(payload?.message ?? copy.renderSubmitError);
+        throw new Error(getRequestErrorMessage(response, payload, copy.renderSubmitError));
       }
 
       setRenderJob(payload);
+      setActiveStudioStep("render");
       setFeedback({
         type: "success",
         message: copy.renderSubmitSuccess
@@ -2595,6 +2945,10 @@ export default function ContentStudioPage() {
   }
 
   async function handleQueuePublish() {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
     if (!renderJob?.outputAssetId) {
       setFeedback({
         type: "error",
@@ -2631,7 +2985,7 @@ export default function ContentStudioPage() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(payload?.message ?? copy.publishSubmitError);
+        throw new Error(getRequestErrorMessage(response, payload, copy.publishSubmitError));
       }
 
       setPublishJob(payload);
@@ -2658,6 +3012,7 @@ export default function ContentStudioPage() {
     const nextSessionId = createStudioSessionId();
 
     sessionStartedRef.current = false;
+    setActiveStudioStep("brief");
     setForm(DEFAULT_FORM);
     setSelectedScriptId(null);
     setTemplatePlan(null);
@@ -2673,13 +3028,17 @@ export default function ContentStudioPage() {
   }
 
   async function refreshScripts(preferredId) {
+    if (!isAuthenticated) {
+      throw new Error(authRequiredMessage);
+    }
+
     const response = await fetch("/api/content/scripts?limit=8", {
       credentials: "same-origin"
     });
     const payload = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(payload?.message ?? copy.loadError);
+      throw new Error(getRequestErrorMessage(response, payload, copy.loadError));
     }
 
     const items = Array.isArray(payload?.items) ? payload.items : [];
@@ -2690,6 +3049,10 @@ export default function ContentStudioPage() {
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (!ensureAuthenticated()) {
+      return;
+    }
 
     if (!form.title.trim()) {
       setFeedback({
@@ -2723,10 +3086,11 @@ export default function ContentStudioPage() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(payload?.message ?? copy.generateError);
+        throw new Error(getRequestErrorMessage(response, payload, copy.generateError));
       }
 
       await refreshScripts(payload?.scriptId ?? payload?.script?.id ?? null);
+      setActiveStudioStep("review");
       setFeedback({
         type: "success",
         message: copy.generateSuccess
@@ -2746,6 +3110,10 @@ export default function ContentStudioPage() {
   }
 
   async function handlePreviewPlan() {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
     if (!form.title.trim()) {
       setFeedback({
         type: "error",
@@ -2788,11 +3156,12 @@ export default function ContentStudioPage() {
       const payload = await response.json().catch(() => null);
 
       if (!response.ok) {
-        throw new Error(payload?.message ?? copy.planError);
+        throw new Error(getRequestErrorMessage(response, payload, copy.planError));
       }
 
       setTemplatePlan(payload);
       setRenderJob(null);
+      setActiveStudioStep("review");
       setFeedback({
         type: "success",
         message: copy.planSuccess
@@ -2820,94 +3189,133 @@ export default function ContentStudioPage() {
         <FeedbackAlert feedback={feedback} />
 
         <div className="row g-4">
-          <div className="col-lg-8">
+          <div className="col-12">
             <HeroCard copy={copy} />
           </div>
-          <div className="col-lg-4">
-            <ModeSelectorCard
+        </div>
+
+        <div className="row g-4 mt-1">
+          <div className="col-12">
+            <StudioFlowNav
+              activeStep={activeStudioStep}
               copy={copy}
-              lastSavedAt={lastSavedAt}
-              locale={locale}
-              restoredDraft={restoredDraft}
               workflowMode={workflowMode}
-              onSelectMode={handleModeSelect}
+              steps={studioSteps}
+              onSelectStep={moveToStep}
+            />
+          </div>
+          <div className="col-12">
+            <StageIntroCard
+              actions={stageActions}
+              body={stageSection.body}
+              eyebrow={stageSection.eyebrow}
+              progressLabel={stageProgressLabel}
+              title={stageSection.title}
             />
           </div>
         </div>
 
-        <div className="row g-4 mt-1">
-          <div className="col-xl-5">
-            <GeneratorCard
-              copy={copy}
-              form={form}
-              modeCopy={modeCopy}
-              onChange={handleChange}
-              onPreviewPlan={handlePreviewPlan}
-              onReset={handleReset}
-              onSubmit={handleSubmit}
-              planning={planning}
-              submitting={submitting}
-              workflowMode={workflowMode}
-            />
+        {activeStudioStep === "mode" ? (
+          <div className="row g-4 mt-1">
+            <div className="col-xl-8">
+              <ModeSelectorCard
+                copy={copy}
+                lastSavedAt={lastSavedAt}
+                locale={locale}
+                restoredDraft={restoredDraft}
+                workflowMode={workflowMode}
+                onSelectMode={handleModeSelect}
+              />
+            </div>
+            <div className="col-xl-4">
+              <PlaybookCard copy={copy} />
+            </div>
           </div>
-          <div className="col-xl-7">
-            <OutputPreviewCard copy={copy} script={selectedScript} isSample={isSample} locale={locale} />
-          </div>
-        </div>
+        ) : null}
 
-        <div className="row g-4 mt-1">
-          <div className="col-xl-5">
-            <BriefSnapshotCard
-              copy={copy}
-              form={form}
-              hasGeneratedScript={hasGeneratedScript}
-              lastSavedAt={lastSavedAt}
-              locale={locale}
-              templatePlan={templatePlan}
-              workflowMode={workflowMode}
-            />
+        {activeStudioStep === "brief" ? (
+          <div className="row g-4 mt-1">
+            <div className="col-xl-7">
+              <GeneratorCard
+                authLocked={!sessionResolved || !isAuthenticated}
+                authMessage={sessionResolved ? authRequiredMessage : copy.authCheckingMessage}
+                copy={copy}
+                form={form}
+                modeCopy={modeCopy}
+                onChange={handleChange}
+                onPreviewPlan={handlePreviewPlan}
+                onReset={handleReset}
+                onSubmit={handleSubmit}
+                planning={planning}
+                submitting={submitting}
+                workflowMode={workflowMode}
+              />
+            </div>
+            <div className="col-xl-5">
+              <BriefSnapshotCard
+                copy={copy}
+                form={form}
+                hasGeneratedScript={hasGeneratedScript}
+                lastSavedAt={lastSavedAt}
+                locale={locale}
+                templatePlan={templatePlan}
+                workflowMode={workflowMode}
+              />
+            </div>
           </div>
-          <div className="col-xl-7">
-            <PlanPreviewCard
-              canManagePublishAccounts={canManagePublishAccounts}
-              canSubmitPublish={canSubmitPublishJobs}
-              canRender={canRenderVideos}
-              connectedAccountForm={connectedAccountForm}
-              connectedAccountLoading={connectedAccountLoading}
-              connectedAccounts={connectedAccounts}
-              copy={copy}
-              loading={planning}
-              onConnectedAccountChange={handleConnectedAccountChange}
-              onCreateConnectedAccount={handleCreateConnectedAccount}
-              onPublish={handleQueuePublish}
-              onRender={handleRenderPlan}
-              onSelectConnectedAccount={setSelectedConnectedAccountId}
-              plan={templatePlan}
-              publishJob={publishJob}
-              publishSubmitting={publishSubmitting}
-              renderJob={renderJob}
-              renderPosterUrl={renderPosterUrl}
-              renderPreviewUrl={renderPreviewUrl}
-              renderSubmitting={renderSubmitting}
-              selectedConnectedAccountId={selectedConnectedAccountId}
-              submitConnectedAccount={connectedAccountSubmitting}
-            />
-          </div>
-        </div>
+        ) : null}
 
-        <div className="row g-4 mt-1">
-          <div className="col-xl-7">
-            <RecentDraftsCard
-              copy={copy}
-              scripts={scripts}
-              selectedScriptId={selectedScriptId}
-              setSelectedScriptId={setSelectedScriptId}
-              loading={loading}
-            />
-          </div>
-          <div className="col-xl-5">
-            <div className="row g-4">
+        {activeStudioStep === "review" ? (
+          <>
+            <div className="row g-4 mt-1">
+              <div className="col-xl-5">
+                <OutputPreviewCard copy={copy} script={selectedScript} isSample={isSample} locale={locale} />
+              </div>
+              <div className="col-xl-7">
+                <PlanPreviewCard
+                  canManagePublishAccounts={canManagePublishAccounts}
+                  canSubmitPublish={canSubmitPublishJobs}
+                  canRender={canRenderVideos}
+                  connectedAccountForm={connectedAccountForm}
+                  connectedAccountLoading={connectedAccountLoading}
+                  connectedAccounts={connectedAccounts}
+                  copy={copy}
+                  loading={planning}
+                  onConnectedAccountChange={handleConnectedAccountChange}
+                  onCreateConnectedAccount={handleCreateConnectedAccount}
+                  onPublish={handleQueuePublish}
+                  onRender={handleRenderPlan}
+                  onSelectConnectedAccount={setSelectedConnectedAccountId}
+                  plan={templatePlan}
+                  publishJob={publishJob}
+                  publishSubmitting={publishSubmitting}
+                  renderJob={renderJob}
+                  renderPosterUrl={renderPosterUrl}
+                  renderPreviewUrl={renderPreviewUrl}
+                  renderSubmitting={renderSubmitting}
+                  selectedConnectedAccountId={selectedConnectedAccountId}
+                  submitConnectedAccount={connectedAccountSubmitting}
+                />
+              </div>
+            </div>
+            <div className="row g-4 mt-1">
               <div className="col-12">
+                <RecentDraftsCard
+                  copy={copy}
+                  scripts={scripts}
+                  selectedScriptId={selectedScriptId}
+                  setSelectedScriptId={setSelectedScriptId}
+                  loading={loading}
+                />
+              </div>
+            </div>
+          </>
+        ) : null}
+
+        {activeStudioStep === "templates" ? (
+          <>
+            <div className="row g-4 mt-1">
+              <div className="col-xl-7">
                 <TemplateLibraryCard
                   canClone={canCloneTemplates}
                   canDuplicate={canManageWorkspaceTemplates}
@@ -2920,6 +3328,17 @@ export default function ContentStudioPage() {
                   templates={templates}
                   onApplyTemplate={handleApplyTemplate}
                   onChangeScope={handleTemplateScopeChange}
+                />
+              </div>
+              <div className="col-xl-5">
+                <BriefSnapshotCard
+                  copy={copy}
+                  form={form}
+                  hasGeneratedScript={hasGeneratedScript}
+                  lastSavedAt={lastSavedAt}
+                  locale={locale}
+                  templatePlan={templatePlan}
+                  workflowMode={workflowMode}
                 />
               </div>
               {canManageWorkspaceTemplates ? (
@@ -2963,12 +3382,67 @@ export default function ContentStudioPage() {
                   />
                 </div>
               ) : null}
-              <div className="col-12">
+            </div>
+          </>
+        ) : null}
+
+        {activeStudioStep === "render" ? (
+          <>
+            <div className="row g-4 mt-1">
+              <div className="col-xl-8">
+                <PlanPreviewCard
+                  canManagePublishAccounts={canManagePublishAccounts}
+                  canSubmitPublish={canSubmitPublishJobs}
+                  canRender={canRenderVideos}
+                  connectedAccountForm={connectedAccountForm}
+                  connectedAccountLoading={connectedAccountLoading}
+                  connectedAccounts={connectedAccounts}
+                  copy={copy}
+                  loading={planning}
+                  onConnectedAccountChange={handleConnectedAccountChange}
+                  onCreateConnectedAccount={handleCreateConnectedAccount}
+                  onPublish={handleQueuePublish}
+                  onRender={handleRenderPlan}
+                  onSelectConnectedAccount={setSelectedConnectedAccountId}
+                  plan={templatePlan}
+                  publishJob={publishJob}
+                  publishSubmitting={publishSubmitting}
+                  renderJob={renderJob}
+                  renderPosterUrl={renderPosterUrl}
+                  renderPreviewUrl={renderPreviewUrl}
+                  renderSubmitting={renderSubmitting}
+                  selectedConnectedAccountId={selectedConnectedAccountId}
+                  submitConnectedAccount={connectedAccountSubmitting}
+                />
+              </div>
+              <div className="col-xl-4">
+                <BriefSnapshotCard
+                  copy={copy}
+                  form={form}
+                  hasGeneratedScript={hasGeneratedScript}
+                  lastSavedAt={lastSavedAt}
+                  locale={locale}
+                  templatePlan={templatePlan}
+                  workflowMode={workflowMode}
+                />
+              </div>
+            </div>
+            <div className="row g-4 mt-1">
+              <div className="col-xl-7">
+                <RecentDraftsCard
+                  copy={copy}
+                  scripts={scripts}
+                  selectedScriptId={selectedScriptId}
+                  setSelectedScriptId={setSelectedScriptId}
+                  loading={loading}
+                />
+              </div>
+              <div className="col-xl-5">
                 <LaunchPadCard copy={copy} form={form} />
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        ) : null}
 
         <ArgonFooter />
       </div>

@@ -1028,6 +1028,72 @@ export const GENERATED_MESSAGES = {
           "assisted": "Assisted",
           "manual": "Manual"
         },
+        "studioFlowTitle": "Studio flow",
+        "studioFlowBody": "Work through one stage at a time. The same session keeps all of the data, but the layout is now more focused so it feels easier to follow.",
+        "studioSteps": [
+          {
+            "value": "mode",
+            "label": "Mode entry",
+            "body": "Choose how the studio should work"
+          },
+          {
+            "value": "brief",
+            "label": "Studio brief",
+            "body": "Fill in the core product context"
+          },
+          {
+            "value": "review",
+            "label": "Review & approve",
+            "body": "Check the script and video plan"
+          },
+          {
+            "value": "templates",
+            "label": "Template library",
+            "body": "Choose or manage templates"
+          },
+          {
+            "value": "render",
+            "label": "Render result",
+            "body": "Track the render and publish state"
+          }
+        ],
+        "stageDefaultEyebrow": "Studio stage",
+        "stageStepTemplate": "Step {{current}} of {{total}}",
+        "stageActions": {
+          "startAi": "Start with AI",
+          "openManual": "Open manual mode",
+          "openTemplates": "Open templates",
+          "editBrief": "Edit brief",
+          "backToBrief": "Back to brief",
+          "backToReview": "Back to review"
+        },
+        "stageSections": {
+          "mode": {
+            "eyebrow": "Enter the studio",
+            "title": "Choose the working style that feels right",
+            "body": "Start from the control level that matches you best. The engine stays the same, but the flow is now split into focused stages."
+          },
+          "brief": {
+            "eyebrow": "Product brief",
+            "title": "Capture the core context first",
+            "body": "Focus on the few inputs that matter most for a usable draft. Advanced fields still exist, but they no longer crowd the main step."
+          },
+          "review": {
+            "eyebrow": "Review AI output",
+            "title": "Check the draft before rendering",
+            "body": "The script, scene plan, and validation state now sit in a single review stage so you do not have to jump across unrelated cards."
+          },
+          "templates": {
+            "eyebrow": "Template library",
+            "title": "Choose an official or workspace template",
+            "body": "Use a template to speed up the brief, or manage workspace versions when your team needs its own formula."
+          },
+          "render": {
+            "eyebrow": "Render & publish",
+            "title": "Track the final output in one place",
+            "body": "The video preview, poster, publish account, and handoff status are now gathered into one clearer final stage."
+          }
+        },
         "workflowModes": [
           {
             "value": "quick",
@@ -1220,6 +1286,8 @@ export const GENERATED_MESSAGES = {
           }
         ],
         "generatorNote": "For simple UX, keep the first pass focused on title, niche, objective, and one clear angle.",
+        "authCheckingMessage": "The studio is checking your session. Wait a moment before continuing.",
+        "authRequiredMessage": "Your session is not active. Sign in again to keep generating, previewing, rendering, or publishing.",
         "actions": {
           "generate": "Generate draft",
           "generateByMode": {
@@ -1491,6 +1559,8 @@ export const GENERATED_MESSAGES = {
         "planError": "Unable to preview the video plan right now.",
         "renderCardTitle": "Video render",
         "renderHint": "When the video plan looks right, send it into the template renderer for the first 9:16 job.",
+        "renderQueuedBody": "The render job is queued. In local Docker, the first preview usually shows up in around 15-20 seconds.",
+        "renderProcessingBody": "The renderer is preparing the MP4 now. In local Docker, this step usually takes around 15-20 seconds.",
         "renderStatusBody": "Current render status: {{status}}.",
         "renderJobTitle": "Active render job",
         "renderPreviewTitle": "Video preview",
@@ -1560,7 +1630,7 @@ export const GENERATED_MESSAGES = {
         },
         "renderSubmitMissingPlan": "Preview the video plan before sending a render.",
         "renderSubmitLocked": "This account does not have access to submit video renders yet.",
-        "renderSubmitSuccess": "The video render job was submitted successfully.",
+        "renderSubmitSuccess": "The video render job was submitted. The first preview usually shows up in around 15-20 seconds.",
         "renderSubmitError": "The video render job could not be submitted right now.",
         "generateSuccess": "A new content draft was generated and added to the studio.",
         "generateError": "Unable to generate a content draft right now.",
@@ -2725,6 +2795,72 @@ export const GENERATED_MESSAGES = {
           "assisted": "Terbantu",
           "manual": "Manual"
         },
+        "studioFlowTitle": "Alur studio",
+        "studioFlowBody": "Kerjakan satu tahap dalam satu waktu. Semua data tetap tinggal di sesi yang sama, tapi tampilannya dibuat lebih fokus supaya tidak membingungkan.",
+        "studioSteps": [
+          {
+            "value": "mode",
+            "label": "Mode entry",
+            "body": "Pilih cara kerja studio"
+          },
+          {
+            "value": "brief",
+            "label": "Studio brief",
+            "body": "Isi konteks inti produk"
+          },
+          {
+            "value": "review",
+            "label": "Review & approve",
+            "body": "Cek script dan video plan"
+          },
+          {
+            "value": "templates",
+            "label": "Template library",
+            "body": "Pilih atau kelola template"
+          },
+          {
+            "value": "render",
+            "label": "Render result",
+            "body": "Pantau hasil render dan publish"
+          }
+        ],
+        "stageDefaultEyebrow": "Tahap studio",
+        "stageStepTemplate": "Langkah {{current}} dari {{total}}",
+        "stageActions": {
+          "startAi": "Mulai dengan AI",
+          "openManual": "Atur manual",
+          "openTemplates": "Buka template",
+          "editBrief": "Ubah brief",
+          "backToBrief": "Kembali ke brief",
+          "backToReview": "Kembali ke review"
+        },
+        "stageSections": {
+          "mode": {
+            "eyebrow": "Masuk ke studio",
+            "title": "Pilih cara kerja yang paling nyaman",
+            "body": "Mulai dari level kontrol yang paling cocok untukmu. Engine di belakangnya tetap sama, tapi sekarang alurnya dibagi per tahap supaya lebih mudah diikuti."
+          },
+          "brief": {
+            "eyebrow": "Brief produk",
+            "title": "Isi konteks inti dulu",
+            "body": "Fokus ke input yang paling berpengaruh untuk menghasilkan draft. Field lanjutan tetap ada, tapi tidak lagi mengganggu tahap utama."
+          },
+          "review": {
+            "eyebrow": "Review hasil AI",
+            "title": "Cek draft sebelum lanjut render",
+            "body": "Script, scene plan, dan status validasi ditaruh dalam satu tahap review supaya kamu tidak perlu loncat antar kartu."
+          },
+          "templates": {
+            "eyebrow": "Template library",
+            "title": "Pilih template resmi atau workspace",
+            "body": "Gunakan template untuk mempercepat brief, atau kelola versi workspace kalau timmu butuh formula sendiri."
+          },
+          "render": {
+            "eyebrow": "Render & publish",
+            "title": "Pantau hasil akhir di satu tempat",
+            "body": "Preview video, poster, akun publish, dan status handoff sekarang dikumpulkan dalam tahap akhir yang lebih fokus."
+          }
+        },
         "workflowModes": [
           {
             "value": "quick",
@@ -2917,6 +3053,8 @@ export const GENERATED_MESSAGES = {
           }
         ],
         "generatorNote": "Untuk UX yang sederhana, fase pertama cukup fokus ke judul, niche, objective, dan satu angle yang jelas.",
+        "authCheckingMessage": "Studio sedang mengecek sesi kamu. Tunggu sebentar sebelum lanjut.",
+        "authRequiredMessage": "Sesi belum aktif. Masuk lagi untuk lanjut generate, preview, render, atau publish.",
         "actions": {
           "generate": "Generate draft",
           "generateByMode": {
@@ -3188,6 +3326,8 @@ export const GENERATED_MESSAGES = {
         "planError": "Rencana video belum bisa dipreview sekarang.",
         "renderCardTitle": "Render video",
         "renderHint": "Saat video plan sudah pas, kirim ke template renderer untuk membuat job 9:16 pertama.",
+        "renderQueuedBody": "Job render sudah masuk antrean. Di local Docker, preview pertama biasanya muncul dalam sekitar 15-20 detik.",
+        "renderProcessingBody": "Renderer sedang menyiapkan MP4 sekarang. Di local Docker, langkah ini biasanya butuh sekitar 15-20 detik.",
         "renderStatusBody": "Status render saat ini: {{status}}.",
         "renderJobTitle": "Job render aktif",
         "renderPreviewTitle": "Preview video",
@@ -3257,7 +3397,7 @@ export const GENERATED_MESSAGES = {
         },
         "renderSubmitMissingPlan": "Preview video plan dulu sebelum mengirim render.",
         "renderSubmitLocked": "Akun ini belum punya akses untuk mengirim render video.",
-        "renderSubmitSuccess": "Job render video berhasil dikirim.",
+        "renderSubmitSuccess": "Job render video berhasil dikirim. Preview pertama biasanya muncul dalam sekitar 15-20 detik.",
         "renderSubmitError": "Job render video belum bisa dikirim sekarang.",
         "generateSuccess": "Draft konten baru berhasil dibuat dan masuk ke studio.",
         "generateError": "Draft konten belum bisa dibuat sekarang.",
