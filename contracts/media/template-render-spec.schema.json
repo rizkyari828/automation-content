@@ -63,6 +63,14 @@
         "description": {
           "type": "string"
         },
+        "imageUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "presenterImageUrl": {
+          "type": "string",
+          "format": "uri"
+        },
         "priceText": {
           "type": "string"
         },

@@ -177,6 +177,9 @@
         "languageCode": {
           "label": "Output language"
         },
+        "videoEngine": {
+          "label": "Video engine"
+        },
         "niche": {
           "label": "Template niche"
         },
@@ -190,6 +193,14 @@
         "productUrl": {
           "label": "Product URL",
           "placeholder": "https://..."
+        },
+        "productImageUrl": {
+          "label": "Product image URL",
+          "placeholder": "https://.../product.jpg"
+        },
+        "presenterImageUrl": {
+          "label": "Presenter image URL",
+          "placeholder": "https://.../presenter.jpg"
         },
         "offerText": {
           "label": "Offer text",
@@ -289,6 +300,30 @@
           "label": "Playful"
         }
       ],
+      "videoEngineOptions": [
+        {
+          "value": "template_local",
+          "label": "Local template"
+        },
+        {
+          "value": "fal_veo31_fast",
+          "label": "fal Veo 3.1 Fast (soon)"
+        },
+        {
+          "value": "fal_sora2",
+          "label": "fal Sora 2 (soon)"
+        }
+      ],
+      "videoEngineLabels": {
+        "template_local": "Local template",
+        "fal_veo31_fast": "fal Veo 3.1 Fast",
+        "fal_sora2": "fal Sora 2"
+      },
+      "videoEngineHelp": {
+        "template_local": "Default for development. This is the most stable and cheapest path, and it already connects to the local Remotion renderer.",
+        "fal_veo31_fast": "Prepared as the next generative video path through fal, but not enabled in this build yet.",
+        "fal_sora2": "Prepared as an experimental option through fal, but not enabled in this build yet."
+      },
       "generatorNote": "For simple UX, keep the first pass focused on title, niche, objective, and one clear angle.",
       "authCheckingMessage": "The studio is checking your session. Wait a moment before continuing.",
       "authRequiredMessage": "Your session is not active. Sign in again to keep generating, previewing, rendering, or publishing.",
@@ -500,6 +535,8 @@
       "snapshotFields": {
         "title": "Title",
         "offer": "Offer",
+        "productImage": "Product visual",
+        "presenterImage": "Presenter visual",
         "cta": "CTA"
       },
       "snapshotFallbacks": {
@@ -515,6 +552,44 @@
       "snapshotStatus": {
         "done": "Done",
         "next": "Next"
+      },
+      "reviewBoardTitle": "Review & approve",
+      "reviewBoardBody": "Check the script, video plan, and validation state in one place before rendering starts.",
+      "reviewBoardThinking": "AI is still preparing",
+      "reviewBoardReady": "Ready for review",
+      "reviewTabs": [
+        {
+          "value": "script",
+          "label": "Script"
+        },
+        {
+          "value": "videoPlan",
+          "label": "Video plan"
+        },
+        {
+          "value": "validation",
+          "label": "Validation"
+        }
+      ],
+      "reviewValidation": {
+        "scriptReady": "The main script is complete: hook, body, and CTA are ready.",
+        "scriptMissing": "The main script is still incomplete. Generate or edit the draft before rendering.",
+        "scenesReady": "The scene plan is valid with {{count}} scenes ready for review.",
+        "scenesMissing": "The scene plan is not ready yet. Preview the video plan first to see the scene breakdown.",
+        "formatReady": "The output format is ready: {{format}}.",
+        "formatMissing": "The output format is still incomplete in the template render spec.",
+        "productLinked": "The product link is filled in, so the brief still has a clear source.",
+        "productMissing": "The product link is still empty. The studio can continue, but the product context will be weaker.",
+        "productImageReady": "The product image is available, so the renderer can show a real packshot visual.",
+        "productImageMissing": "The product image is still empty. The video can still render, but it will stay more text-led.",
+        "presenterImageReady": "The presenter image is available, so the testimonial template can feel more like a host or UGC card.",
+        "presenterImageMissing": "The presenter image is still optional. If it stays empty, the studio will use a polished host-frame fallback."
+      },
+      "reviewApproveTitle": "Approval checkpoint",
+      "reviewApproveBody": "Assisted mode keeps the render paused until you approve the AI output at this step.",
+      "reviewActions": {
+        "editBrief": "Edit brief",
+        "approveRender": "Approve & render"
       },
       "planTitle": "Video plan",
       "planBody": "A simple preview of how the promo draft will turn into a render-ready 9:16 video sequence.",
@@ -544,6 +619,8 @@
         "benefit": "Main benefit",
         "offer": "Offer",
         "proof": "Proof",
+        "creator_hook": "Host opening",
+        "creator_proof": "Host proof",
         "cta": "CTA",
         "closing": "Closing"
       },
@@ -558,6 +635,8 @@
       "launchPadBody": "Use this rhythm so the first batch can move from brief to video without confusing the team.",
       "renderReadyTitle": "When it is ready to render",
       "renderReadyBody": "The studio will pass this brief into the 9:16 video template flow for the first affiliate batch.",
+      "renderEngineActive": "Active engine: {{engine}}.",
+      "renderEngineNotReady": "The {{engine}} engine is not enabled in this build yet. For now, keep using Local template.",
       "validationTitle": "A product or campaign title is required before generating a draft.",
       "planSuccess": "The video plan was generated successfully.",
       "planError": "Unable to preview the video plan right now.",

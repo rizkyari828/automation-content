@@ -177,6 +177,9 @@
         "languageCode": {
           "label": "Bahasa output"
         },
+        "videoEngine": {
+          "label": "Video engine"
+        },
         "niche": {
           "label": "Niche template"
         },
@@ -190,6 +193,14 @@
         "productUrl": {
           "label": "URL produk",
           "placeholder": "https://..."
+        },
+        "productImageUrl": {
+          "label": "URL gambar produk",
+          "placeholder": "https://.../produk.jpg"
+        },
+        "presenterImageUrl": {
+          "label": "URL gambar presenter",
+          "placeholder": "https://.../presenter.jpg"
         },
         "offerText": {
           "label": "Teks offer",
@@ -289,6 +300,30 @@
           "label": "Playful"
         }
       ],
+      "videoEngineOptions": [
+        {
+          "value": "template_local",
+          "label": "Template local"
+        },
+        {
+          "value": "fal_veo31_fast",
+          "label": "fal Veo 3.1 Fast (segera)"
+        },
+        {
+          "value": "fal_sora2",
+          "label": "fal Sora 2 (segera)"
+        }
+      ],
+      "videoEngineLabels": {
+        "template_local": "Template local",
+        "fal_veo31_fast": "fal Veo 3.1 Fast",
+        "fal_sora2": "fal Sora 2"
+      },
+      "videoEngineHelp": {
+        "template_local": "Default untuk development. Paling stabil, murah, dan langsung nyambung ke renderer Remotion lokal.",
+        "fal_veo31_fast": "Disiapkan sebagai jalur generative video berikutnya lewat fal, tapi belum diaktifkan di build ini.",
+        "fal_sora2": "Disiapkan sebagai opsi eksperimen di fal, tapi belum diaktifkan di build ini."
+      },
       "generatorNote": "Untuk UX yang sederhana, fase pertama cukup fokus ke judul, niche, objective, dan satu angle yang jelas.",
       "authCheckingMessage": "Studio sedang mengecek sesi kamu. Tunggu sebentar sebelum lanjut.",
       "authRequiredMessage": "Sesi belum aktif. Masuk lagi untuk lanjut generate, preview, render, atau publish.",
@@ -500,6 +535,8 @@
       "snapshotFields": {
         "title": "Judul",
         "offer": "Offer",
+        "productImage": "Visual produk",
+        "presenterImage": "Visual presenter",
         "cta": "CTA"
       },
       "snapshotFallbacks": {
@@ -515,6 +552,44 @@
       "snapshotStatus": {
         "done": "Sudah",
         "next": "Berikutnya"
+      },
+      "reviewBoardTitle": "Review & approve",
+      "reviewBoardBody": "Cek script, rencana video, dan hasil validasi dalam satu tempat sebelum render dimulai.",
+      "reviewBoardThinking": "AI sedang menyusun",
+      "reviewBoardReady": "Siap direview",
+      "reviewTabs": [
+        {
+          "value": "script",
+          "label": "Script"
+        },
+        {
+          "value": "videoPlan",
+          "label": "Video plan"
+        },
+        {
+          "value": "validation",
+          "label": "Validasi"
+        }
+      ],
+      "reviewValidation": {
+        "scriptReady": "Script utama sudah lengkap: hook, body, dan CTA tersedia.",
+        "scriptMissing": "Script utama belum lengkap. Generate atau edit draft dulu sebelum render.",
+        "scenesReady": "Scene plan valid dengan {{count}} scene siap direview.",
+        "scenesMissing": "Scene plan belum tersedia. Preview video plan dulu untuk melihat breakdown scene.",
+        "formatReady": "Format output sudah siap: {{format}}.",
+        "formatMissing": "Format output belum lengkap di template render spec.",
+        "productLinked": "Link produk sudah terisi, jadi brief tetap punya sumber utama.",
+        "productMissing": "Link produk belum diisi. Studio masih bisa jalan, tapi konteks produk akan lebih lemah.",
+        "productImageReady": "Gambar produk sudah tersedia, jadi renderer bisa menampilkan visual packshot nyata.",
+        "productImageMissing": "Gambar produk belum diisi. Video tetap bisa dirender, tapi hasilnya akan lebih text-led.",
+        "presenterImageReady": "Gambar presenter sudah tersedia, jadi template testimonial bisa terasa seperti host atau UGC card.",
+        "presenterImageMissing": "Gambar presenter masih opsional. Kalau kosong, studio akan pakai host frame fallback yang tetap rapi."
+      },
+      "reviewApproveTitle": "Checkpoint approval",
+      "reviewApproveBody": "Mode terbantu menahan render sampai kamu menyetujui hasil AI di tahap ini.",
+      "reviewActions": {
+        "editBrief": "Ubah brief",
+        "approveRender": "Approve & render"
       },
       "planTitle": "Rencana video",
       "planBody": "Preview sederhana untuk melihat bagaimana draft promo akan dipecah menjadi bagian video 9:16 yang siap dirender.",
@@ -544,6 +619,8 @@
         "benefit": "Manfaat utama",
         "offer": "Offer",
         "proof": "Bukti",
+        "creator_hook": "Host opening",
+        "creator_proof": "Host proof",
         "cta": "CTA",
         "closing": "Closing"
       },
@@ -558,6 +635,8 @@
       "launchPadBody": "Gunakan ritme ini supaya batch pertama cepat bergerak dari brief ke video tanpa membingungkan tim.",
       "renderReadyTitle": "Saat siap dirender",
       "renderReadyBody": "Studio akan meneruskan brief ini ke template video 9:16 sebagai batch affiliate pertama.",
+      "renderEngineActive": "Engine aktif: {{engine}}.",
+      "renderEngineNotReady": "Engine {{engine}} belum aktif di build ini. Untuk sekarang, lanjut pakai Template local dulu.",
       "validationTitle": "Judul produk atau campaign wajib diisi sebelum generate draft.",
       "planSuccess": "Rencana video berhasil dibuat.",
       "planError": "Rencana video belum bisa dipreview sekarang.",

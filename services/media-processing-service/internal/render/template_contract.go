@@ -33,7 +33,9 @@ type TemplateProduct struct {
 	CTA          string   `json:"ctaText,omitempty"`
 	Description  string   `json:"description,omitempty"`
 	ImageAssetIDs []string `json:"imageAssetIds,omitempty"`
+	ImageURL     string   `json:"imageUrl,omitempty"`
 	OfferText    string   `json:"offerText,omitempty"`
+	PresenterImageURL string `json:"presenterImageUrl,omitempty"`
 	PriceText    string   `json:"priceText,omitempty"`
 	Subtitle     string   `json:"subtitle,omitempty"`
 	Title        string   `json:"title"`

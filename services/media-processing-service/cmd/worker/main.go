@@ -28,6 +28,8 @@ func main() {
 		config.DefaultRenderProvider,
 		providers.NewDevNoopProvider(),
 		providers.NewTemplateProvider(),
+		providers.NewFalVeoFastProvider(config.FalConfigured),
+		providers.NewFalSoraProvider(config.FalConfigured),
 		providers.NewVeoProvider(config.VeoConfigured),
 		providers.NewSoraProvider(config.SoraConfigured),
 		providers.NewRunwayProvider(config.RunwayConfigured),
@@ -144,6 +146,7 @@ type workerConfig struct {
 	DatabaseURL                string
 	DefaultRenderProvider      string
 	Environment                string
+	FalConfigured              bool
 	LeaseSeconds               int
 	LumaConfigured             bool
 	PollInterval               time.Duration
@@ -158,6 +161,7 @@ func loadWorkerConfig() workerConfig {
 		DatabaseURL:               getEnv("DATABASE_URL", "postgresql://creatorflow:creatorflow@localhost:5433/creatorflow"),
 		DefaultRenderProvider:     getEnv("DEFAULT_RENDER_PROVIDER", "dev_noop"),
 		Environment:               getEnv("APP_ENV", "development"),
+		FalConfigured:             getEnv("FAL_API_KEY", "") != "",
 		LeaseSeconds:              getEnvInt("RENDER_JOB_LEASE_SECONDS", 300),
 		LumaConfigured:            getEnv("LUMA_API_KEY", "") != "",
 		PollInterval:              time.Duration(getEnvInt("RENDER_POLL_INTERVAL_SECONDS", 5)) * time.Second,

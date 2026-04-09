@@ -1173,6 +1173,9 @@ export const GENERATED_MESSAGES = {
           "languageCode": {
             "label": "Output language"
           },
+          "videoEngine": {
+            "label": "Video engine"
+          },
           "niche": {
             "label": "Template niche"
           },
@@ -1186,6 +1189,14 @@ export const GENERATED_MESSAGES = {
           "productUrl": {
             "label": "Product URL",
             "placeholder": "https://..."
+          },
+          "productImageUrl": {
+            "label": "Product image URL",
+            "placeholder": "https://.../product.jpg"
+          },
+          "presenterImageUrl": {
+            "label": "Presenter image URL",
+            "placeholder": "https://.../presenter.jpg"
           },
           "offerText": {
             "label": "Offer text",
@@ -1285,6 +1296,30 @@ export const GENERATED_MESSAGES = {
             "label": "Playful"
           }
         ],
+        "videoEngineOptions": [
+          {
+            "value": "template_local",
+            "label": "Local template"
+          },
+          {
+            "value": "fal_veo31_fast",
+            "label": "fal Veo 3.1 Fast (soon)"
+          },
+          {
+            "value": "fal_sora2",
+            "label": "fal Sora 2 (soon)"
+          }
+        ],
+        "videoEngineLabels": {
+          "template_local": "Local template",
+          "fal_veo31_fast": "fal Veo 3.1 Fast",
+          "fal_sora2": "fal Sora 2"
+        },
+        "videoEngineHelp": {
+          "template_local": "Default for development. This is the most stable and cheapest path, and it already connects to the local Remotion renderer.",
+          "fal_veo31_fast": "Prepared as the next generative video path through fal, but not enabled in this build yet.",
+          "fal_sora2": "Prepared as an experimental option through fal, but not enabled in this build yet."
+        },
         "generatorNote": "For simple UX, keep the first pass focused on title, niche, objective, and one clear angle.",
         "authCheckingMessage": "The studio is checking your session. Wait a moment before continuing.",
         "authRequiredMessage": "Your session is not active. Sign in again to keep generating, previewing, rendering, or publishing.",
@@ -1496,6 +1531,8 @@ export const GENERATED_MESSAGES = {
         "snapshotFields": {
           "title": "Title",
           "offer": "Offer",
+          "productImage": "Product visual",
+          "presenterImage": "Presenter visual",
           "cta": "CTA"
         },
         "snapshotFallbacks": {
@@ -1511,6 +1548,44 @@ export const GENERATED_MESSAGES = {
         "snapshotStatus": {
           "done": "Done",
           "next": "Next"
+        },
+        "reviewBoardTitle": "Review & approve",
+        "reviewBoardBody": "Check the script, video plan, and validation state in one place before rendering starts.",
+        "reviewBoardThinking": "AI is still preparing",
+        "reviewBoardReady": "Ready for review",
+        "reviewTabs": [
+          {
+            "value": "script",
+            "label": "Script"
+          },
+          {
+            "value": "videoPlan",
+            "label": "Video plan"
+          },
+          {
+            "value": "validation",
+            "label": "Validation"
+          }
+        ],
+        "reviewValidation": {
+          "scriptReady": "The main script is complete: hook, body, and CTA are ready.",
+          "scriptMissing": "The main script is still incomplete. Generate or edit the draft before rendering.",
+          "scenesReady": "The scene plan is valid with {{count}} scenes ready for review.",
+          "scenesMissing": "The scene plan is not ready yet. Preview the video plan first to see the scene breakdown.",
+          "formatReady": "The output format is ready: {{format}}.",
+          "formatMissing": "The output format is still incomplete in the template render spec.",
+          "productLinked": "The product link is filled in, so the brief still has a clear source.",
+          "productMissing": "The product link is still empty. The studio can continue, but the product context will be weaker.",
+          "productImageReady": "The product image is available, so the renderer can show a real packshot visual.",
+          "productImageMissing": "The product image is still empty. The video can still render, but it will stay more text-led.",
+          "presenterImageReady": "The presenter image is available, so the testimonial template can feel more like a host or UGC card.",
+          "presenterImageMissing": "The presenter image is still optional. If it stays empty, the studio will use a polished host-frame fallback."
+        },
+        "reviewApproveTitle": "Approval checkpoint",
+        "reviewApproveBody": "Assisted mode keeps the render paused until you approve the AI output at this step.",
+        "reviewActions": {
+          "editBrief": "Edit brief",
+          "approveRender": "Approve & render"
         },
         "planTitle": "Video plan",
         "planBody": "A simple preview of how the promo draft will turn into a render-ready 9:16 video sequence.",
@@ -1540,6 +1615,8 @@ export const GENERATED_MESSAGES = {
           "benefit": "Main benefit",
           "offer": "Offer",
           "proof": "Proof",
+          "creator_hook": "Host opening",
+          "creator_proof": "Host proof",
           "cta": "CTA",
           "closing": "Closing"
         },
@@ -1554,6 +1631,8 @@ export const GENERATED_MESSAGES = {
         "launchPadBody": "Use this rhythm so the first batch can move from brief to video without confusing the team.",
         "renderReadyTitle": "When it is ready to render",
         "renderReadyBody": "The studio will pass this brief into the 9:16 video template flow for the first affiliate batch.",
+        "renderEngineActive": "Active engine: {{engine}}.",
+        "renderEngineNotReady": "The {{engine}} engine is not enabled in this build yet. For now, keep using Local template.",
         "validationTitle": "A product or campaign title is required before generating a draft.",
         "planSuccess": "The video plan was generated successfully.",
         "planError": "Unable to preview the video plan right now.",
@@ -2940,6 +3019,9 @@ export const GENERATED_MESSAGES = {
           "languageCode": {
             "label": "Bahasa output"
           },
+          "videoEngine": {
+            "label": "Video engine"
+          },
           "niche": {
             "label": "Niche template"
           },
@@ -2953,6 +3035,14 @@ export const GENERATED_MESSAGES = {
           "productUrl": {
             "label": "URL produk",
             "placeholder": "https://..."
+          },
+          "productImageUrl": {
+            "label": "URL gambar produk",
+            "placeholder": "https://.../produk.jpg"
+          },
+          "presenterImageUrl": {
+            "label": "URL gambar presenter",
+            "placeholder": "https://.../presenter.jpg"
           },
           "offerText": {
             "label": "Teks offer",
@@ -3052,6 +3142,30 @@ export const GENERATED_MESSAGES = {
             "label": "Playful"
           }
         ],
+        "videoEngineOptions": [
+          {
+            "value": "template_local",
+            "label": "Template local"
+          },
+          {
+            "value": "fal_veo31_fast",
+            "label": "fal Veo 3.1 Fast (segera)"
+          },
+          {
+            "value": "fal_sora2",
+            "label": "fal Sora 2 (segera)"
+          }
+        ],
+        "videoEngineLabels": {
+          "template_local": "Template local",
+          "fal_veo31_fast": "fal Veo 3.1 Fast",
+          "fal_sora2": "fal Sora 2"
+        },
+        "videoEngineHelp": {
+          "template_local": "Default untuk development. Paling stabil, murah, dan langsung nyambung ke renderer Remotion lokal.",
+          "fal_veo31_fast": "Disiapkan sebagai jalur generative video berikutnya lewat fal, tapi belum diaktifkan di build ini.",
+          "fal_sora2": "Disiapkan sebagai opsi eksperimen di fal, tapi belum diaktifkan di build ini."
+        },
         "generatorNote": "Untuk UX yang sederhana, fase pertama cukup fokus ke judul, niche, objective, dan satu angle yang jelas.",
         "authCheckingMessage": "Studio sedang mengecek sesi kamu. Tunggu sebentar sebelum lanjut.",
         "authRequiredMessage": "Sesi belum aktif. Masuk lagi untuk lanjut generate, preview, render, atau publish.",
@@ -3263,6 +3377,8 @@ export const GENERATED_MESSAGES = {
         "snapshotFields": {
           "title": "Judul",
           "offer": "Offer",
+          "productImage": "Visual produk",
+          "presenterImage": "Visual presenter",
           "cta": "CTA"
         },
         "snapshotFallbacks": {
@@ -3278,6 +3394,44 @@ export const GENERATED_MESSAGES = {
         "snapshotStatus": {
           "done": "Sudah",
           "next": "Berikutnya"
+        },
+        "reviewBoardTitle": "Review & approve",
+        "reviewBoardBody": "Cek script, rencana video, dan hasil validasi dalam satu tempat sebelum render dimulai.",
+        "reviewBoardThinking": "AI sedang menyusun",
+        "reviewBoardReady": "Siap direview",
+        "reviewTabs": [
+          {
+            "value": "script",
+            "label": "Script"
+          },
+          {
+            "value": "videoPlan",
+            "label": "Video plan"
+          },
+          {
+            "value": "validation",
+            "label": "Validasi"
+          }
+        ],
+        "reviewValidation": {
+          "scriptReady": "Script utama sudah lengkap: hook, body, dan CTA tersedia.",
+          "scriptMissing": "Script utama belum lengkap. Generate atau edit draft dulu sebelum render.",
+          "scenesReady": "Scene plan valid dengan {{count}} scene siap direview.",
+          "scenesMissing": "Scene plan belum tersedia. Preview video plan dulu untuk melihat breakdown scene.",
+          "formatReady": "Format output sudah siap: {{format}}.",
+          "formatMissing": "Format output belum lengkap di template render spec.",
+          "productLinked": "Link produk sudah terisi, jadi brief tetap punya sumber utama.",
+          "productMissing": "Link produk belum diisi. Studio masih bisa jalan, tapi konteks produk akan lebih lemah.",
+          "productImageReady": "Gambar produk sudah tersedia, jadi renderer bisa menampilkan visual packshot nyata.",
+          "productImageMissing": "Gambar produk belum diisi. Video tetap bisa dirender, tapi hasilnya akan lebih text-led.",
+          "presenterImageReady": "Gambar presenter sudah tersedia, jadi template testimonial bisa terasa seperti host atau UGC card.",
+          "presenterImageMissing": "Gambar presenter masih opsional. Kalau kosong, studio akan pakai host frame fallback yang tetap rapi."
+        },
+        "reviewApproveTitle": "Checkpoint approval",
+        "reviewApproveBody": "Mode terbantu menahan render sampai kamu menyetujui hasil AI di tahap ini.",
+        "reviewActions": {
+          "editBrief": "Ubah brief",
+          "approveRender": "Approve & render"
         },
         "planTitle": "Rencana video",
         "planBody": "Preview sederhana untuk melihat bagaimana draft promo akan dipecah menjadi bagian video 9:16 yang siap dirender.",
@@ -3307,6 +3461,8 @@ export const GENERATED_MESSAGES = {
           "benefit": "Manfaat utama",
           "offer": "Offer",
           "proof": "Bukti",
+          "creator_hook": "Host opening",
+          "creator_proof": "Host proof",
           "cta": "CTA",
           "closing": "Closing"
         },
@@ -3321,6 +3477,8 @@ export const GENERATED_MESSAGES = {
         "launchPadBody": "Gunakan ritme ini supaya batch pertama cepat bergerak dari brief ke video tanpa membingungkan tim.",
         "renderReadyTitle": "Saat siap dirender",
         "renderReadyBody": "Studio akan meneruskan brief ini ke template video 9:16 sebagai batch affiliate pertama.",
+        "renderEngineActive": "Engine aktif: {{engine}}.",
+        "renderEngineNotReady": "Engine {{engine}} belum aktif di build ini. Untuk sekarang, lanjut pakai Template local dulu.",
         "validationTitle": "Judul produk atau campaign wajib diisi sebelum generate draft.",
         "planSuccess": "Rencana video berhasil dibuat.",
         "planError": "Rencana video belum bisa dipreview sekarang.",

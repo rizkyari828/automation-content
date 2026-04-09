@@ -10,6 +10,8 @@ export type TemplateVariables = {
   brandTone?: string;
   ctaText?: string;
   offerText?: string;
+  presenterImageUrl?: string;
+  productImageUrl?: string;
   priceText?: string;
   promptHint?: string;
   sourceType?: string;

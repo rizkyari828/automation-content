@@ -319,6 +319,67 @@ export default function RootLayout({ children }) {
             transform: translateY(-1px);
           }
 
+          .cf-content-review-tabs {
+            border-bottom: 1px solid #e4ebf4;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+          }
+
+          .cf-content-review-tab {
+            background: transparent;
+            border: 0;
+            border-bottom: 2px solid transparent;
+            color: #67748e;
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: -1px;
+            padding: 0.7rem 0.2rem 0.85rem;
+            transition: color 180ms ease, border-color 180ms ease;
+          }
+
+          .cf-content-review-tab.is-active {
+            border-bottom-color: #0f8590;
+            color: #102c45;
+          }
+
+          .cf-content-validation-row {
+            align-items: center;
+            border-bottom: 1px solid #e4ebf4;
+            display: flex;
+            gap: 0.75rem;
+            font-size: 0.88rem;
+            line-height: 1.55;
+            padding: 0.75rem 0;
+          }
+
+          .cf-content-validation-row:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+          }
+
+          .cf-content-validation-icon {
+            align-items: center;
+            border-radius: 999px;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 0.74rem;
+            font-weight: 800;
+            height: 1.35rem;
+            justify-content: center;
+            width: 1.35rem;
+          }
+
+          .cf-content-validation-icon.is-ok {
+            background: rgba(55, 201, 177, 0.14);
+            color: #0f8590;
+          }
+
+          .cf-content-validation-icon.is-warn {
+            background: rgba(245, 154, 83, 0.14);
+            color: #f59a53;
+          }
+
           .cf-content-mode-card {
             align-content: start;
             background:

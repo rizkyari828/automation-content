@@ -140,6 +140,14 @@ func NewTemplateProvider() Provider {
 	return templateProvider{}
 }
 
+func NewFalVeoFastProvider(configured bool) Provider {
+	return newFalProvider("fal_veo31_fast", configured, "fal-ai/veo-3.1/fast")
+}
+
+func NewFalSoraProvider(configured bool) Provider {
+	return newFalProvider("fal_sora2", configured, "fal-ai/sora-2")
+}
+
 func NewVeoProvider(configured bool) Provider {
 	return newStubProvider("veo3", configured, render.ModeTextToVideo, render.ModeImageToVideo, render.ModeVideoToVideo)
 }

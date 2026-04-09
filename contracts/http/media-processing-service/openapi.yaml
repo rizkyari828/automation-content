@@ -100,6 +100,7 @@ components:
           enum: [template_promo, ai_text_to_video, ai_image_to_video, ai_video_to_video]
         preferredProvider:
           type: string
+          description: Preferred provider profile such as template, fal_veo31_fast, fal_sora2, veo3, sora, runway, or luma.
         prompt:
           type: string
         aspectRatio:
@@ -146,6 +147,7 @@ components:
           type: string
         preferredProvider:
           type: string
+          description: Preferred provider profile such as template, fal_veo31_fast, fal_sora2, veo3, sora, runway, or luma.
         renderMode:
           type: string
           enum: [template_promo, ai_text_to_video, ai_image_to_video, ai_video_to_video]

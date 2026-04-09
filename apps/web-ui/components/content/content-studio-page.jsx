@@ -28,11 +28,14 @@ const DEFAULT_FORM = {
   niche: "beauty",
   objective: "promo_offer",
   offerText: "",
+  presenterImageUrl: "",
+  productImageUrl: "",
   priceText: "",
   sourceType: "product",
   title: "",
   productUrl: "",
   promptHint: "",
+  videoEngine: "template_local",
   languageCode: "id"
 };
 
@@ -45,6 +48,8 @@ const DEFAULT_TEMPLATE_EDITOR_FORM = {
   niche: "beauty",
   objective: "promo_offer",
   offerText: "",
+  presenterImageUrl: "",
+  productImageUrl: "",
   priceText: "",
   promptHint: "",
   sourceType: "product",
@@ -85,6 +90,23 @@ const AUTH_FAILURE_PATTERNS = [
   "unable to load session"
 ];
 const STUDIO_STEP_ORDER = ["mode", "brief", "review", "templates", "render"];
+const VIDEO_ENGINE_CATALOG = {
+  fal_sora2: {
+    preferredProvider: "fal_sora2",
+    readiness: "planned",
+    renderMode: "ai_text_to_video"
+  },
+  fal_veo31_fast: {
+    preferredProvider: "fal_veo31_fast",
+    readiness: "planned",
+    renderMode: "ai_text_to_video"
+  },
+  template_local: {
+    preferredProvider: "template",
+    readiness: "ready",
+    renderMode: "template_promo"
+  }
+};
 
 function createStudioSessionId() {
   if (typeof window !== "undefined" && typeof window.crypto?.randomUUID === "function") {
@@ -110,6 +132,8 @@ function createTemplateEditorForm(template) {
     niche: template.niche ?? "beauty",
     objective: template.objective ?? "promo_offer",
     offerText: template.variables?.offerText ?? "",
+    presenterImageUrl: template.variables?.presenterImageUrl ?? "",
+    productImageUrl: template.variables?.productImageUrl ?? "",
     priceText: template.variables?.priceText ?? "",
     promptHint: template.variables?.promptHint ?? "",
     sourceType: template.variables?.sourceType ?? "product",
@@ -118,6 +142,10 @@ function createTemplateEditorForm(template) {
     useCaseBadge: template.useCaseBadge ?? "",
     variableTitle: template.variables?.title ?? ""
   };
+}
+
+function getVideoEngineConfig(engine) {
+  return VIDEO_ENGINE_CATALOG[engine] ?? VIDEO_ENGINE_CATALOG.template_local;
 }
 
 function formatDateLabel(locale, value) {
@@ -500,6 +528,28 @@ function GeneratorCard({
                 <p className="text-xs text-secondary mt-2 mb-3">{copy.advancedBody}</p>
                 <div className="row g-3">
                   <div className="col-md-6">
+                    <label className="form-label">{copy.fields.videoEngine.label}</label>
+                    <select
+                      className="form-select"
+                      name="videoEngine"
+                      value={form.videoEngine}
+                      onChange={onChange}
+                    >
+                      {copy.videoEngineOptions.map((option) => {
+                        const config = getVideoEngineConfig(option.value);
+
+                        return (
+                          <option key={option.value} value={option.value} disabled={config.readiness !== "ready"}>
+                            {option.label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <p className="text-xs text-secondary mt-2 mb-0">
+                      {copy.videoEngineHelp[form.videoEngine] ?? copy.videoEngineHelp.template_local}
+                    </p>
+                  </div>
+                  <div className="col-md-6">
                     <label className="form-label">{copy.fields.languageCode.label}</label>
                     <select
                       className="form-select"
@@ -532,6 +582,28 @@ function GeneratorCard({
                       value={form.offerText}
                       onChange={onChange}
                       placeholder={copy.fields.offerText.placeholder}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">{copy.fields.productImageUrl.label}</label>
+                    <input
+                      className="form-control"
+                      name="productImageUrl"
+                      type="url"
+                      value={form.productImageUrl}
+                      onChange={onChange}
+                      placeholder={copy.fields.productImageUrl.placeholder}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label">{copy.fields.presenterImageUrl.label}</label>
+                    <input
+                      className="form-control"
+                      name="presenterImageUrl"
+                      type="url"
+                      value={form.presenterImageUrl}
+                      onChange={onChange}
+                      placeholder={copy.fields.presenterImageUrl.placeholder}
                     />
                   </div>
                   <div className="col-md-6">
@@ -704,6 +776,14 @@ function BriefSnapshotCard({
             <strong>{form.offerText.trim() || copy.snapshotFallbacks.offer}</strong>
           </div>
           <div className="cf-content-snapshot-row">
+            <span>{copy.snapshotFields.productImage}</span>
+            <strong>{form.productImageUrl.trim() ? copy.snapshotStatus.done : copy.snapshotStatus.next}</strong>
+          </div>
+          <div className="cf-content-snapshot-row">
+            <span>{copy.snapshotFields.presenterImage}</span>
+            <strong>{form.presenterImageUrl.trim() ? copy.snapshotStatus.done : copy.snapshotStatus.next}</strong>
+          </div>
+          <div className="cf-content-snapshot-row">
             <span>{copy.snapshotFields.cta}</span>
             <strong>{form.ctaText.trim() || copy.snapshotFallbacks.cta}</strong>
           </div>
@@ -718,6 +798,231 @@ function BriefSnapshotCard({
               </span>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewApproveCard({
+  canRender,
+  copy,
+  form,
+  isSample,
+  loading,
+  onEditBrief,
+  onRender,
+  plan,
+  renderJob,
+  renderSubmitting,
+  reviewTab,
+  script,
+  workflowMode,
+  setReviewTab
+}) {
+  const validationItems = [
+    {
+      key: "script",
+      state: script?.hook && script?.body && script?.cta ? "ok" : "warn",
+      text: script?.hook && script?.body && script?.cta
+        ? copy.reviewValidation.scriptReady
+        : copy.reviewValidation.scriptMissing
+    },
+    {
+      key: "scenes",
+      state: plan?.scenePlan?.scenes?.length ? "ok" : "warn",
+      text: plan?.scenePlan?.scenes?.length
+        ? copy.reviewValidation.scenesReady.replace("{{count}}", String(plan.scenePlan.scenes.length))
+        : copy.reviewValidation.scenesMissing
+    },
+    {
+      key: "format",
+      state: plan?.templateRenderSpec?.aspectRatio ? "ok" : "warn",
+      text: plan?.templateRenderSpec?.aspectRatio
+        ? copy.reviewValidation.formatReady.replace("{{format}}", `${plan.templateRenderSpec.aspectRatio} · MP4`)
+        : copy.reviewValidation.formatMissing
+    },
+    {
+      key: "product",
+      state: form.productUrl.trim() ? "ok" : "warn",
+      text: form.productUrl.trim()
+        ? copy.reviewValidation.productLinked
+        : copy.reviewValidation.productMissing
+    },
+    {
+      key: "product-image",
+      state: form.productImageUrl.trim() ? "ok" : "warn",
+      text: form.productImageUrl.trim()
+        ? copy.reviewValidation.productImageReady
+        : copy.reviewValidation.productImageMissing
+    },
+    {
+      key: "presenter-image",
+      state: form.presenterImageUrl.trim() ? "ok" : "warn",
+      text: form.presenterImageUrl.trim()
+        ? copy.reviewValidation.presenterImageReady
+        : copy.reviewValidation.presenterImageMissing
+    }
+  ];
+
+  return (
+    <div className="card h-100 cf-surface-card cf-premium-card">
+      <div className="card-header pb-0">
+        <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+          <div>
+            <h6 className="mb-1">{copy.reviewBoardTitle}</h6>
+            <p className="text-sm mb-0">{copy.reviewBoardBody}</p>
+          </div>
+          <span className={`badge ${loading ? "bg-light text-dark border" : "bg-gradient-success"}`}>
+            {loading ? copy.reviewBoardThinking : copy.reviewBoardReady}
+          </span>
+        </div>
+      </div>
+      <div className="card-body p-3">
+        <div className="cf-content-review-tabs">
+          {copy.reviewTabs.map((tab) => {
+            const active = tab.value === reviewTab;
+
+            return (
+              <button
+                key={tab.value}
+                type="button"
+                className={`cf-content-review-tab${active ? " is-active" : ""}`}
+                onClick={() => setReviewTab(tab.value)}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-3">
+          {reviewTab === "script" ? (
+            <div className="cf-content-snapshot">
+              <div className="cf-content-output-block">
+                <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                  {copy.previewMeta.hook}
+                </p>
+                <p className="mb-0">{script.hook}</p>
+              </div>
+              <div className="cf-content-output-block">
+                <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                  {copy.previewMeta.body}
+                </p>
+                <p className="mb-0">{script.body}</p>
+              </div>
+              <div className="cf-content-output-block">
+                <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                  {copy.previewMeta.cta}
+                </p>
+                <p className="mb-0">{script.cta}</p>
+              </div>
+              <div className="d-flex flex-wrap gap-2 mt-3">
+                <span className={`badge ${isSample ? "bg-light text-dark border" : STATUS_BADGE_CLASS[script.status] ?? "bg-gradient-dark"}`}>
+                  {isSample ? copy.sampleBadge : copy.statusLabels[script.status] ?? script.status}
+                </span>
+                <span className="badge bg-light text-dark border">{copy.workflowModeLabels[workflowMode] ?? workflowMode}</span>
+              </div>
+            </div>
+          ) : null}
+
+          {reviewTab === "videoPlan" ? (
+            loading ? (
+              <p className="text-sm text-secondary mb-0">{copy.planLoading}</p>
+            ) : !plan?.scenePlan?.scenes?.length ? (
+              <p className="text-sm text-secondary mb-0">{copy.planEmpty}</p>
+            ) : (
+              <>
+                <div className="row g-3 mb-3">
+                  <div className="col-md-4">
+                    <div className="cf-content-mini-stat">
+                      <span className="text-xs text-uppercase text-secondary">{copy.planMeta.niche}</span>
+                      <h6 className="mb-0 mt-1">{copy.nicheLabels[plan.templateRenderSpec.niche]}</h6>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="cf-content-mini-stat">
+                      <span className="text-xs text-uppercase text-secondary">{copy.planMeta.objective}</span>
+                      <h6 className="mb-0 mt-1">{copy.objectiveLabels[plan.templateRenderSpec.objective]}</h6>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="cf-content-mini-stat">
+                      <span className="text-xs text-uppercase text-secondary">{copy.planMeta.scenes}</span>
+                      <h6 className="mb-0 mt-1">{plan.scenePlan.scenes.length}</h6>
+                    </div>
+                  </div>
+                </div>
+                <div className="cf-content-draft-list d-flex flex-column gap-3">
+                  {plan.scenePlan.scenes.map((scene, index) => (
+                    <div key={scene.id} className="cf-content-draft-item">
+                      <div className="d-flex justify-content-between gap-3 align-items-start">
+                        <div className="d-flex gap-3 align-items-start">
+                          <span className="badge bg-light text-dark border">{String(index + 1).padStart(2, "0")}</span>
+                          <div>
+                            <span className="text-xs text-uppercase font-weight-bolder text-secondary">
+                              {copy.sceneLabels[scene.kind] ?? scene.kind}
+                            </span>
+                            <h6 className="text-sm mb-1 mt-1">{scene.textBlocks?.[0]?.text ?? copy.planFallbackText}</h6>
+                            <p className="text-xs text-secondary mb-0">
+                              {copy.planMeta.layout}: {copy.layoutLabels[scene.layout] ?? scene.layout}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="badge bg-light text-dark border">{scene.durationFrames}f</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )
+          ) : null}
+
+          {reviewTab === "validation" ? (
+            <div className="cf-content-snapshot">
+              {validationItems.map((item) => (
+                <div key={item.key} className="cf-content-validation-row">
+                  <span className={`cf-content-validation-icon${item.state === "ok" ? " is-ok" : " is-warn"}`}>
+                    {item.state === "ok" ? "✓" : "!"}
+                  </span>
+                  <span>{item.text}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <div className="card-footer pt-0 border-0 bg-transparent">
+        <div className="cf-content-session-note">
+          <div>
+            <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+              {copy.reviewApproveTitle}
+            </p>
+            <p className="text-sm mb-0">{copy.reviewApproveBody}</p>
+            <p className="text-xs text-secondary mb-0 mt-2">
+              {copy.renderEngineActive.replace("{{engine}}", copy.videoEngineLabels[form.videoEngine] ?? form.videoEngine)}
+            </p>
+          </div>
+          <div className="d-flex flex-wrap gap-2 justify-content-end">
+            <button type="button" className="btn btn-outline-dark btn-sm mb-0" onClick={onEditBrief}>
+              {copy.reviewActions.editBrief}
+            </button>
+            {canRender ? (
+              <button
+                type="button"
+                className="btn btn-primary btn-sm mb-0"
+                onClick={onRender}
+                disabled={renderSubmitting || loading || !plan?.templateRenderSpec}
+              >
+                {renderSubmitting ? copy.renderActions.submitting : copy.reviewActions.approveRender}
+              </button>
+            ) : (
+              <span className="badge bg-light text-dark border">{copy.renderActions.locked}</span>
+            )}
+            {renderJob?.jobId ? (
+              <span className="badge bg-light text-dark border">{renderJob.jobId}</span>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
@@ -745,6 +1050,7 @@ function PlanPreviewCard({
   renderPosterUrl,
   renderPreviewUrl,
   renderSubmitting,
+  selectedVideoEngine,
   selectedConnectedAccountId,
   submitConnectedAccount
 }) {
@@ -841,6 +1147,9 @@ function PlanPreviewCard({
               <div>
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">{copy.renderCardTitle}</p>
                 <p className="text-sm mb-0">{renderStatusBody}</p>
+                <p className="text-xs text-secondary mb-0 mt-2">
+                  {copy.renderEngineActive.replace("{{engine}}", copy.videoEngineLabels[selectedVideoEngine] ?? selectedVideoEngine)}
+                </p>
               </div>
               <div className="d-flex flex-wrap gap-2 align-items-center">
                 {renderJob?.jobId ? (
@@ -1317,6 +1626,14 @@ function TemplateManagerCard({
             <input className="form-control" name="offerText" value={form.offerText} onChange={onChange} placeholder={copy.fields.offerText.placeholder} />
           </div>
           <div className="col-md-6">
+            <label className="form-label">{copy.fields.productImageUrl.label}</label>
+            <input className="form-control" name="productImageUrl" value={form.productImageUrl} onChange={onChange} placeholder={copy.fields.productImageUrl.placeholder} />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">{copy.fields.presenterImageUrl.label}</label>
+            <input className="form-control" name="presenterImageUrl" value={form.presenterImageUrl} onChange={onChange} placeholder={copy.fields.presenterImageUrl.placeholder} />
+          </div>
+          <div className="col-md-6">
             <label className="form-label">{copy.fields.priceText.label}</label>
             <input className="form-control" name="priceText" value={form.priceText} onChange={onChange} placeholder={copy.fields.priceText.placeholder} />
           </div>
@@ -1391,6 +1708,9 @@ function LaunchPadCard({ copy, form }) {
           </p>
           <h6 className="text-sm mb-1">{copy.nicheLabels[form.niche]} · {copy.objectiveLabels[form.objective]}</h6>
           <p className="text-xs text-secondary mb-0">{copy.renderReadyBody}</p>
+          <p className="text-xs text-secondary mb-0 mt-2">
+            {copy.renderEngineActive.replace("{{engine}}", copy.videoEngineLabels[form.videoEngine] ?? form.videoEngine)}
+          </p>
         </div>
       </div>
     </div>
@@ -1427,11 +1747,14 @@ function createTrackedProperties(form, workflowMode, extras = {}) {
   return {
     has_cta_text: Boolean(form.ctaText.trim()),
     has_offer_text: Boolean(form.offerText.trim()),
+    has_presenter_image_url: Boolean(form.presenterImageUrl.trim()),
+    has_product_image_url: Boolean(form.productImageUrl.trim()),
     has_price_text: Boolean(form.priceText.trim()),
     has_product_url: Boolean(form.productUrl.trim()),
     niche: form.niche,
     objective: form.objective,
     product_source_type: form.sourceType,
+    video_engine: form.videoEngine,
     workflow_mode: workflowMode,
     ...extras
   };
@@ -1455,6 +1778,7 @@ export default function ContentStudioPage() {
   const { locale } = useWebLocale();
   const [activeStudioStep, setActiveStudioStep] = useState(DEFAULT_STUDIO_STEP);
   const [workflowMode, setWorkflowMode] = useState(DEFAULT_WORKFLOW_MODE);
+  const [reviewTab, setReviewTab] = useState("script");
   const [form, setForm] = useState(DEFAULT_FORM);
   const [scripts, setScripts] = useState([]);
   const [selectedScriptId, setSelectedScriptId] = useState(null);
@@ -1506,6 +1830,10 @@ export default function ContentStudioPage() {
 
       if (typeof saved?.workflowMode === "string") {
         setWorkflowMode(saved.workflowMode);
+      }
+
+      if (typeof saved?.reviewTab === "string") {
+        setReviewTab(saved.reviewTab);
       }
 
       if (typeof saved?.activeStudioStep === "string" && STUDIO_STEP_ORDER.includes(saved.activeStudioStep)) {
@@ -2123,6 +2451,7 @@ export default function ContentStudioPage() {
       form,
       publishJob,
       renderJob,
+      reviewTab,
       selectedConnectedAccountId,
       selectedScriptId,
       selectedTemplateId,
@@ -2135,7 +2464,7 @@ export default function ContentStudioPage() {
 
     window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(payload));
     setLastSavedAt(payload.updatedAt);
-  }, [activeStudioStep, connectedAccountForm, form, publishJob, renderJob, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
+  }, [activeStudioStep, connectedAccountForm, form, publishJob, renderJob, reviewTab, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
 
   const trackStudioEvent = async (eventName, properties = {}) => {
     if (!studioSessionId || !isAuthenticated) {
@@ -2419,6 +2748,8 @@ export default function ContentStudioPage() {
       niche: template.niche,
       objective: template.objective,
       offerText: template.variables.offerText ?? current.offerText,
+      presenterImageUrl: template.variables.presenterImageUrl ?? current.presenterImageUrl,
+      productImageUrl: template.variables.productImageUrl ?? current.productImageUrl,
       priceText: template.variables.priceText ?? current.priceText,
       promptHint: template.variables.promptHint ?? current.promptHint,
       sourceType: template.variables.sourceType ?? current.sourceType,
@@ -2473,6 +2804,8 @@ export default function ContentStudioPage() {
         niche: result?.item?.niche ?? current.niche,
         objective: result?.item?.objective ?? current.objective,
         offerText: result?.item?.variables?.offerText ?? current.offerText,
+        presenterImageUrl: result?.item?.variables?.presenterImageUrl ?? current.presenterImageUrl,
+        productImageUrl: result?.item?.variables?.productImageUrl ?? current.productImageUrl,
         priceText: result?.item?.variables?.priceText ?? current.priceText,
         promptHint: result?.item?.variables?.promptHint ?? current.promptHint,
         sourceType: result?.item?.variables?.sourceType ?? current.sourceType,
@@ -2592,6 +2925,8 @@ export default function ContentStudioPage() {
           brandTone: templateEditorForm.brandTone,
           ctaText: templateEditorForm.ctaText.trim(),
           offerText: templateEditorForm.offerText.trim(),
+          presenterImageUrl: templateEditorForm.presenterImageUrl.trim(),
+          productImageUrl: templateEditorForm.productImageUrl.trim(),
           priceText: templateEditorForm.priceText.trim(),
           promptHint: templateEditorForm.promptHint.trim(),
           sourceType: templateEditorForm.sourceType,
@@ -2708,6 +3043,8 @@ export default function ContentStudioPage() {
           brandTone: workspaceTemplateEditorForm.brandTone,
           ctaText: workspaceTemplateEditorForm.ctaText.trim(),
           offerText: workspaceTemplateEditorForm.offerText.trim(),
+          presenterImageUrl: workspaceTemplateEditorForm.presenterImageUrl.trim(),
+          productImageUrl: workspaceTemplateEditorForm.productImageUrl.trim(),
           priceText: workspaceTemplateEditorForm.priceText.trim(),
           promptHint: workspaceTemplateEditorForm.promptHint.trim(),
           sourceType: workspaceTemplateEditorForm.sourceType,
@@ -2896,6 +3233,16 @@ export default function ContentStudioPage() {
       return;
     }
 
+    const videoEngineConfig = getVideoEngineConfig(form.videoEngine);
+
+    if (videoEngineConfig.readiness !== "ready") {
+      setFeedback({
+        type: "error",
+        message: copy.renderEngineNotReady.replace("{{engine}}", copy.videoEngineLabels[form.videoEngine] ?? form.videoEngine)
+      });
+      return;
+    }
+
     setRenderSubmitting(true);
     setFeedback(null);
 
@@ -2909,8 +3256,8 @@ export default function ContentStudioPage() {
         body: JSON.stringify({
           aspectRatio: templatePlan?.templateRenderSpec?.aspectRatio,
           durationSeconds: templatePlan?.templateRenderSpec?.durationSeconds,
-          preferredProvider: "template",
-          renderMode: "template_promo",
+          preferredProvider: videoEngineConfig.preferredProvider,
+          renderMode: videoEngineConfig.renderMode,
           scriptId: !isSample ? selectedScript.id : undefined,
           templateRenderSpec: templatePlan.templateRenderSpec
         })
@@ -3013,6 +3360,7 @@ export default function ContentStudioPage() {
 
     sessionStartedRef.current = false;
     setActiveStudioStep("brief");
+    setReviewTab("script");
     setForm(DEFAULT_FORM);
     setSelectedScriptId(null);
     setTemplatePlan(null);
@@ -3090,6 +3438,7 @@ export default function ContentStudioPage() {
       }
 
       await refreshScripts(payload?.scriptId ?? payload?.script?.id ?? null);
+      setReviewTab("script");
       setActiveStudioStep("review");
       setFeedback({
         type: "success",
@@ -3140,7 +3489,9 @@ export default function ContentStudioPage() {
           product: {
             ctaText: form.ctaText.trim(),
             description: form.promptHint.trim(),
+            imageUrl: form.productImageUrl.trim(),
             offerText: form.offerText.trim(),
+            presenterImageUrl: form.presenterImageUrl.trim(),
             priceText: form.priceText.trim(),
             subtitle: form.promptHint.trim(),
             title: form.title.trim()
@@ -3161,6 +3512,7 @@ export default function ContentStudioPage() {
 
       setTemplatePlan(payload);
       setRenderJob(null);
+      setReviewTab("videoPlan");
       setActiveStudioStep("review");
       setFeedback({
         type: "success",
@@ -3268,33 +3620,33 @@ export default function ContentStudioPage() {
         {activeStudioStep === "review" ? (
           <>
             <div className="row g-4 mt-1">
-              <div className="col-xl-5">
-                <OutputPreviewCard copy={copy} script={selectedScript} isSample={isSample} locale={locale} />
-              </div>
-              <div className="col-xl-7">
-                <PlanPreviewCard
-                  canManagePublishAccounts={canManagePublishAccounts}
-                  canSubmitPublish={canSubmitPublishJobs}
+              <div className="col-xl-8">
+                <ReviewApproveCard
                   canRender={canRenderVideos}
-                  connectedAccountForm={connectedAccountForm}
-                  connectedAccountLoading={connectedAccountLoading}
-                  connectedAccounts={connectedAccounts}
                   copy={copy}
+                  form={form}
+                  isSample={isSample}
                   loading={planning}
-                  onConnectedAccountChange={handleConnectedAccountChange}
-                  onCreateConnectedAccount={handleCreateConnectedAccount}
-                  onPublish={handleQueuePublish}
+                  onEditBrief={() => moveToStep("brief")}
                   onRender={handleRenderPlan}
-                  onSelectConnectedAccount={setSelectedConnectedAccountId}
                   plan={templatePlan}
-                  publishJob={publishJob}
-                  publishSubmitting={publishSubmitting}
                   renderJob={renderJob}
-                  renderPosterUrl={renderPosterUrl}
-                  renderPreviewUrl={renderPreviewUrl}
                   renderSubmitting={renderSubmitting}
-                  selectedConnectedAccountId={selectedConnectedAccountId}
-                  submitConnectedAccount={connectedAccountSubmitting}
+                  reviewTab={reviewTab}
+                  script={selectedScript}
+                  workflowMode={workflowMode}
+                  setReviewTab={setReviewTab}
+                />
+              </div>
+              <div className="col-xl-4">
+                <BriefSnapshotCard
+                  copy={copy}
+                  form={form}
+                  hasGeneratedScript={hasGeneratedScript}
+                  lastSavedAt={lastSavedAt}
+                  locale={locale}
+                  templatePlan={templatePlan}
+                  workflowMode={workflowMode}
                 />
               </div>
             </div>
@@ -3411,6 +3763,7 @@ export default function ContentStudioPage() {
                   renderPosterUrl={renderPosterUrl}
                   renderPreviewUrl={renderPreviewUrl}
                   renderSubmitting={renderSubmitting}
+                  selectedVideoEngine={form.videoEngine}
                   selectedConnectedAccountId={selectedConnectedAccountId}
                   submitConnectedAccount={connectedAccountSubmitting}
                 />

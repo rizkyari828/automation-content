@@ -9,7 +9,9 @@ type TemplatePlannerInput = {
   product: {
     ctaText?: string;
     description?: string;
+    imageUrl?: string;
     offerText?: string;
+    presenterImageUrl?: string;
     priceText?: string;
     subtitle?: string;
     title: string;
@@ -73,6 +75,7 @@ function buildTemplateScenePlan(
   const offerText = input.product.offerText?.trim() || input.product.priceText?.trim() || input.script.cta.trim();
   const proofText = input.product.description?.trim() || firstSentence(input.script.body) || input.product.subtitle?.trim() || input.product.title;
   const bodySupport = pickBodySupport(input.script.body, proofText, offerText);
+  const isTestimonial = input.objective === "testimonial_style";
 
   return {
     aspectRatio: input.aspectRatio,
@@ -82,8 +85,8 @@ function buildTemplateScenePlan(
       {
         durationFrames: 75,
         id: "scene-hook",
-        kind: input.objective === "problem_solution" ? "problem" : "hook",
-        layout: "hero",
+        kind: input.objective === "problem_solution" ? "problem" : isTestimonial ? "creator_hook" : "hook",
+        layout: isTestimonial ? "ugc-host" : "hero",
         textBlocks: [
           {
             animation: "slide-up",
@@ -100,8 +103,8 @@ function buildTemplateScenePlan(
       {
         durationFrames: 90,
         id: "scene-benefit",
-        kind: input.objective === "comparison" ? "proof" : "benefit",
-        layout: "split",
+        kind: input.objective === "comparison" ? "proof" : isTestimonial ? "creator_proof" : "benefit",
+        layout: isTestimonial ? "host-product" : "split",
         textBlocks: [
           {
             animation: "fade",
@@ -119,7 +122,7 @@ function buildTemplateScenePlan(
         durationFrames: 75,
         id: "scene-offer",
         kind: "offer",
-        layout: "product-focus",
+        layout: isTestimonial ? "offer-card" : "product-focus",
         textBlocks: [
           {
             animation: "pop",
@@ -137,7 +140,7 @@ function buildTemplateScenePlan(
         durationFrames: 90,
         id: "scene-cta",
         kind: "cta",
-        layout: "caption-led",
+        layout: isTestimonial ? "host-cta" : "caption-led",
         textBlocks: [
           {
             animation: "type",

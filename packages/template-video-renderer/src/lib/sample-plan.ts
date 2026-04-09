@@ -1,6 +1,14 @@
 export const sampleBeautyPromoPlan = {
   aspectRatio: "9:16",
   durationSeconds: 11,
+  product: {
+    ctaText: "Cek promo sebelum stok habis",
+    imageUrl: "",
+    offerText: "Diskon payday 35%",
+    priceText: "Mulai Rp129.000",
+    subtitle: "Serum brightening untuk daily routine",
+    title: "Serum brightening untuk bekas jerawat"
+  },
   scenes: [
     {
       durationFrames: 75,
@@ -79,9 +87,107 @@ export const sampleBeautyPromoPlan = {
   version: 1
 };
 
+export const sampleBeautyTestimonialPlan = {
+  aspectRatio: "9:16",
+  durationSeconds: 12,
+  product: {
+    ctaText: "Cek paketnya sebelum batch promo habis",
+    imageUrl: "",
+    offerText: "Creator pick minggu ini",
+    presenterImageUrl: "",
+    priceText: "Mulai Rp149.000",
+    subtitle: "Angle host-style untuk skincare affiliate",
+    title: "Serum calming untuk jerawat aktif"
+  },
+  scenes: [
+    {
+      durationFrames: 75,
+      id: "scene-hook",
+      kind: "creator_hook",
+      layout: "ugc-host",
+      textBlocks: [
+        {
+          animation: "slide-up",
+          role: "headline",
+          text: "Kalau lagi cari serum yang enak dipakai harian, ini yang paling sering aku taruh di shortlist."
+        },
+        {
+          animation: "fade",
+          role: "supporting",
+          text: "Teksturnya ringan dan angle-nya terasa lebih personal saat dibawa pakai host frame."
+        }
+      ]
+    },
+    {
+      durationFrames: 90,
+      id: "scene-proof",
+      kind: "creator_proof",
+      layout: "host-product",
+      textBlocks: [
+        {
+          animation: "fade",
+          role: "headline",
+          text: "Enak buat konten UGC karena bisa sambil nunjukin pengalaman pakai dan alasan kenapa produk ini terasa aman dicoba."
+        },
+        {
+          animation: "fade",
+          role: "caption",
+          text: "Gunakan subtitle yang terasa seperti creator lagi bicara langsung ke penonton."
+        }
+      ]
+    },
+    {
+      durationFrames: 75,
+      id: "scene-offer",
+      kind: "offer",
+      layout: "offer-card",
+      textBlocks: [
+        {
+          animation: "pop",
+          role: "offer",
+          text: "Creator pick minggu ini"
+        },
+        {
+          animation: "fade",
+          role: "price",
+          text: "Mulai Rp149.000"
+        }
+      ]
+    },
+    {
+      durationFrames: 90,
+      id: "scene-cta",
+      kind: "cta",
+      layout: "host-cta",
+      textBlocks: [
+        {
+          animation: "type",
+          role: "cta",
+          text: "Cek paketnya sebelum batch promo habis"
+        },
+        {
+          animation: "fade",
+          role: "caption",
+          text: "Template ini cocok untuk feel UGC tanpa harus langsung pakai avatar AI."
+        }
+      ]
+    }
+  ],
+  templateKey: "beauty/testimonial_style",
+  version: 1
+};
+
 export const sampleGadgetComparisonPlan = {
   aspectRatio: "9:16",
   durationSeconds: 12,
+  product: {
+    ctaText: "Cek promo gadget hari ini",
+    imageUrl: "",
+    offerText: "Value paling masuk akal",
+    priceText: "Mulai Rp499.000",
+    subtitle: "Shortlist gadget harian",
+    title: "Earbuds ANC vs smartwatch"
+  },
   scenes: [
     {
       durationFrames: 75,

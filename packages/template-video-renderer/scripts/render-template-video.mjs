@@ -66,6 +66,15 @@ function normalizePlan(spec) {
   return {
     aspectRatio: spec?.aspectRatio ?? scenePlan?.aspectRatio ?? "9:16",
     durationSeconds: spec?.durationSeconds ?? scenePlan?.durationSeconds ?? 18,
+    product: {
+      ctaText: spec?.product?.ctaText ?? "",
+      imageUrl: spec?.product?.imageUrl ?? "",
+      offerText: spec?.product?.offerText ?? "",
+      presenterImageUrl: spec?.product?.presenterImageUrl ?? "",
+      priceText: spec?.product?.priceText ?? "",
+      subtitle: spec?.product?.subtitle ?? "",
+      title: spec?.product?.title ?? ""
+    },
     scenes: scenes.map((scene, index) => ({
       durationFrames: Number(scene?.durationFrames ?? 75),
       id: scene?.id ?? `scene-${index + 1}`,
@@ -116,6 +125,10 @@ function parseArgs(argv) {
 }
 
 function resolveCompositionId(templateKey) {
+  if (templateKey === "beauty/testimonial_style") {
+    return "creatorflow-beauty-testimonial";
+  }
+
   if (templateKey === "gadget/comparison") {
     return "creatorflow-gadget-comparison";
   }

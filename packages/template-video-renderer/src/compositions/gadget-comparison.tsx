@@ -1,6 +1,7 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Img,
   Sequence,
   interpolate,
   spring,
@@ -21,6 +22,14 @@ type Scene = {
 
 type GadgetComparisonProps = {
   plan: {
+    product?: {
+      ctaText?: string;
+      imageUrl?: string;
+      offerText?: string;
+      priceText?: string;
+      subtitle?: string;
+      title?: string;
+    };
     scenes: Scene[];
     templateKey: string;
   };
@@ -43,7 +52,7 @@ export function GadgetComparison({ plan }: GadgetComparisonProps) {
 
         return (
           <Sequence key={scene.id} from={startFrom} durationInFrames={scene.durationFrames}>
-            <GadgetScene scene={scene} index={index} />
+            <GadgetScene product={plan.product} scene={scene} index={index} />
           </Sequence>
         );
       })}
@@ -51,9 +60,18 @@ export function GadgetComparison({ plan }: GadgetComparisonProps) {
   );
 }
 
-function GadgetScene({ scene, index }: { scene: Scene; index: number }) {
+function GadgetScene({
+  product,
+  scene,
+  index
+}: {
+  product?: GadgetComparisonProps["plan"]["product"];
+  scene: Scene;
+  index: number;
+}) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const subtitle = getSceneSubtitle(scene, product);
   const reveal = spring({
     fps,
     frame,
@@ -152,6 +170,8 @@ function GadgetScene({ scene, index }: { scene: Scene; index: number }) {
         <ComparisonPanel
           accent="linear-gradient(135deg, rgba(130, 178, 255, 0.28) 0%, rgba(83, 230, 216, 0.08) 100%)"
           eyebrow={index % 2 === 0 ? "Pilihan cepat" : "Yang perlu dicek"}
+          imageUrl={product?.imageUrl}
+          priceText={product?.priceText}
           scene={scene}
           side="left"
         />
@@ -184,10 +204,14 @@ function GadgetScene({ scene, index }: { scene: Scene; index: number }) {
         <ComparisonPanel
           accent="linear-gradient(135deg, rgba(245, 154, 83, 0.24) 0%, rgba(245, 154, 83, 0.06) 100%)"
           eyebrow="Angle konversi"
+          imageUrl={product?.imageUrl}
+          offerText={product?.offerText}
           scene={scene}
           side="right"
         />
       </div>
+
+      <GadgetSubtitleRail scene={scene} subtitle={subtitle} />
 
       <div
         style={{
@@ -291,11 +315,17 @@ function ComparisonBackdrop({ glowTravel }: { glowTravel: number }) {
 function ComparisonPanel({
   accent,
   eyebrow,
+  imageUrl,
+  offerText,
+  priceText,
   scene,
   side
 }: {
   accent: string;
   eyebrow: string;
+  imageUrl?: string;
+  offerText?: string;
+  priceText?: string;
   scene: Scene;
   side: "left" | "right";
 }) {
@@ -336,6 +366,60 @@ function ComparisonPanel({
       <div style={{ position: "relative" }}>
         <div
           style={{
+            borderRadius: 28,
+            height: 180,
+            marginBottom: 18,
+            overflow: "hidden",
+            position: "relative",
+            width: "100%"
+          }}
+        >
+          {imageUrl ? (
+            <Img
+              src={imageUrl}
+              style={{
+                height: "100%",
+                objectFit: "cover",
+                transform: `translate(${getPanelImageOffset(side, frame).x}px, ${getPanelImageOffset(side, frame).y}px) scale(${getPanelImageOffset(side, frame).scale})`,
+                width: "100%"
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                alignItems: "center",
+                background: "linear-gradient(180deg, rgba(130,178,255,0.2) 0%, rgba(15,23,42,0.48) 100%)",
+                display: "flex",
+                height: "100%",
+                justifyContent: "center",
+                width: "100%"
+              }}
+            >
+              <div
+                style={{
+                  background: "rgba(255,255,255,0.08)",
+                  border: "1px solid rgba(129, 164, 209, 0.16)",
+                  borderRadius: 24,
+                  color: "#dce9f8",
+                  fontSize: 18,
+                  fontWeight: 700,
+                  padding: "12px 16px"
+                }}
+              >
+                {offerText || priceText || "Tambahkan gambar produk"}
+              </div>
+            </div>
+          )}
+          <div
+            style={{
+              background: "linear-gradient(180deg, rgba(9,17,26,0.02) 0%, rgba(9,17,26,0.7) 100%)",
+              inset: 0,
+              position: "absolute"
+            }}
+          />
+        </div>
+        <div
+          style={{
             color: "#80a4ca",
             fontSize: 20,
             fontWeight: 700,
@@ -368,7 +452,164 @@ function ComparisonPanel({
             </div>
           ))}
         </div>
+        <SpecChipRow
+          chips={[scene.kind.replaceAll("_", " "), offerText, priceText].filter(Boolean) as string[]}
+          side={side}
+        />
       </div>
     </div>
   );
+}
+
+function SpecChipRow({
+  chips,
+  side
+}: {
+  chips: string[];
+  side: "left" | "right";
+}) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 10,
+        marginTop: 22
+      }}
+    >
+      {chips.slice(0, 3).map((chip, index) => {
+        const reveal = spring({
+          fps,
+          frame: frame - 12 - index * 4,
+          config: {
+            damping: 23,
+            stiffness: 180
+          }
+        });
+
+        return (
+          <div
+            key={`${side}-${chip}`}
+            style={{
+              background: side === "left" ? "rgba(130, 178, 255, 0.12)" : "rgba(245, 154, 83, 0.12)",
+              border: side === "left" ? "1px solid rgba(130, 178, 255, 0.2)" : "1px solid rgba(245, 154, 83, 0.2)",
+              borderRadius: 999,
+              color: "#dce9f8",
+              fontSize: 17,
+              fontWeight: 700,
+              opacity: interpolate(reveal, [0, 1], [0, 1]),
+              padding: "11px 14px",
+              transform: `translateY(${interpolate(reveal, [0, 1], [16, 0])}px)`
+            }}
+          >
+            {chip}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function GadgetSubtitleRail({
+  scene,
+  subtitle
+}: {
+  scene: Scene;
+  subtitle: string;
+}) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const reveal = spring({
+    fps,
+    frame: frame - 8,
+    config: {
+      damping: 26,
+      stiffness: 170
+    }
+  });
+  const visibleLength = Math.max(12, Math.round(interpolate(reveal, [0, 1], [12, subtitle.length])));
+
+  return (
+    <div
+      style={{
+        alignItems: "center",
+        background: "rgba(12, 21, 32, 0.86)",
+        border: "1px solid rgba(129, 164, 209, 0.2)",
+        borderRadius: 22,
+        color: "#f4f7fb",
+        display: "flex",
+        gap: 14,
+        marginTop: 20,
+        minHeight: 84,
+        padding: "18px 20px",
+        position: "relative"
+      }}
+    >
+      <div
+        style={{
+          background: "rgba(130, 178, 255, 0.16)",
+          borderRadius: 999,
+          color: "#dce9f8",
+          fontSize: 15,
+          fontWeight: 800,
+          letterSpacing: "0.08em",
+          padding: "10px 14px",
+          textTransform: "uppercase"
+        }}
+      >
+        Subtitle
+      </div>
+      <div
+        style={{
+          fontSize: 24,
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          lineHeight: 1.3
+        }}
+      >
+        {subtitle.slice(0, visibleLength)}
+      </div>
+      <div
+        style={{
+          background: "linear-gradient(90deg, #82b2ff 0%, #53e6d8 100%)",
+          borderRadius: 999,
+          bottom: 10,
+          height: 4,
+          left: 20,
+          opacity: 0.8,
+          position: "absolute",
+          width: `${Math.max(88, Math.round((frame / Math.max(scene.durationFrames, 1)) * 100))}%`
+        }}
+      />
+    </div>
+  );
+}
+
+function getSceneSubtitle(
+  scene: Scene,
+  product?: GadgetComparisonProps["plan"]["product"]
+) {
+  return (
+    scene.textBlocks.find((block) => block.role === "supporting" || block.role === "caption")?.text ??
+    product?.subtitle ??
+    product?.offerText ??
+    scene.textBlocks[0]?.text ??
+    "Bandingkan angle yang paling menjual untuk video gadget."
+  );
+}
+
+function getPanelImageOffset(side: "left" | "right", frame: number) {
+  const baseX = side === "left" ? -10 : 10;
+  const driftX = interpolate(Math.sin(frame / 14), [-1, 1], [baseX - 8, baseX + 8]);
+  const driftY = interpolate(Math.cos(frame / 16), [-1, 1], [-8, 10]);
+  const scale = 1.08 + interpolate(Math.sin(frame / 18), [-1, 1], [-0.04, 0.04]);
+
+  return {
+    scale,
+    x: driftX,
+    y: driftY
+  };
 }

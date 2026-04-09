@@ -364,7 +364,9 @@ export function registerContentRoutes(app: FastifyInstance) {
       product?: {
         ctaText?: string;
         description?: string;
+        imageUrl?: string;
         offerText?: string;
+        presenterImageUrl?: string;
         priceText?: string;
         subtitle?: string;
         title?: string;
@@ -407,7 +409,9 @@ export function registerContentRoutes(app: FastifyInstance) {
         product: {
           ctaText: body.product.ctaText,
           description: body.product.description,
+          imageUrl: body.product.imageUrl,
           offerText: body.product.offerText,
+          presenterImageUrl: body.product.presenterImageUrl,
           priceText: body.product.priceText,
           subtitle: body.product.subtitle,
           title: body.product.title
