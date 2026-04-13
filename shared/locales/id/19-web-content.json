@@ -571,6 +571,8 @@
           "label": "Validasi"
         }
       ],
+      "reviewRawSpecLabel": "Raw spec",
+      "reviewRawSpecBody": "Mode manual menampilkan payload mentah agar kamu bisa cek struktur plan sebelum render.",
       "reviewValidation": {
         "scriptReady": "Script utama sudah lengkap: hook, body, dan CTA tersedia.",
         "scriptMissing": "Script utama belum lengkap. Generate atau edit draft dulu sebelum render.",

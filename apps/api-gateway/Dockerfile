@@ -1,4 +1,5 @@
-FROM public.ecr.aws/docker/library/node:22-alpine AS base
+ARG NODE_ALPINE_IMAGE=node:22-alpine
+FROM ${NODE_ALPINE_IMAGE} AS base
 WORKDIR /app
 
 FROM base AS deps
@@ -17,7 +18,7 @@ COPY packages/logger/index.js ./packages/logger/index.js
 COPY packages/logger/index.d.ts ./packages/logger/index.d.ts
 RUN npm run build --workspace @creatorflow/api-gateway
 
-FROM public.ecr.aws/docker/library/node:22-alpine AS runner
+FROM ${NODE_ALPINE_IMAGE} AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=4000

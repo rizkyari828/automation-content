@@ -571,6 +571,8 @@
           "label": "Validation"
         }
       ],
+      "reviewRawSpecLabel": "Raw spec",
+      "reviewRawSpecBody": "Manual mode exposes the raw payload so you can inspect the plan structure before render.",
       "reviewValidation": {
         "scriptReady": "The main script is complete: hook, body, and CTA are ready.",
         "scriptMissing": "The main script is still incomplete. Generate or edit the draft before rendering.",

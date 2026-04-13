@@ -279,6 +279,51 @@ export default function RootLayout({ children }) {
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
           }
 
+          .cf-content-flow-progress {
+            background: #e4ebf4;
+            border-radius: 999px;
+            height: 4px;
+            overflow: hidden;
+            position: relative;
+          }
+
+          .cf-content-flow-progress-bar {
+            background: linear-gradient(90deg, #f59a53 0%, #f97316 100%);
+            border-radius: 999px;
+            height: 100%;
+            transition: width 220ms ease;
+          }
+
+          .cf-content-flow-breadcrumb {
+            align-items: center;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.55rem;
+          }
+
+          .cf-content-flow-crumb {
+            color: #94a3b8;
+            font-size: 0.74rem;
+            font-weight: 700;
+            line-height: 1.3;
+            position: relative;
+            text-transform: uppercase;
+          }
+
+          .cf-content-flow-crumb:not(:last-child)::after {
+            color: #cbd5e1;
+            content: "›";
+            margin-left: 0.55rem;
+          }
+
+          .cf-content-flow-crumb.is-complete {
+            color: #64748b;
+          }
+
+          .cf-content-flow-crumb.is-active {
+            color: #f97316;
+          }
+
           .cf-content-flow-step {
             align-content: start;
             background: #f8fafc;
@@ -317,6 +362,13 @@ export default function RootLayout({ children }) {
             border-color: rgba(15, 133, 144, 0.28);
             box-shadow: 0 18px 34px rgba(16, 44, 69, 0.08);
             transform: translateY(-1px);
+          }
+
+          .cf-content-flow-step.is-locked {
+            box-shadow: none;
+            cursor: not-allowed;
+            opacity: 0.55;
+            transform: none;
           }
 
           .cf-content-review-tabs {
@@ -380,6 +432,18 @@ export default function RootLayout({ children }) {
             color: #f59a53;
           }
 
+          .cf-content-raw-spec {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 0.85rem;
+            color: #e2e8f0;
+            font-size: 0.72rem;
+            line-height: 1.55;
+            max-height: 320px;
+            overflow: auto;
+            padding: 0.85rem;
+          }
+
           .cf-content-mode-card {
             align-content: start;
             background:
@@ -390,17 +454,20 @@ export default function RootLayout({ children }) {
             display: grid;
             gap: 0.75rem;
             min-width: 0;
+            overflow: hidden;
             padding: 1rem;
             transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
           }
 
           .cf-content-mode-card .badge {
             display: inline-flex;
+            font-size: 0.68rem;
             justify-content: center;
             line-height: 1.2;
             max-width: 100%;
+            overflow-wrap: anywhere;
             text-align: center;
-            white-space: normal;
+            white-space: normal !important;
           }
 
           .cf-content-mode-card h6,
@@ -421,6 +488,12 @@ export default function RootLayout({ children }) {
             border: 1px solid #e4ebf4;
             border-radius: 1rem;
             padding: 1rem;
+          }
+
+          .cf-content-render-progress .progress {
+            background: #e4ebf4;
+            border-radius: 999px;
+            overflow: hidden;
           }
 
           .cf-content-session-note {
@@ -488,6 +561,68 @@ export default function RootLayout({ children }) {
 
           .cf-content-advanced summary::-webkit-details-marker {
             display: none;
+          }
+
+          .cf-content-template-preview {
+            background: linear-gradient(135deg, rgba(15, 133, 144, 0.08) 0%, rgba(55, 201, 177, 0.12) 100%);
+            border: 1px solid #d9e8f5;
+            border-radius: 0.9rem;
+            padding: 0.75rem;
+          }
+
+          .cf-content-template-preview-layer {
+            align-items: center;
+            animation: cfTemplatePulse 1s ease-in-out infinite;
+            background: #ffffff;
+            border: 1px solid #e4ebf4;
+            border-radius: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            min-height: 2.1rem;
+            padding: 0.35rem 0.5rem;
+          }
+
+          .cf-content-template-preview-layer + .cf-content-template-preview-layer {
+            margin-top: 0.5rem;
+          }
+
+          .cf-content-template-preview-layer:nth-child(2) {
+            animation-delay: 0.15s;
+          }
+
+          .cf-content-template-preview-layer:nth-child(3) {
+            animation-delay: 0.3s;
+          }
+
+          .cf-content-sticky-bar {
+            backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.92);
+            border: 1px solid #d9e8f5;
+            border-radius: 1rem;
+            bottom: 0.85rem;
+            box-shadow: 0 18px 34px rgba(16, 44, 69, 0.14);
+            margin-top: 1rem;
+            padding: 0.85rem 1rem;
+            position: sticky;
+            z-index: 25;
+          }
+
+          .cf-content-page {
+            padding-bottom: 5.25rem;
+          }
+
+          @keyframes cfTemplatePulse {
+            0% {
+              transform: translateX(0);
+            }
+
+            50% {
+              transform: translateX(4px);
+            }
+
+            100% {
+              transform: translateX(0);
+            }
           }
 
           .creatorflow-internal-main .card {
@@ -691,6 +826,10 @@ export default function RootLayout({ children }) {
             .creatorflow-topbar-chip-secondary {
               display: none;
             }
+
+            .cf-content-mode-grid {
+              grid-template-columns: 1fr;
+            }
           }
 
           @media (max-width: 991.98px) {
@@ -715,6 +854,15 @@ export default function RootLayout({ children }) {
               min-width: auto;
               padding-left: 0.75rem;
               padding-right: 0.75rem;
+            }
+
+            .cf-content-sticky-bar {
+              bottom: 0.5rem;
+              padding: 0.75rem;
+            }
+
+            .cf-content-page {
+              padding-bottom: 6rem;
             }
           }
 

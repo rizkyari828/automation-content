@@ -1,4 +1,6 @@
-FROM public.ecr.aws/docker/library/golang:1.25 AS go-builder
+ARG GO_IMAGE=golang:1.25
+ARG NODE_BOOKWORM_IMAGE=node:22-bookworm-slim
+FROM ${GO_IMAGE} AS go-builder
 
 WORKDIR /src/services/media-processing-service
 
@@ -10,7 +12,7 @@ COPY services/media-processing-service/internal ./internal
 RUN CGO_ENABLED=0 GOOS=linux go build -o /out/media-api ./cmd/api \
   && CGO_ENABLED=0 GOOS=linux go build -o /out/media-worker ./cmd/worker
 
-FROM public.ecr.aws/docker/library/node:22-bookworm-slim AS renderer-deps
+FROM ${NODE_BOOKWORM_IMAGE} AS renderer-deps
 
 WORKDIR /app
 
@@ -26,7 +28,7 @@ COPY packages/template-video-renderer/package.json ./packages/template-video-ren
 
 RUN npm ci
 
-FROM public.ecr.aws/docker/library/node:22-bookworm-slim
+FROM ${NODE_BOOKWORM_IMAGE}
 
 WORKDIR /app
 

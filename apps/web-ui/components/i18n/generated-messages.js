@@ -1567,6 +1567,8 @@ export const GENERATED_MESSAGES = {
             "label": "Validation"
           }
         ],
+        "reviewRawSpecLabel": "Raw spec",
+        "reviewRawSpecBody": "Manual mode exposes the raw payload so you can inspect the plan structure before render.",
         "reviewValidation": {
           "scriptReady": "The main script is complete: hook, body, and CTA are ready.",
           "scriptMissing": "The main script is still incomplete. Generate or edit the draft before rendering.",
@@ -3413,6 +3415,8 @@ export const GENERATED_MESSAGES = {
             "label": "Validasi"
           }
         ],
+        "reviewRawSpecLabel": "Raw spec",
+        "reviewRawSpecBody": "Mode manual menampilkan payload mentah agar kamu bisa cek struktur plan sebelum render.",
         "reviewValidation": {
           "scriptReady": "Script utama sudah lengkap: hook, body, dan CTA tersedia.",
           "scriptMissing": "Script utama belum lengkap. Generate atau edit draft dulu sebelum render.",
