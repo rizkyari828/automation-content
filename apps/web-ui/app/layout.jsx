@@ -395,6 +395,91 @@ export default function RootLayout({ children }) {
             color: #102c45;
           }
 
+          .cf-content-section-head {
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(241, 245, 249, 0.96) 100%);
+            border: 1px solid #e4ebf4;
+            border-radius: 0.9rem;
+            padding: 0.85rem 1rem;
+          }
+
+          .cf-content-guided-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+          }
+
+          .cf-content-guided-step {
+            background: #ffffff;
+            border: 1px solid #e4ebf4;
+            border-radius: 1rem;
+            overflow: hidden;
+          }
+
+          .cf-content-guided-step.is-open {
+            box-shadow: 0 16px 32px rgba(16, 44, 69, 0.08);
+          }
+
+          .cf-content-guided-step-head {
+            align-items: center;
+            background: #f8fafc;
+            border: 0;
+            display: flex;
+            gap: 0.85rem;
+            justify-content: space-between;
+            padding: 0.95rem 1rem;
+            text-align: left;
+            width: 100%;
+          }
+
+          .cf-content-guided-step-index {
+            align-items: center;
+            background: #dbe4ef;
+            border-radius: 999px;
+            color: #334e73;
+            display: inline-flex;
+            flex-shrink: 0;
+            font-size: 0.76rem;
+            font-weight: 800;
+            height: 2rem;
+            justify-content: center;
+            width: 2rem;
+          }
+
+          .cf-content-guided-step-index.is-done {
+            background: linear-gradient(135deg, #0f8590 0%, #37c9b1 100%);
+            color: #ffffff;
+          }
+
+          .cf-content-guided-step-index.is-warn {
+            background: linear-gradient(135deg, #f59a53 0%, #ff7a45 100%);
+            color: #ffffff;
+          }
+
+          .cf-content-guided-step-title-wrap {
+            align-items: flex-start;
+            display: flex;
+            flex: 1;
+            flex-direction: column;
+            gap: 0.15rem;
+            min-width: 0;
+          }
+
+          .cf-content-guided-step-title-wrap strong {
+            color: #102c45;
+            font-size: 0.94rem;
+          }
+
+          .cf-content-guided-step-title-wrap span {
+            color: #67748e;
+            font-size: 0.77rem;
+            line-height: 1.5;
+          }
+
+          .cf-content-guided-step-body {
+            border-top: 1px solid #e4ebf4;
+            padding: 1rem;
+          }
+
           .cf-content-validation-row {
             align-items: center;
             border-bottom: 1px solid #e4ebf4;
@@ -541,6 +626,18 @@ export default function RootLayout({ children }) {
 
           .cf-content-progress-dot.is-done {
             background: linear-gradient(135deg, #0f8590 0%, #37c9b1 100%);
+          }
+
+          .cf-content-video-preview-shell {
+            max-width: min(100%, 440px);
+            width: 100%;
+          }
+
+          .cf-content-caption-box {
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.96) 0%, rgba(241, 245, 249, 0.98) 100%);
+            border: 1px solid #e4ebf4;
+            border-radius: 1rem;
+            padding: 1rem;
           }
 
           .cf-content-subtle-state {
@@ -874,6 +971,15 @@ export default function RootLayout({ children }) {
 
             .cf-content-page {
               padding-bottom: 6rem;
+            }
+
+            .cf-content-guided-step-head {
+              align-items: flex-start;
+              flex-wrap: wrap;
+            }
+
+            .cf-content-video-preview-shell {
+              max-width: 100%;
             }
           }
 

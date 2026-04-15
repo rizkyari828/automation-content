@@ -26,6 +26,8 @@ Dokumen technical dipakai untuk implementasi service, database, auth, observabil
   Blueprint service boundary, async execution, contracts, infra decision, dan rollout backend.
 - `creatorflow-database-architecture.md`
   Arsitektur database, schema ownership, migration, storage, durability, dan growth path.
+- `creator-studio-v1.md`
+  Blueprint awal Creator Studio: scope creator use case, schema raw brief, UX flow, backend split, dan backlog implementasi.
 - `creatorflow-email-architecture.md`
   Arsitektur email transactional dan operational.
 - `creatorflow-project-structure.md`

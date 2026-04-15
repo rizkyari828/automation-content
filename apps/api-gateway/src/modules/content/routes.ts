@@ -1581,6 +1581,7 @@ export function registerContentRoutes(app: FastifyInstance) {
         assemblyId: `asm_${randomUUID().slice(0, 8)}`,
         caption: captionPackage.caption,
         hashtags: captionPackage.hashtags,
+        platformPackages: Array.isArray(captionPackage.platformPackages) ? captionPackage.platformPackages : [],
         primaryRenderJobId: getStringValue(primaryScene.job.jobId),
         qualityGate,
         status: qualityGate.pass ? "completed" : "needs_review",
@@ -2773,6 +2774,124 @@ function buildContextExtraction(input: {
 }): ContextExtraction {
   const rawBrief = input.rawBrief;
   const metadata = input.productMetadata;
+  const studioUseCase = getStringValue(rawBrief.studioUseCase);
+
+  if (studioUseCase === "creator_short") {
+    const title = getStringValue(rawBrief.title, getStringValue(rawBrief.topic, "Creator short"));
+    const topic = getStringValue(rawBrief.topic, title);
+    const objective = getStringValue(rawBrief.objective, "problem_solution");
+    const sourceVideoUrl = getStringValue(rawBrief.sourceVideoUrl);
+    const transcriptText = getStringValue(rawBrief.transcriptText);
+    const promptHint = getStringValue(rawBrief.promptHint);
+    const languageCode = getStringValue(rawBrief.languageCode, "id");
+    const creatorPersona = getStringValue(rawBrief.creatorPersona, "educator");
+    const contentPillar = getStringValue(rawBrief.contentPillar, "education");
+    const hookStyle = getStringValue(rawBrief.hookStyle, "curiosity_gap");
+    const ctaGoal = getStringValue(rawBrief.ctaGoal, "follow");
+    const platformTargets = ensureArrayOfStrings(rawBrief.platformTargets);
+    const legacyNiche = normalizeNiche(getStringValue(rawBrief.niche, "beauty"));
+
+    let score = 0;
+    const missingFields: string[] = [];
+    const warnings: string[] = [];
+
+    if (title) {
+      score += 25;
+    } else {
+      missingFields.push("title");
+    }
+
+    if (topic) {
+      score += 20;
+    } else {
+      missingFields.push("topic");
+    }
+
+    if (sourceVideoUrl || transcriptText) {
+      score += 25;
+    } else {
+      missingFields.push("sourceVideoUrl_or_transcriptText");
+      warnings.push("Sumber creator belum ada. Tambahkan URL video atau transcript.");
+    }
+
+    if (platformTargets.length > 0) {
+      score += 15;
+    } else {
+      missingFields.push("platformTargets");
+    }
+
+    if (promptHint || transcriptText) {
+      score += 10;
+    } else {
+      missingFields.push("promptHint_or_transcriptText");
+    }
+
+    if (ctaGoal) {
+      score += 5;
+    }
+
+    if (!transcriptText) {
+      warnings.push("Transcript belum diisi. Hook dan beat plan akan mengandalkan brief ringkas.");
+    }
+
+    const creatorCtaText = ctaGoal === "comment"
+      ? (languageCode === "id" ? "Ajak penonton komentar di bagian akhir." : "Invite viewers to comment at the end.")
+      : ctaGoal === "save"
+        ? (languageCode === "id" ? "Ajak penonton simpan video ini." : "Invite viewers to save this video.")
+        : ctaGoal === "visit_link"
+          ? (languageCode === "id" ? "Arahkan penonton cek link di bio." : "Direct viewers to check the link in bio.")
+          : (languageCode === "id" ? "Ajak penonton follow untuk part berikutnya." : "Invite viewers to follow for the next part.");
+    const readyToProceed = score >= 55;
+
+    return {
+      completenessScore: Math.max(0, Math.min(100, score)),
+      enrichedContext: {
+        ctaPatterns: [
+          creatorCtaText,
+          languageCode === "id" ? "Bikin penonton berhenti scroll lalu lanjut sampai akhir." : "Stop the scroll and keep viewers watching to the end."
+        ],
+        hookGuardrail:
+          languageCode === "id"
+            ? `Hook harus langsung ke inti topik ${topic || title}, memakai gaya ${hookStyle}, dan terasa native untuk ${platformTargets.join(", ") || "short-form video"}.`
+            : `The hook should get to the core topic ${topic || title}, use a ${hookStyle} pattern, and feel native for ${platformTargets.join(", ") || "short-form video"}.`,
+        musicMood: languageCode === "id" ? "creator short upbeat editorial" : "creator short upbeat editorial",
+        niche: legacyNiche,
+        persona: languageCode === "id"
+          ? `Strategist creator ${creatorPersona} untuk konten ${contentPillar}`
+          : `${creatorPersona} creator strategist for ${contentPillar} content`,
+        platformTargets,
+        visualGuide: languageCode === "id"
+          ? "Gunakan beat cepat, subtitle tegas, crop vertikal, dan transisi seperlunya."
+          : "Use fast beats, bold subtitles, vertical crop, and only the transitions that add clarity."
+      },
+      missingFields,
+      productBrief: {
+        content_pillar: contentPillar,
+        creator_persona: creatorPersona,
+        cta_text: creatorCtaText,
+        hook_style: hookStyle,
+        key_benefits: [
+          languageCode === "id" ? "Hook lebih cepat ditangkap" : "Faster hook pickup",
+          languageCode === "id" ? "Satu ide utama per short" : "One main idea per short",
+          languageCode === "id" ? "Packaging lebih pas untuk short-form" : "Better short-form packaging"
+        ],
+        language_code: languageCode,
+        objective,
+        offer_text: topic || title,
+        platform_targets: platformTargets,
+        price_text: "",
+        product_name: title || topic || "Creator short",
+        product_url: sourceVideoUrl,
+        prompt_hint: promptHint || transcriptText,
+        studio_use_case: studioUseCase,
+        target_pain_point: languageCode === "id"
+          ? "ingin hook yang bikin orang lanjut nonton"
+          : "want a hook that keeps people watching"
+      },
+      readyToProceed,
+      warnings
+    };
+  }
 
   const title = getStringValue(rawBrief.title, metadata.name);
   const niche = getStringValue(rawBrief.niche, metadata.detected_niche);
@@ -2868,6 +2987,76 @@ function buildContextExtraction(input: {
 }
 
 function buildDirectorScripts(input: DirectorScriptInput) {
+  if (getStringValue(input.extraction.productBrief.studio_use_case) === "creator_short") {
+    const angles = input.angles.length > 0 ? input.angles : ["creator_hook", "retention_cut"];
+    const languageCode = getStringValue(input.languageCode, "id");
+    const title = getStringValue(input.extraction.productBrief.product_name, "Creator short");
+    const topic = getStringValue(input.extraction.productBrief.offer_text, title);
+    const ctaText = getStringValue(input.extraction.productBrief.cta_text, languageCode === "id" ? "Ajak follow di bagian akhir." : "Invite a follow at the end.");
+    const hookStyle = getStringValue(input.extraction.productBrief.hook_style, "curiosity_gap");
+    const creatorPersona = getStringValue(input.extraction.productBrief.creator_persona, "educator");
+    const contentPillar = getStringValue(input.extraction.productBrief.content_pillar, "education");
+    const platformTargets = ensureArrayOfStrings(input.extraction.productBrief.platform_targets);
+
+    return angles.map((angle, index) => {
+      const angleLabel = angle || `creator-angle-${index + 1}`;
+      const hookText = languageCode === "id"
+        ? `${capitalizeText(hookStyle.replaceAll("_", " "))}: ${title} supaya penonton ${platformTargets.includes("youtube") ? "langsung lanjut nonton" : "berhenti scroll"}?`
+        : `${capitalizeText(hookStyle.replaceAll("_", " "))}: ${title} so viewers ${platformTargets.includes("youtube") ? "keep watching" : "stop scrolling"}?`;
+      const bodyScenes = [
+        {
+          durationMs: 2800,
+          text: languageCode === "id"
+            ? `Masuk cepat ke topik inti: ${topic}.`
+            : `Get to the core topic fast: ${topic}.`,
+          type: "setup"
+        },
+        {
+          durationMs: 3600,
+          text: languageCode === "id"
+            ? "Ambil satu insight atau momen paling kuat dari source lalu jadikan payoff utama."
+            : "Pull the strongest insight or source moment and turn it into the main payoff.",
+          type: "payoff"
+        },
+        {
+          durationMs: 2600,
+          text: languageCode === "id"
+            ? `Rapikan closing supaya terasa native untuk ${platformTargets.join(", ") || "short-form"}.`
+            : `Tighten the close so it feels native for ${platformTargets.join(", ") || "short-form"}.`,
+          type: "close"
+        }
+      ];
+
+      return {
+        angle: angleLabel,
+        backgroundMusic: {
+          mood: input.extraction.enrichedContext.musicMood,
+          query: `${contentPillar} ${creatorPersona} short creator`
+        },
+        bodyScenes,
+        cta: {
+          durationMs: 2400,
+          text: ctaText,
+          urgencyLevel: input.workflowMode === "quick" ? "medium" : "soft"
+        },
+        hook: {
+          durationMs: 2200,
+          text: hookText,
+          visual: input.extraction.enrichedContext.visualGuide
+        },
+        id: `dir_${randomUUID().slice(0, 8)}`,
+        persona: languageCode === "id"
+          ? `Creator Director ${creatorPersona}`
+          : `Creator Director ${creatorPersona}`,
+        voiceover: {
+          script: [hookText, ...bodyScenes.map((scene) => scene.text), ctaText].join(" "),
+          speed: input.workflowMode === "quick" ? 1.06 : 1.0,
+          voiceId: languageCode === "id" ? "id-ID-female-warm" : "en-US-female-clear"
+        }
+      };
+    });
+  }
+
   const angles = input.angles.length > 0
     ? input.angles
     : defaultAnglesFromObjective(getStringValue(input.extraction.productBrief.objective, "promo_offer"));
@@ -3209,6 +3398,52 @@ function pickBestCompletedSceneJob(sceneJobs: Record<string, unknown>[]) {
 }
 
 function buildCaptionPackage(rawBrief: Record<string, unknown>, session: StudioSessionRow) {
+  if (getStringValue(rawBrief.studioUseCase) === "creator_short") {
+    const title = getStringValue(rawBrief.title, "Creator short");
+    const topic = getStringValue(rawBrief.topic, title);
+    const ctaGoal = getStringValue(rawBrief.ctaGoal, "follow");
+    const platformTargets = ensureArrayOfStrings(rawBrief.platformTargets);
+    const contentPillar = getStringValue(rawBrief.contentPillar, "education");
+    const ctaText = ctaGoal === "comment"
+      ? "Tulis pendapatmu di komentar."
+      : ctaGoal === "save"
+        ? "Simpan dulu kalau mau dibuka lagi."
+        : ctaGoal === "visit_link"
+          ? "Cek link yang aku taruh di bio."
+          : "Follow buat konten berikutnya.";
+    const baseHashtags = [
+      "#creator",
+      `#${contentPillar.replaceAll(/\s+/g, "")}`,
+      platformTargets.includes("youtube") ? "#shorts" : "",
+      platformTargets.includes("instagram") ? "#reels" : "",
+      platformTargets.includes("tiktok") ? "#tiktok" : ""
+    ].filter(Boolean);
+    const resolvedPlatforms = platformTargets.length > 0 ? platformTargets : ["tiktok"];
+    const platformPackages = resolvedPlatforms.map((platformCode) => {
+      const platformHashtags = [
+        "#creator",
+        `#${contentPillar.replaceAll(/\s+/g, "")}`,
+        platformCode === "youtube" ? "#shorts" : "",
+        platformCode === "instagram" ? "#reels" : "",
+        platformCode === "tiktok" ? "#tiktok" : ""
+      ].filter(Boolean);
+
+      return {
+        caption: `${title}\n\n${topic}\n${ctaText}`,
+        coverText: title.split(/[.!?]/)[0]?.trim() || title,
+        hashtags: platformHashtags,
+        platformCode,
+        title: platformCode === "youtube" ? `${title} | ${topic}` : title
+      };
+    });
+
+    return {
+      caption: `${title}\n\n${topic}\n${ctaText}`,
+      hashtags: baseHashtags,
+      platformPackages
+    };
+  }
+
   const niche = normalizeNiche(getStringValue(rawBrief.niche, "beauty"));
   const title = getStringValue(rawBrief.title, "Produk affiliate");
   const offerText = getStringValue(rawBrief.offerText, "promo terbatas");
@@ -3224,7 +3459,16 @@ function buildCaptionPackage(rawBrief: Record<string, unknown>, session: StudioS
 
   return {
     caption,
-    hashtags: baseHashtags
+    hashtags: baseHashtags,
+    platformPackages: [
+      {
+        caption,
+        coverText: title,
+        hashtags: baseHashtags,
+        platformCode: "tiktok",
+        title
+      }
+    ]
   };
 }
 
