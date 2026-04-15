@@ -19,3 +19,15 @@ export async function POST(request) {
   syncGatewaySessionToResponse(response, result);
   return response;
 }
+
+export async function GET(request) {
+  const url = new URL(request.url);
+  const result = await gatewayFetchWithSession(request, `/v1/content/studio-sessions${url.search}`);
+  const payload = await readJson(result.gatewayResponse);
+  const response = createJsonResponse(payload ?? { message: "Unable to load studio sessions" }, {
+    status: result.gatewayResponse.status || 500
+  });
+
+  syncGatewaySessionToResponse(response, result);
+  return response;
+}

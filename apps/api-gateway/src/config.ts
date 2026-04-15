@@ -30,6 +30,7 @@ type AppConfig = {
   resendApiKey: string;
   serviceName: string;
   ssoPlaceholderEmailDomain: string;
+  storageLocalDir: string;
   uploadUrlBase: string;
   storageBucket: string;
   twitterOAuthClientId: string;
@@ -43,12 +44,14 @@ export function getConfig(): AppConfig {
     return cachedConfig;
   }
 
+  const appWebBaseUrl = process.env.APP_WEB_BASE_URL ?? "http://localhost:3000";
+
   cachedConfig = {
     accessTokenSecret: process.env.ACCESS_TOKEN_SECRET ?? "creatorflow-dev-secret",
     accessTokenIssuer: process.env.ACCESS_TOKEN_ISSUER ?? "creatorflow-api-gateway",
     accessTokenAudience: process.env.ACCESS_TOKEN_AUDIENCE ?? "creatorflow-clients",
     accessTokenExpiresIn: process.env.ACCESS_TOKEN_EXPIRES_IN ?? "15m",
-    appWebBaseUrl: process.env.APP_WEB_BASE_URL ?? "http://localhost:3000",
+    appWebBaseUrl,
     appleOAuthClientId: process.env.APPLE_OAUTH_CLIENT_ID ?? "",
     appleOAuthClientSecret: process.env.APPLE_OAUTH_CLIENT_SECRET ?? "",
     authEmailFrom: process.env.AUTH_EMAIL_FROM ?? "auth@notify.creatorflow.local",
@@ -84,7 +87,8 @@ export function getConfig(): AppConfig {
     serviceName: process.env.SERVICE_NAME ?? "api-gateway",
     ssoPlaceholderEmailDomain:
       process.env.SSO_PLACEHOLDER_EMAIL_DOMAIN ?? "sso.creatorflow.local",
-    uploadUrlBase: process.env.UPLOAD_URL_BASE ?? "https://storage.creatorflow.local/upload",
+    storageLocalDir: process.env.STORAGE_LOCAL_DIR ?? ".creatorflow/uploads",
+    uploadUrlBase: process.env.UPLOAD_URL_BASE ?? `${appWebBaseUrl}/api/assets/upload`,
     storageBucket: process.env.STORAGE_BUCKET ?? "creatorflow-local",
     twitterOAuthClientId: process.env.TWITTER_OAUTH_CLIENT_ID ?? "",
     twitterOAuthClientSecret: process.env.TWITTER_OAUTH_CLIENT_SECRET ?? ""

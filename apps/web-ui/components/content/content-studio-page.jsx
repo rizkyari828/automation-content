@@ -29,6 +29,7 @@ const DEFAULT_FORM = {
   objective: "promo_offer",
   offerText: "",
   presenterImageUrl: "",
+  productImageAssetIds: [],
   productImageUrl: "",
   priceText: "",
   sourceType: "product",
@@ -222,6 +223,89 @@ function formatDurationLabel(totalSeconds) {
   }
 
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
+function buildAssetContentUrl(assetId) {
+  if (!assetId || typeof window === "undefined") {
+    return "";
+  }
+
+  return new URL(`/api/assets/${assetId}/content`, window.location.origin).toString();
+}
+
+function normalizeRenderBatchJobs(renderBatch) {
+  if (!renderBatch || typeof renderBatch !== "object" || !Array.isArray(renderBatch.jobs)) {
+    return [];
+  }
+
+  return renderBatch.jobs.filter((job) => job && typeof job === "object");
+}
+
+function calculateRenderProgress(renderBatch, renderJob) {
+  const jobs = normalizeRenderBatchJobs(renderBatch);
+  const sceneJobs = jobs.filter((job) => job.taskType === "scene");
+
+  if (sceneJobs.length === 0) {
+    if (renderJob?.status === "completed") {
+      return 100;
+    }
+
+    if (renderJob?.status === "failed") {
+      return 100;
+    }
+
+    if (renderJob?.status === "processing") {
+      return 68;
+    }
+
+    if (renderJob?.status === "queued") {
+      return 12;
+    }
+
+    return 0;
+  }
+
+  const totalWeight = sceneJobs.reduce((sum, job) => sum + normalizeDuration(job.durationFrames, 90), 0);
+  if (totalWeight <= 0) {
+    return 0;
+  }
+
+  const weightedProgress = sceneJobs.reduce((sum, job) => {
+    const weight = normalizeDuration(job.durationFrames, 90);
+    const status = typeof job.status === "string" ? job.status : "";
+
+    if (status === "completed" || status === "failed") {
+      return sum + weight;
+    }
+
+    if (status === "processing") {
+      return sum + weight * 0.58;
+    }
+
+    if (status === "queued") {
+      return sum + weight * 0.14;
+    }
+
+    return sum;
+  }, 0);
+
+  let percent = Math.round((weightedProgress / totalWeight) * 100);
+
+  if (renderBatch?.status === "completed" && renderJob?.status !== "completed") {
+    percent = Math.max(percent, 94);
+  }
+
+  if (renderJob?.status === "completed") {
+    percent = 100;
+  } else if (renderJob?.status === "failed") {
+    percent = Math.max(percent, 100);
+  } else if (renderBatch?.status === "processing" || renderJob?.status === "processing") {
+    percent = Math.max(percent, 8);
+  } else if (renderBatch?.status === "queued" || renderJob?.status === "queued") {
+    percent = Math.max(percent, 4);
+  }
+
+  return Math.max(0, Math.min(100, percent));
 }
 
 function createPublishFileName(plan) {
@@ -481,13 +565,17 @@ function PlaybookCard({ copy }) {
 function GeneratorCard({
   authLocked,
   authMessage,
+  canUploadAssets,
   copy,
   form,
+  locale,
   modeCopy,
   onChange,
+  onProductAssetUpload,
   onPreviewPlan,
   onReset,
   onSwitchMode,
+  productAssetUploadState,
   onSubmit,
   planning,
   submitting,
@@ -587,6 +675,64 @@ function GeneratorCard({
                 onChange={onChange}
                 placeholder={copy.fields.productUrl.placeholder}
               />
+            </div>
+            <div className="col-12">
+              <div className="cf-content-checkpoint">
+                <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                  <div>
+                    <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                      {locale === "id" ? "Asset produk" : "Product asset"}
+                    </p>
+                    <p className="text-xs text-secondary mb-0">
+                      {locale === "id"
+                        ? "Lebih mudah upload foto produk langsung dibanding mengisi URL gambar manual."
+                        : "Upload a product image directly instead of filling a manual image URL."}
+                    </p>
+                  </div>
+                  {canUploadAssets ? (
+                    <label className={`btn btn-sm mb-0 ${productAssetUploadState.uploading ? "btn-outline-dark" : "btn-outline-primary"}`}>
+                      {productAssetUploadState.uploading
+                        ? (locale === "id" ? "Mengunggah..." : "Uploading...")
+                        : (locale === "id" ? "Upload foto produk" : "Upload product image")}
+                      <input
+                        hidden
+                        accept="image/*"
+                        disabled={productAssetUploadState.uploading}
+                        type="file"
+                        onChange={onProductAssetUpload}
+                      />
+                    </label>
+                  ) : (
+                    <span className="badge bg-light text-dark border">
+                      {locale === "id" ? "Butuh akses asset" : "Asset access needed"}
+                    </span>
+                  )}
+                </div>
+                {productAssetUploadState.fileName ? (
+                  <div className="d-flex align-items-center gap-2 flex-wrap mt-3">
+                    <span className="badge bg-light text-dark border">{productAssetUploadState.fileName}</span>
+                    {productAssetUploadState.assetId ? (
+                      <span className="badge bg-gradient-success">
+                        {locale === "id" ? "Siap dipakai render" : "Ready for render"}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {productAssetUploadState.previewUrl ? (
+                  <img
+                    alt={productAssetUploadState.fileName || "product upload preview"}
+                    className="border-radius-lg mt-3"
+                    src={productAssetUploadState.previewUrl}
+                    style={{ width: 96, height: 96, objectFit: "cover" }}
+                  />
+                ) : canUploadAssets ? (
+                  <p className="text-xs text-secondary mb-0 mt-3">
+                    {locale === "id"
+                      ? "Format yang paling aman untuk test cepat: JPG atau PNG ukuran kecil."
+                      : "For quick testing, small JPG or PNG files work best."}
+                  </p>
+                ) : null}
+              </div>
             </div>
             <div className="col-12">
               <label className="form-label">{copy.fields.promptHint.label}</label>
@@ -789,6 +935,9 @@ function BriefSnapshotCard({
   workflowMode
 }) {
   const savedLabel = useMemo(() => formatDateLabel(locale, lastSavedAt), [locale, lastSavedAt]);
+  const hasProductImage =
+    Boolean(form.productImageUrl.trim()) ||
+    (Array.isArray(form.productImageAssetIds) && form.productImageAssetIds.length > 0);
   const progressItems = [
     {
       done: Boolean(form.title.trim()),
@@ -854,7 +1003,7 @@ function BriefSnapshotCard({
           </div>
           <div className="cf-content-snapshot-row">
             <span>{copy.snapshotFields.productImage}</span>
-            <strong>{form.productImageUrl.trim() ? copy.snapshotStatus.done : copy.snapshotStatus.next}</strong>
+            <strong>{hasProductImage ? copy.snapshotStatus.done : copy.snapshotStatus.next}</strong>
           </div>
           <div className="cf-content-snapshot-row">
             <span>{copy.snapshotFields.presenterImage}</span>
@@ -889,16 +1038,23 @@ function ReviewApproveCard({
   locale,
   loading,
   onEditBrief,
+  onSaveReview,
+  onSceneTextChange,
+  onScriptChange,
   onRender,
   plan,
   renderJob,
   renderSubmitting,
+  reviewSaving,
   reviewTab,
   script,
   workflowMode,
   setReviewTab
 }) {
   const tabOptions = getReviewTabOptions(copy, workflowMode);
+  const hasProductImage =
+    Boolean(form.productImageUrl.trim()) ||
+    (Array.isArray(form.productImageAssetIds) && form.productImageAssetIds.length > 0);
   const validationItems = [
     {
       key: "script",
@@ -930,8 +1086,8 @@ function ReviewApproveCard({
     },
     {
       key: "product-image",
-      state: form.productImageUrl.trim() ? "ok" : "warn",
-      text: form.productImageUrl.trim()
+      state: hasProductImage ? "ok" : "warn",
+      text: hasProductImage
         ? copy.reviewValidation.productImageReady
         : copy.reviewValidation.productImageMissing
     },
@@ -1012,25 +1168,50 @@ function ReviewApproveCard({
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
                   {copy.previewMeta.hook}
                 </p>
-                <p className="mb-0">{script.hook}</p>
+                <input
+                  className="form-control"
+                  value={script.hook ?? ""}
+                  onChange={(event) => onScriptChange("hook", event.target.value)}
+                />
               </div>
               <div className="cf-content-output-block">
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
                   {copy.previewMeta.body}
                 </p>
-                <p className="mb-0">{script.body}</p>
+                <textarea
+                  className="form-control"
+                  rows="5"
+                  value={script.body ?? ""}
+                  onChange={(event) => onScriptChange("body", event.target.value)}
+                />
               </div>
               <div className="cf-content-output-block">
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
                   {copy.previewMeta.cta}
                 </p>
-                <p className="mb-0">{script.cta}</p>
+                <input
+                  className="form-control"
+                  value={script.cta ?? ""}
+                  onChange={(event) => onScriptChange("cta", event.target.value)}
+                />
               </div>
               <div className="d-flex flex-wrap gap-2 mt-3">
                 <span className={`badge ${isSample ? "bg-light text-dark border" : STATUS_BADGE_CLASS[script.status] ?? "bg-gradient-dark"}`}>
                   {isSample ? copy.sampleBadge : copy.statusLabels[script.status] ?? script.status}
                 </span>
                 <span className="badge bg-light text-dark border">{copy.workflowModeLabels[workflowMode] ?? workflowMode}</span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-dark mb-0 ms-auto"
+                  onClick={onSaveReview}
+                  disabled={reviewSaving || isSample}
+                >
+                  {reviewSaving
+                    ? (locale === "id" ? "Menyimpan..." : "Saving...")
+                    : isSample
+                      ? (locale === "id" ? "Generate draft dulu" : "Generate a draft first")
+                      : (locale === "id" ? "Simpan edit review" : "Save review edits")}
+                </button>
               </div>
             </div>
           ) : null}
@@ -1046,13 +1227,13 @@ function ReviewApproveCard({
                   <div className="col-md-4">
                     <div className="cf-content-mini-stat">
                       <span className="text-xs text-uppercase text-secondary">{copy.planMeta.niche}</span>
-                      <h6 className="mb-0 mt-1">{copy.nicheLabels[plan.templateRenderSpec.niche]}</h6>
+                      <h6 className="mb-0 mt-1">{copy.nicheLabels[plan?.templateRenderSpec?.niche] ?? "-"}</h6>
                     </div>
                   </div>
                   <div className="col-md-4">
                     <div className="cf-content-mini-stat">
                       <span className="text-xs text-uppercase text-secondary">{copy.planMeta.objective}</span>
-                      <h6 className="mb-0 mt-1">{copy.objectiveLabels[plan.templateRenderSpec.objective]}</h6>
+                      <h6 className="mb-0 mt-1">{copy.objectiveLabels[plan?.templateRenderSpec?.objective] ?? "-"}</h6>
                     </div>
                   </div>
                   <div className="col-md-4">
@@ -1072,7 +1253,12 @@ function ReviewApproveCard({
                             <span className="text-xs text-uppercase font-weight-bolder text-secondary">
                               {copy.sceneLabels[scene.kind] ?? scene.kind}
                             </span>
-                            <h6 className="text-sm mb-1 mt-1">{scene.textBlocks?.[0]?.text ?? copy.planFallbackText}</h6>
+                            <textarea
+                              className="form-control mt-2"
+                              rows="2"
+                              value={scene.textBlocks?.[0]?.text ?? ""}
+                              onChange={(event) => onSceneTextChange(scene.id, event.target.value)}
+                            />
                             <p className="text-xs text-secondary mb-0">
                               {copy.planMeta.layout}: {copy.layoutLabels[scene.layout] ?? scene.layout}
                             </p>
@@ -1082,6 +1268,11 @@ function ReviewApproveCard({
                       </div>
                     </div>
                   ))}
+                </div>
+                <div className="d-flex justify-content-end mt-3">
+                  <button type="button" className="btn btn-sm btn-outline-dark mb-0" onClick={onSaveReview} disabled={reviewSaving}>
+                    {reviewSaving ? (locale === "id" ? "Menyimpan..." : "Saving...") : (locale === "id" ? "Simpan perubahan scene" : "Save scene edits")}
+                  </button>
                 </div>
               </>
             )
@@ -1152,6 +1343,7 @@ function ReviewApproveCard({
 }
 
 function PlanPreviewCard({
+  assemblyResult,
   canRender,
   canManagePublishAccounts,
   connectedAccountForm,
@@ -1165,6 +1357,7 @@ function PlanPreviewCard({
   onCreateConnectedAccount,
   onPublish,
   onRender,
+  onRetryScene,
   onSelectConnectedAccount,
   plan,
   publishJob,
@@ -1174,6 +1367,7 @@ function PlanPreviewCard({
   renderPosterUrl,
   renderPreviewUrl,
   renderSubmitting,
+  retryingSceneTaskId,
   selectedVideoEngine,
   selectedConnectedAccountId,
   submitConnectedAccount
@@ -1197,17 +1391,17 @@ function PlanPreviewCard({
     : Array.isArray(renderBatch?.jobs)
       ? renderBatch.jobs.length
       : 0;
+  const sceneBatchJobs = normalizeRenderBatchJobs(renderBatch).filter((job) => job.taskType === "scene");
+  const totalSceneJobs = sceneBatchJobs.length;
+  const completedSceneJobs = sceneBatchJobs.filter((job) => job.status === "completed").length;
+  const failedSceneJobs = sceneBatchJobs.filter((job) => job.status === "failed").length;
+  const runningSceneJobs = sceneBatchJobs.filter((job) => job.status === "processing" || job.status === "queued").length;
   const completedBatchJobs = Number.isFinite(Number(batchSummary?.completed)) ? Number(batchSummary.completed) : 0;
   const failedBatchJobs = Number.isFinite(Number(batchSummary?.failed)) ? Number(batchSummary.failed) : 0;
   const processingBatchJobs = Number.isFinite(Number(batchSummary?.processing)) ? Number(batchSummary.processing) : 0;
   const queuedBatchJobs = Number.isFinite(Number(batchSummary?.queued)) ? Number(batchSummary.queued) : 0;
   const runningBatchJobs = processingBatchJobs + queuedBatchJobs;
-  const doneBatchJobs = Math.min(totalBatchJobs, completedBatchJobs + failedBatchJobs);
-  const renderProgressPercent = totalBatchJobs > 0
-    ? Math.max(3, Math.min(100, Math.round((doneBatchJobs / totalBatchJobs) * 100)))
-    : renderJob?.status === "completed" || renderJob?.status === "failed"
-      ? 100
-      : 0;
+  const renderProgressPercent = calculateRenderProgress(renderBatch, renderJob);
   const renderInFlight =
     renderBatch?.status === "processing" ||
     renderBatch?.status === "queued" ||
@@ -1251,6 +1445,33 @@ function PlanPreviewCard({
         widthWeight
       };
     }) ?? [];
+  const sceneJobBySceneId = Object.fromEntries(
+    normalizeRenderBatchJobs(renderBatch)
+      .filter((job) => job.taskType === "scene" && job.sceneId)
+      .map((job) => [job.sceneId, job])
+  );
+  const checklistItems = [
+    {
+      done: Boolean(assemblyResult?.videoAssetId || renderJob?.outputAssetId),
+      label: locale === "id" ? "Video output siap" : "Video output ready"
+    },
+    {
+      done: Boolean(assemblyResult?.caption || renderPreviewUrl),
+      label: locale === "id" ? "Caption siap pakai" : "Caption prepared"
+    },
+    {
+      done: Boolean(selectedConnectedAccountId),
+      label: locale === "id" ? "Akun TikTok dipilih" : "TikTok account selected"
+    },
+    {
+      done: Boolean(durationLabel),
+      label: locale === "id" ? "Durasi terdeteksi" : "Duration detected"
+    },
+    {
+      done: Boolean(renderPosterUrl),
+      label: locale === "id" ? "Poster / thumbnail siap" : "Poster / thumbnail ready"
+    }
+  ];
 
   return (
     <div className="card h-100 cf-surface-card">
@@ -1276,13 +1497,13 @@ function PlanPreviewCard({
               <div className="col-md-4">
                 <div className="cf-content-mini-stat">
                   <span className="text-xs text-uppercase text-secondary">{copy.planMeta.niche}</span>
-                  <h6 className="mb-0 mt-1">{copy.nicheLabels[plan.templateRenderSpec.niche]}</h6>
+                  <h6 className="mb-0 mt-1">{copy.nicheLabels[plan?.templateRenderSpec?.niche] ?? "-"}</h6>
                 </div>
               </div>
               <div className="col-md-4">
                 <div className="cf-content-mini-stat">
                   <span className="text-xs text-uppercase text-secondary">{copy.planMeta.objective}</span>
-                  <h6 className="mb-0 mt-1">{copy.objectiveLabels[plan.templateRenderSpec.objective]}</h6>
+                  <h6 className="mb-0 mt-1">{copy.objectiveLabels[plan?.templateRenderSpec?.objective] ?? "-"}</h6>
                 </div>
               </div>
               <div className="col-md-4">
@@ -1292,24 +1513,34 @@ function PlanPreviewCard({
                 </div>
               </div>
             </div>
-            <div className="cf-content-draft-list d-flex flex-column gap-3">
-              {plan.scenePlan.scenes.map((scene) => (
-                <div key={scene.id} className="cf-content-draft-item">
-                  <div className="d-flex justify-content-between gap-3 align-items-start">
-                    <div>
-                      <span className="text-xs text-uppercase font-weight-bolder text-secondary">
-                        {copy.sceneLabels[scene.kind] ?? scene.kind}
-                      </span>
-                      <h6 className="text-sm mb-1 mt-1">{scene.textBlocks?.[0]?.text ?? copy.planFallbackText}</h6>
-                      <p className="text-xs text-secondary mb-0">
-                        {copy.planMeta.layout}: {copy.layoutLabels[scene.layout] ?? scene.layout}
-                      </p>
+            <details className="cf-content-advanced mb-3">
+              <summary>{locale === "id" ? "Lihat detail scene" : "View scene details"}</summary>
+              <div className="cf-content-draft-list d-flex flex-column gap-3 mt-3">
+                {plan.scenePlan.scenes.map((scene) => (
+                  <div key={scene.id} className="cf-content-draft-item">
+                    <div className="d-flex justify-content-between gap-3 align-items-start">
+                      <div>
+                        <span className="text-xs text-uppercase font-weight-bolder text-secondary">
+                          {copy.sceneLabels[scene.kind] ?? scene.kind}
+                        </span>
+                        <h6 className="text-sm mb-1 mt-1">{scene.textBlocks?.[0]?.text ?? copy.planFallbackText}</h6>
+                        <p className="text-xs text-secondary mb-0">
+                          {copy.planMeta.layout}: {copy.layoutLabels[scene.layout] ?? scene.layout}
+                        </p>
+                      </div>
+                      <div className="d-flex flex-column align-items-end gap-2">
+                        <span className="badge bg-light text-dark border">{scene.durationFrames}f</span>
+                        {sceneJobBySceneId[scene.id]?.status ? (
+                          <span className={`badge ${sceneJobBySceneId[scene.id]?.status === "failed" ? "bg-gradient-danger" : sceneJobBySceneId[scene.id]?.status === "completed" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                            {copy.renderJobStatusLabels?.[sceneJobBySceneId[scene.id]?.status] ?? sceneJobBySceneId[scene.id]?.status}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
-                    <span className="badge bg-light text-dark border">{scene.durationFrames}f</span>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </details>
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 pt-3 border-top">
               <div>
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">{copy.renderCardTitle}</p>
@@ -1343,14 +1574,14 @@ function PlanPreviewCard({
                     </div>
                     <div className="d-flex flex-wrap gap-2 mt-2">
                       <span className="badge bg-light text-dark border">
-                        {`${completedBatchJobs} ${copy.renderJobStatusLabels?.completed ?? "Completed"}`}
+                        {`${completedSceneJobs} / ${totalSceneJobs || completedBatchJobs || totalBatchJobs} ${copy.renderJobStatusLabels?.completed ?? "Completed"}`}
                       </span>
                       <span className="badge bg-light text-dark border">
-                        {`${runningBatchJobs} ${copy.renderJobStatusLabels?.processing ?? "Processing"}`}
+                        {`${runningSceneJobs || runningBatchJobs} ${copy.renderJobStatusLabels?.processing ?? "Processing"}`}
                       </span>
-                      {failedBatchJobs > 0 ? (
+                      {failedSceneJobs > 0 || failedBatchJobs > 0 ? (
                         <span className="badge bg-gradient-danger">
-                          {`${failedBatchJobs} ${copy.renderJobStatusLabels?.failed ?? "Failed"}`}
+                          {`${failedSceneJobs || failedBatchJobs} ${copy.renderJobStatusLabels?.failed ?? "Failed"}`}
                         </span>
                       ) : null}
                     </div>
@@ -1384,8 +1615,37 @@ function PlanPreviewCard({
                 {renderJob.lastErrorMessage}
               </div>
             ) : null}
+            {failedSceneJobs.length > 0 ? (
+              <details className="cf-content-advanced mt-3" open>
+                <summary>{locale === "id" ? "Troubleshooting render" : "Render troubleshooting"}</summary>
+                <div className="cf-content-checkpoint mt-3">
+                <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">
+                  {locale === "id" ? "Retry scene yang gagal" : "Retry failed scenes"}
+                </p>
+                <div className="d-flex flex-column gap-2">
+                  {failedSceneJobs.map((job) => (
+                    <div key={job.taskId} className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                      <span className="text-sm">{job.sceneId || job.taskId}</span>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger mb-0"
+                        disabled={retryingSceneTaskId === job.taskId || typeof onRetryScene !== "function"}
+                        onClick={() => onRetryScene?.(job.taskId)}
+                      >
+                        {retryingSceneTaskId === job.taskId
+                          ? (locale === "id" ? "Retry..." : "Retrying...")
+                          : (locale === "id" ? "Retry scene" : "Retry scene")}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                </div>
+              </details>
+            ) : null}
             {renderJob?.jobId ? (
-              <div className="cf-content-checkpoint mt-3">
+              <details className="cf-content-advanced mt-3">
+                <summary>{locale === "id" ? "Detail job render" : "Render job details"}</summary>
+                <div className="cf-content-checkpoint mt-3">
                 <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">{copy.renderJobTitle}</p>
                 <div className="d-flex flex-wrap gap-2 align-items-center">
                   <span className="badge bg-light text-dark border">{renderJob.jobId}</span>
@@ -1395,7 +1655,8 @@ function PlanPreviewCard({
                 {renderJob.lastErrorMessage ? (
                   <p className="text-xs text-danger mb-0 mt-2">{renderJob.lastErrorMessage}</p>
                 ) : null}
-              </div>
+                </div>
+              </details>
             ) : null}
             {renderPreviewUrl ? (
               <div className="mt-4 pt-3 border-top">
@@ -1471,6 +1732,103 @@ function PlanPreviewCard({
                     </div>
                   </div>
                 ) : null}
+                <details className="cf-content-advanced mt-3">
+                  <summary>{locale === "id" ? "Pengaturan publish" : "Publish settings"}</summary>
+                  <div className="mt-3 cf-content-checkpoint">
+                    <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">
+                      {locale === "id" ? "Checklist sebelum publish" : "Pre-publish checklist"}
+                    </p>
+                    <div className="d-flex flex-column gap-2 mb-3">
+                      {checklistItems.map((item) => (
+                        <div key={item.label} className="cf-content-progress-item">
+                          <div className={`cf-content-progress-dot${item.done ? " is-done" : ""}`} />
+                          <span className="text-sm">{item.label}</span>
+                          <span className={`badge ms-auto ${item.done ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                            {item.done ? (locale === "id" ? "Siap" : "Ready") : (locale === "id" ? "Cek lagi" : "Check")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                      {copy.publishCardTitle}
+                    </p>
+                    <div className="row g-2 mb-3">
+                      <div className="col-md-7">
+                        <label className="form-label text-xs">{copy.publishAccountFields.account.label}</label>
+                        <select
+                          className="form-select"
+                          disabled={connectedAccountLoading}
+                          value={selectedConnectedAccountId}
+                          onChange={(event) => onSelectConnectedAccount(event.target.value)}
+                        >
+                          <option value="">{copy.publishAccountFields.account.placeholder}</option>
+                          {connectedAccounts.map((account) => (
+                            <option key={account.id} value={account.id}>
+                              {account.accountLabel}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-md-5">
+                        <label className="form-label text-xs">{copy.publishAccountFields.platform.label}</label>
+                        <input className="form-control" disabled value="TikTok" />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label text-xs">{copy.publishAccountFields.accountLabel.label}</label>
+                        <input
+                          className="form-control"
+                          disabled={!canManagePublishAccounts || submitConnectedAccount}
+                          name="accountLabel"
+                          placeholder={copy.publishAccountFields.accountLabel.placeholder}
+                          value={connectedAccountForm.accountLabel}
+                          onChange={onConnectedAccountChange}
+                        />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label text-xs">{copy.publishAccountFields.externalAccountId.label}</label>
+                        <input
+                          className="form-control"
+                          disabled={!canManagePublishAccounts || submitConnectedAccount}
+                          name="externalAccountId"
+                          placeholder={copy.publishAccountFields.externalAccountId.placeholder}
+                          value={connectedAccountForm.externalAccountId}
+                          onChange={onConnectedAccountChange}
+                        />
+                      </div>
+                      <div className="col-12 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                        <p className="text-xs text-secondary mb-0">{copy.publishAccountNote}</p>
+                        {canManagePublishAccounts ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-dark mb-0"
+                            disabled={submitConnectedAccount}
+                            onClick={onCreateConnectedAccount}
+                          >
+                            {submitConnectedAccount ? copy.publishAccountActions.creating : copy.publishAccountActions.create}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                    <p className="text-sm mb-2">
+                      {publishStatus
+                        ? copy.publishStatusBody.replace("{{status}}", publishStatus)
+                        : copy.publishHint}
+                    </p>
+                    <div className="d-flex flex-wrap gap-2 align-items-center">
+                      <span className="badge bg-light text-dark border">TikTok</span>
+                      {publishJob?.jobId ? (
+                        <span className={`badge ${publishJob.status === "failed" ? "bg-gradient-danger" : publishJob.status === "published" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                          {publishStatus}
+                        </span>
+                      ) : null}
+                      {publishJob?.jobId ? <span className="badge bg-light text-dark border">{publishJob.jobId}</span> : null}
+                    </div>
+                    <p className="text-xs text-secondary mb-0 mt-2">{copy.publishQueueNote}</p>
+                    {publishJob?.lastErrorMessage ? (
+                      <p className="text-xs text-danger mb-0 mt-2">{publishJob.lastErrorMessage}</p>
+                    ) : null}
+                  </div>
+                </details>
                 <div className="mt-3">
                   {canSubmitPublish ? (
                     <button
@@ -1508,86 +1866,6 @@ function PlanPreviewCard({
                     </button>
                   </div>
                 </details>
-                <div className="mt-3 cf-content-checkpoint">
-                  <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
-                    {copy.publishCardTitle}
-                  </p>
-                  <div className="row g-2 mb-3">
-                    <div className="col-md-7">
-                      <label className="form-label text-xs">{copy.publishAccountFields.account.label}</label>
-                      <select
-                        className="form-select"
-                        disabled={connectedAccountLoading}
-                        value={selectedConnectedAccountId}
-                        onChange={(event) => onSelectConnectedAccount(event.target.value)}
-                      >
-                        <option value="">{copy.publishAccountFields.account.placeholder}</option>
-                        {connectedAccounts.map((account) => (
-                          <option key={account.id} value={account.id}>
-                            {account.accountLabel}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-md-5">
-                      <label className="form-label text-xs">{copy.publishAccountFields.platform.label}</label>
-                      <input className="form-control" disabled value="TikTok" />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label text-xs">{copy.publishAccountFields.accountLabel.label}</label>
-                      <input
-                        className="form-control"
-                        disabled={!canManagePublishAccounts || submitConnectedAccount}
-                        name="accountLabel"
-                        placeholder={copy.publishAccountFields.accountLabel.placeholder}
-                        value={connectedAccountForm.accountLabel}
-                        onChange={onConnectedAccountChange}
-                      />
-                    </div>
-                    <div className="col-md-6">
-                      <label className="form-label text-xs">{copy.publishAccountFields.externalAccountId.label}</label>
-                      <input
-                        className="form-control"
-                        disabled={!canManagePublishAccounts || submitConnectedAccount}
-                        name="externalAccountId"
-                        placeholder={copy.publishAccountFields.externalAccountId.placeholder}
-                        value={connectedAccountForm.externalAccountId}
-                        onChange={onConnectedAccountChange}
-                      />
-                    </div>
-                    <div className="col-12 d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                      <p className="text-xs text-secondary mb-0">{copy.publishAccountNote}</p>
-                      {canManagePublishAccounts ? (
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-outline-dark mb-0"
-                          disabled={submitConnectedAccount}
-                          onClick={onCreateConnectedAccount}
-                        >
-                          {submitConnectedAccount ? copy.publishAccountActions.creating : copy.publishAccountActions.create}
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-                  <p className="text-sm mb-2">
-                    {publishStatus
-                      ? copy.publishStatusBody.replace("{{status}}", publishStatus)
-                      : copy.publishHint}
-                  </p>
-                  <div className="d-flex flex-wrap gap-2 align-items-center">
-                    <span className="badge bg-light text-dark border">TikTok</span>
-                    {publishJob?.jobId ? (
-                      <span className={`badge ${publishJob.status === "failed" ? "bg-gradient-danger" : publishJob.status === "published" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
-                        {publishStatus}
-                      </span>
-                    ) : null}
-                    {publishJob?.jobId ? <span className="badge bg-light text-dark border">{publishJob.jobId}</span> : null}
-                  </div>
-                  <p className="text-xs text-secondary mb-0 mt-2">{copy.publishQueueNote}</p>
-                  {publishJob?.lastErrorMessage ? (
-                    <p className="text-xs text-danger mb-0 mt-2">{publishJob.lastErrorMessage}</p>
-                  ) : null}
-                </div>
               </div>
             ) : null}
           </>
@@ -1597,48 +1875,71 @@ function PlanPreviewCard({
   );
 }
 
-function RecentDraftsCard({ copy, scripts, selectedScriptId, setSelectedScriptId, loading }) {
+function RecentStudioSessionsCard({
+  items,
+  loading,
+  locale,
+  onResume,
+  restoringStudioSessionId
+}) {
   return (
     <div className="card h-100 cf-surface-card">
       <div className="card-header pb-0">
-        <h6 className="mb-1">{copy.recentTitle}</h6>
-        <p className="text-sm mb-0">{copy.recentBody}</p>
+        <h6 className="mb-1">{locale === "id" ? "Lanjutkan sesi" : "Resume a session"}</h6>
+        <p className="text-sm mb-0">
+          {locale === "id"
+            ? "Buka lagi draft studio yang terakhir kamu sentuh."
+            : "Jump back into the most recent studio drafts."}
+        </p>
       </div>
       <div className="card-body p-3">
         {loading ? (
-          <p className="text-sm text-secondary mb-0">{copy.loading}</p>
-        ) : scripts.length === 0 ? (
-          <p className="text-sm text-secondary mb-0">{copy.recentEmpty}</p>
+          <div className="cf-content-subtle-state">
+            <p className="text-sm mb-1">{locale === "id" ? "Memuat sesi terakhir..." : "Loading recent sessions..."}</p>
+            <p className="text-xs text-secondary mb-0">
+              {locale === "id"
+                ? "Begitu siap, kamu bisa lanjut tanpa mengulang brief dari awal."
+                : "Once ready, you can continue without rebuilding the brief from scratch."}
+            </p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="cf-content-subtle-state">
+            <p className="text-sm mb-1">{locale === "id" ? "Belum ada sesi yang bisa dilanjutkan." : "No resumable sessions yet."}</p>
+            <p className="text-xs text-secondary mb-0">
+              {locale === "id"
+                ? "Setelah kamu isi brief atau generate draft pertama, sesi akan muncul di sini."
+                : "Once you complete a brief or generate the first draft, sessions will show up here."}
+            </p>
+          </div>
         ) : (
           <div className="cf-content-draft-list d-flex flex-column gap-3">
-            {scripts.map((script) => {
-              const active = script.id === selectedScriptId;
-
-              return (
-                <button
-                  key={script.id}
-                  type="button"
-                  className={`text-start border-0 bg-transparent p-0${active ? " active" : ""}`}
-                  onClick={() => setSelectedScriptId(script.id)}
-                >
-                  <div className={`cf-content-draft-item${active ? " is-active" : ""}`}>
-                    <div className="d-flex justify-content-between gap-3 align-items-start">
-                      <div>
-                        <h6 className="text-sm mb-1">{script.title}</h6>
-                        <p className="text-xs text-secondary mb-2">{script.hook}</p>
-                      </div>
-                      <span className={`badge ${STATUS_BADGE_CLASS[script.status] ?? "bg-gradient-dark"}`}>
-                        {copy.statusLabels[script.status] ?? script.status}
-                      </span>
-                    </div>
-                    <div className="d-flex flex-wrap gap-2">
-                      <span className="badge bg-light text-dark border">{copy.sourceTypeLabels[script.sourceType] ?? script.sourceType}</span>
-                      <span className="badge bg-light text-dark border">{script.languageCode.toUpperCase()}</span>
-                    </div>
+            {items.map((item) => (
+              <div key={item.id} className="cf-content-draft-item">
+                <div className="d-flex justify-content-between gap-3 align-items-start flex-wrap">
+                  <div>
+                    <h6 className="text-sm mb-1">{item.rawBrief?.title || (locale === "id" ? "Draft tanpa judul" : "Untitled draft")}</h6>
+                    <p className="text-xs text-secondary mb-2">
+                      {(item.workflowMode || "").toUpperCase()} · {(item.lastLayer || "").toUpperCase()} · {formatDateLabel(locale, item.updatedAt) || "-"}
+                    </p>
                   </div>
-                </button>
-              );
-            })}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-primary mb-0"
+                    disabled={restoringStudioSessionId === item.id}
+                    onClick={() => onResume(item.id)}
+                  >
+                    {restoringStudioSessionId === item.id
+                      ? (locale === "id" ? "Membuka..." : "Opening...")
+                      : (locale === "id" ? "Lanjutkan" : "Resume")}
+                  </button>
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  <span className="badge bg-light text-dark border">{item.status}</span>
+                  {item.rawBrief?.niche ? <span className="badge bg-light text-dark border">{item.rawBrief.niche}</span> : null}
+                  {item.rawBrief?.objective ? <span className="badge bg-light text-dark border">{item.rawBrief.objective}</span> : null}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -1656,6 +1957,7 @@ function TemplateLibraryCard({
   onPreviewTemplate,
   onDuplicateTemplate,
   previewTemplateId,
+  recommendedTemplates,
   scope,
   selectedTemplateId,
   templates,
@@ -1674,6 +1976,30 @@ function TemplateLibraryCard({
         </div>
       </div>
       <div className="card-body p-3">
+        {recommendedTemplates?.length ? (
+          <div className="cf-content-checkpoint mb-3">
+            <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+              {locale === "id" ? "Rekomendasi otomatis" : "Automatic recommendations"}
+            </p>
+            <p className="text-xs text-secondary mb-2">
+              {locale === "id"
+                ? "Mulai dari 1-2 template ini dulu kalau kamu ingin jalur tercepat."
+                : "Start with one of these first if you want the fastest path."}
+            </p>
+            <div className="d-flex flex-wrap gap-2">
+              {recommendedTemplates.map((template) => (
+                <button
+                  key={template.id}
+                  type="button"
+                  className="btn btn-sm btn-outline-primary mb-0"
+                  onClick={() => onApplyTemplate(template)}
+                >
+                  {template.title}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <div className="d-flex flex-wrap gap-2 mb-3">
           {copy.templateScopes.map((item) => (
             <button
@@ -1688,9 +2014,23 @@ function TemplateLibraryCard({
         </div>
 
         {loading ? (
-          <p className="text-sm text-secondary mb-0">{copy.templateLoading}</p>
+          <div className="cf-content-subtle-state">
+            <p className="text-sm mb-1">{copy.templateLoading}</p>
+            <p className="text-xs text-secondary mb-0">
+              {locale === "id"
+                ? "Kami sedang menyiapkan template yang paling relevan untuk brief ini."
+                : "We are preparing the most relevant templates for this brief."}
+            </p>
+          </div>
         ) : templates.length === 0 ? (
-          <p className="text-sm text-secondary mb-0">{copy.templateEmpty}</p>
+          <div className="cf-content-subtle-state">
+            <p className="text-sm mb-1">{copy.templateEmpty}</p>
+            <p className="text-xs text-secondary mb-0">
+              {locale === "id"
+                ? "Coba ganti scope atau mulai dari template official lalu clone ke workspace."
+                : "Try switching scope or start from an official template and clone it into the workspace."}
+            </p>
+          </div>
         ) : (
           <div className="cf-content-draft-list d-flex flex-column gap-3">
             {templates.map((template) => {
@@ -1932,43 +2272,89 @@ function TemplateManagerCard({
   );
 }
 
-function LaunchPadCard({ copy, form }) {
+function TemplateAdminPanels({
+  canManageWorkspaceTemplates,
+  copy,
+  isSuperadmin,
+  locale,
+  superadminLoading,
+  superadminManagerCopy,
+  superadminSaving,
+  superadminTemplates,
+  templateEditorForm,
+  workspaceManagerCopy,
+  workspaceTemplateEditorForm,
+  workspaceTemplateLoading,
+  workspaceTemplateSaving,
+  workspaceTemplates,
+  onChangeOfficial,
+  onChangeOfficialStatus,
+  onChangeWorkspace,
+  onChangeWorkspaceStatus,
+  onCreateNewOfficial,
+  onCreateNewWorkspace,
+  onDuplicateWorkspace,
+  onLoadOfficial,
+  onLoadWorkspace,
+  onSaveOfficial,
+  onSaveWorkspace
+}) {
+  if (!canManageWorkspaceTemplates && !isSuperadmin) {
+    return null;
+  }
+
   return (
-    <div className="card h-100 cf-surface-card">
-      <div className="card-header pb-0">
-        <h6 className="mb-1">{copy.launchPadTitle}</h6>
-        <p className="text-sm mb-0">{copy.launchPadBody}</p>
+    <details className="cf-content-advanced mt-3">
+      <summary>{locale === "id" ? "Kelola template studio" : "Manage studio templates"}</summary>
+      <p className="text-xs text-secondary mb-3">
+        {locale === "id"
+          ? "Panel ini khusus untuk superadmin atau operator workspace yang mengelola library template."
+          : "This panel is reserved for superadmins or workspace operators managing the template library."}
+      </p>
+      <div className="row g-4">
+        {canManageWorkspaceTemplates ? (
+          <div className="col-12">
+            <TemplateManagerCard
+              badgeClass="bg-light text-dark border"
+              copy={copy}
+              form={workspaceTemplateEditorForm}
+              loading={workspaceTemplateLoading}
+              managerCopy={workspaceManagerCopy}
+              templates={workspaceTemplates}
+              saving={workspaceTemplateSaving}
+              onChange={onChangeWorkspace}
+              onCreateNew={onCreateNewWorkspace}
+              onDuplicate={onDuplicateWorkspace}
+              onLoadTemplate={onLoadWorkspace}
+              onPublish={() => onChangeWorkspaceStatus("publish")}
+              onArchive={() => onChangeWorkspaceStatus("archive")}
+              duplicateEnabled
+              onSave={onSaveWorkspace}
+            />
+          </div>
+        ) : null}
+        {isSuperadmin ? (
+          <div className="col-12">
+            <TemplateManagerCard
+              badgeClass="bg-gradient-dark"
+              copy={copy}
+              form={templateEditorForm}
+              loading={superadminLoading}
+              managerCopy={superadminManagerCopy}
+              templates={superadminTemplates}
+              saving={superadminSaving}
+              onChange={onChangeOfficial}
+              onCreateNew={onCreateNewOfficial}
+              onDuplicate={undefined}
+              onLoadTemplate={onLoadOfficial}
+              onPublish={() => onChangeOfficialStatus("publish")}
+              onArchive={() => onChangeOfficialStatus("archive")}
+              onSave={onSaveOfficial}
+            />
+          </div>
+        ) : null}
       </div>
-      <div className="card-body p-3">
-        <ul className="list-group mb-3">
-          {copy.workflowItems.map((item, index) => (
-            <li
-              key={item.title}
-              className={`list-group-item border-0 px-0${index < copy.workflowItems.length - 1 ? " mb-3" : ""}`}
-            >
-              <div className="d-flex justify-content-between gap-3 align-items-start">
-                <div>
-                  <span className="text-xs text-uppercase font-weight-bolder text-secondary">{item.step}</span>
-                  <h6 className="text-sm mb-1 mt-1">{item.title}</h6>
-                  <p className="text-xs text-secondary mb-0">{item.body}</p>
-                </div>
-                <span className="badge bg-light text-dark border">{item.badge}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-        <div className="cf-content-checkpoint">
-          <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
-            {copy.renderReadyTitle}
-          </p>
-          <h6 className="text-sm mb-1">{copy.nicheLabels[form.niche]} · {copy.objectiveLabels[form.objective]}</h6>
-          <p className="text-xs text-secondary mb-0">{copy.renderReadyBody}</p>
-          <p className="text-xs text-secondary mb-0 mt-2">
-            {copy.renderEngineActive.replace("{{engine}}", copy.videoEngineLabels[form.videoEngine] ?? form.videoEngine)}
-          </p>
-        </div>
-      </div>
-    </div>
+    </details>
   );
 }
 
@@ -1989,6 +2375,11 @@ function OptionalPanels({ title, body, children }) {
     <details className="cf-content-advanced mt-3">
       <summary>
         <span>{title}</span>
+        <span className="badge bg-light text-dark border ms-2">
+          {title.toLowerCase().includes("optional") || title.toLowerCase().includes("opsional")
+            ? (title.toLowerCase().includes("opsional") ? "boleh dilewati" : "optional")
+            : ""}
+        </span>
       </summary>
       <p className="text-xs text-secondary mb-3">{body}</p>
       {children}
@@ -2123,6 +2514,7 @@ function createTrackedProperties(form, workflowMode, extras = {}) {
     has_offer_text: Boolean(form.offerText.trim()),
     has_presenter_image_url: Boolean(form.presenterImageUrl.trim()),
     has_product_image_url: Boolean(form.productImageUrl.trim()),
+    has_product_image_asset: Array.isArray(form.productImageAssetIds) && form.productImageAssetIds.length > 0,
     has_price_text: Boolean(form.priceText.trim()),
     has_product_url: Boolean(form.productUrl.trim()),
     niche: form.niche,
@@ -2142,6 +2534,7 @@ function buildStudioRawBrief(form, workflowMode) {
     objective: form.objective,
     offerText: form.offerText.trim(),
     presenterImageUrl: form.presenterImageUrl.trim(),
+    productImageAssetIds: Array.isArray(form.productImageAssetIds) ? form.productImageAssetIds : [],
     priceText: form.priceText.trim(),
     productImageUrl: form.productImageUrl.trim(),
     productUrl: form.productUrl.trim(),
@@ -2217,6 +2610,7 @@ export default function ContentStudioPage() {
   const [form, setForm] = useState(DEFAULT_FORM);
   const [scripts, setScripts] = useState([]);
   const [selectedScriptId, setSelectedScriptId] = useState(null);
+  const [reviewScriptDraft, setReviewScriptDraft] = useState(null);
   const [loading, setLoading] = useState(true);
   const [planning, setPlanning] = useState(false);
   const [templatePlan, setTemplatePlan] = useState(null);
@@ -2228,6 +2622,9 @@ export default function ContentStudioPage() {
   const [templateLoading, setTemplateLoading] = useState(true);
   const [selectedTemplateId, setSelectedTemplateId] = useState(null);
   const [sessionState, setSessionState] = useState(INITIAL_SESSION_STATE);
+  const [recentStudioSessions, setRecentStudioSessions] = useState([]);
+  const [recentStudioSessionsLoading, setRecentStudioSessionsLoading] = useState(false);
+  const [restoringStudioSessionId, setRestoringStudioSessionId] = useState(null);
   const [superadminTemplates, setSuperadminTemplates] = useState([]);
   const [superadminLoading, setSuperadminLoading] = useState(true);
   const [superadminSaving, setSuperadminSaving] = useState(false);
@@ -2248,6 +2645,14 @@ export default function ContentStudioPage() {
   const [selectedConnectedAccountId, setSelectedConnectedAccountId] = useState("");
   const [connectedAccountForm, setConnectedAccountForm] = useState(DEFAULT_CONNECTED_ACCOUNT_FORM);
   const [connectedAccountSubmitting, setConnectedAccountSubmitting] = useState(false);
+  const [productAssetUploadState, setProductAssetUploadState] = useState({
+    assetId: null,
+    fileName: "",
+    previewUrl: "",
+    uploading: false
+  });
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [retryingSceneTaskId, setRetryingSceneTaskId] = useState(null);
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [restoredDraft, setRestoredDraft] = useState(false);
   const [storageReady, setStorageReady] = useState(false);
@@ -2273,10 +2678,25 @@ export default function ContentStudioPage() {
       const saved = savedRaw ? JSON.parse(savedRaw) : null;
 
       if (saved?.form && typeof saved.form === "object") {
+        const derivedAssetId =
+          Array.isArray(saved.form.productImageAssetIds) && saved.form.productImageAssetIds.length > 0
+            ? saved.form.productImageAssetIds[0]
+            : null;
         setForm((current) => ({
           ...current,
-          ...saved.form
+          ...saved.form,
+          productImageUrl:
+            saved.form.productImageUrl || derivedAssetId
+              ? saved.form.productImageUrl || buildAssetContentUrl(derivedAssetId)
+              : current.productImageUrl
         }));
+        if (derivedAssetId) {
+          setProductAssetUploadState((current) => ({
+            ...current,
+            assetId: derivedAssetId,
+            fileName: locale === "id" ? "Asset produk tersimpan" : "Saved product asset"
+          }));
+        }
       }
 
       if (typeof saved?.workflowMode === "string") {
@@ -2881,6 +3301,69 @@ export default function ContentStudioPage() {
   }, [canManagePublishAccounts, canReadPublishJobs, copy.authRequiredMessage, copy.publishAccountLoadError, isAuthenticated, sessionResolved]);
 
   useEffect(() => {
+    if (!sessionResolved) {
+      return undefined;
+    }
+
+    if (!isAuthenticated) {
+      setRecentStudioSessions([]);
+      setRecentStudioSessionsLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+
+    async function loadRecentStudioSessions() {
+      setRecentStudioSessionsLoading(true);
+
+      try {
+        const response = await fetch("/api/content/studio-sessions?limit=6", {
+          credentials: "same-origin"
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!active) {
+          return;
+        }
+
+        if (!response.ok) {
+          if (isAuthFailure(response.status, payload?.message)) {
+            setRecentStudioSessions([]);
+            setFeedback(null);
+            markSessionInactive(copy.authRequiredMessage);
+            return;
+          }
+
+          setRecentStudioSessions([]);
+          setFeedback((current) => current ?? {
+            type: "error",
+            message: payload?.message ?? copy.loadError
+          });
+          return;
+        }
+
+        setRecentStudioSessions(Array.isArray(payload?.items) ? payload.items : []);
+      } catch {
+        if (!active) {
+          return;
+        }
+
+        setRecentStudioSessions([]);
+      } finally {
+        if (active) {
+          setRecentStudioSessionsLoading(false);
+        }
+      }
+    }
+
+    loadRecentStudioSessions();
+
+    return () => {
+      active = false;
+    };
+  }, [copy.authRequiredMessage, copy.loadError, isAuthenticated, sessionResolved]);
+
+  useEffect(() => {
     if (!sessionResolved || !isAuthenticated) {
       return undefined;
     }
@@ -3213,6 +3696,7 @@ export default function ContentStudioPage() {
     createSampleScript(copy);
 
   const isSample = selectedScript.id === "sample";
+  const effectiveReviewScript = reviewScriptDraft ?? selectedScript;
   const hasGeneratedScript = !isSample;
   const renderPreviewUrl = canReadRenderJobs ? getRenderOutputUrl(renderJob) : null;
   const renderPosterUrl = canReadRenderJobs ? getRenderPosterUrl(renderJob) : null;
@@ -3319,9 +3803,9 @@ export default function ContentStudioPage() {
   }
   const reviewReady = Boolean(
     templatePlan?.templateRenderSpec &&
-    selectedScript?.hook &&
-    selectedScript?.body &&
-    selectedScript?.cta
+    effectiveReviewScript?.hook &&
+    effectiveReviewScript?.body &&
+    effectiveReviewScript?.cta
   );
   const renderInFlight =
     renderBatch?.status === "processing" ||
@@ -3329,6 +3813,60 @@ export default function ContentStudioPage() {
     renderJob?.status === "queued" ||
     renderJob?.status === "processing";
   const savedLabel = formatDateLabel(locale, lastSavedAt);
+  const canUploadAssets =
+    isSuperadmin ||
+    Boolean(sessionAuthorization?.permissions?.includes("assets.upload"));
+  const recommendedTemplates = useMemo(() => {
+    if (!Array.isArray(templates) || templates.length === 0) {
+      return [];
+    }
+
+    const scoredTemplates = templates
+      .map((template) => {
+        let score = 0;
+
+        if (template.niche === form.niche) {
+          score += 5;
+        }
+
+        if (template.objective === form.objective) {
+          score += 4;
+        }
+
+        if (workflowMode === "quick" && template.scope === "official") {
+          score += 2;
+        }
+
+        if (template.variables?.brandTone && template.variables.brandTone === form.brandTone) {
+          score += 1;
+        }
+
+        return {
+          score,
+          template
+        };
+      })
+      .filter((item) => item.score > 0)
+      .sort((left, right) => right.score - left.score)
+      .slice(0, 2)
+      .map((item) => item.template);
+
+    return scoredTemplates;
+  }, [form.brandTone, form.niche, form.objective, templates, workflowMode]);
+
+  useEffect(() => {
+    setReviewScriptDraft(selectedScript);
+  }, [
+    selectedScript.body,
+    selectedScript.createdAt,
+    selectedScript.cta,
+    selectedScript.hook,
+    selectedScript.id,
+    selectedScript.languageCode,
+    selectedScript.sourceType,
+    selectedScript.status,
+    selectedScript.title
+  ]);
 
   async function refreshTemplateCollections({
     libraryScope = templateScope,
@@ -4210,11 +4748,18 @@ export default function ContentStudioPage() {
     setReviewTab(workflowMode === "quick" ? "validation" : "script");
     setForm(DEFAULT_FORM);
     setSelectedScriptId(null);
+    setReviewScriptDraft(null);
     setTemplatePlan(null);
     setPublishJob(null);
     setRenderJob(null);
     setRenderBatch(null);
     setAssemblyResult(null);
+    setProductAssetUploadState({
+      assetId: null,
+      fileName: "",
+      previewUrl: "",
+      uploading: false
+    });
     setStudioSessionId(nextSessionId);
     setLastSavedAt(null);
     setRestoredDraft(false);
@@ -4242,6 +4787,478 @@ export default function ContentStudioPage() {
     setScripts(items);
     setSelectedScriptId(preferredId ?? items[0]?.id ?? null);
     setFeedback(null);
+  }
+
+  async function refreshRecentStudioSessions() {
+    if (!isAuthenticated) {
+      throw new Error(authRequiredMessage);
+    }
+
+    const response = await fetch("/api/content/studio-sessions?limit=6", {
+      credentials: "same-origin"
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(getRequestErrorMessage(response, payload, copy.loadError));
+    }
+
+    const items = Array.isArray(payload?.items) ? payload.items : [];
+    setRecentStudioSessions(items);
+  }
+
+  function hydrateStudioSession(session) {
+    const rawBrief = session?.rawBrief && typeof session.rawBrief === "object" ? session.rawBrief : {};
+    const draftState = session?.draftState && typeof session.draftState === "object" ? session.draftState : {};
+    const restoredWorkflowMode =
+      typeof session?.workflowMode === "string" ? session.workflowMode : DEFAULT_WORKFLOW_MODE;
+    const restoredForm = {
+      ...DEFAULT_FORM,
+      brandTone: typeof rawBrief.brandTone === "string" ? rawBrief.brandTone : DEFAULT_FORM.brandTone,
+      ctaText: typeof rawBrief.ctaText === "string" ? rawBrief.ctaText : "",
+      niche: typeof rawBrief.niche === "string" ? rawBrief.niche : DEFAULT_FORM.niche,
+      objective: typeof rawBrief.objective === "string" ? rawBrief.objective : DEFAULT_FORM.objective,
+      offerText: typeof rawBrief.offerText === "string" ? rawBrief.offerText : "",
+      presenterImageUrl: typeof rawBrief.presenterImageUrl === "string" ? rawBrief.presenterImageUrl : "",
+      priceText: typeof rawBrief.priceText === "string" ? rawBrief.priceText : "",
+      productImageAssetIds: Array.isArray(rawBrief.productImageAssetIds) ? rawBrief.productImageAssetIds : [],
+      productImageUrl: typeof rawBrief.productImageUrl === "string" ? rawBrief.productImageUrl : "",
+      productUrl: typeof rawBrief.productUrl === "string" ? rawBrief.productUrl : "",
+      promptHint: typeof rawBrief.promptHint === "string" ? rawBrief.promptHint : "",
+      sourceType: typeof rawBrief.sourceType === "string" ? rawBrief.sourceType : DEFAULT_FORM.sourceType,
+      title: typeof rawBrief.title === "string" ? rawBrief.title : "",
+      videoEngine: typeof rawBrief.videoEngine === "string" ? rawBrief.videoEngine : DEFAULT_FORM.videoEngine,
+      languageCode: typeof rawBrief.languageCode === "string" ? rawBrief.languageCode : DEFAULT_FORM.languageCode
+    };
+    if (!restoredForm.productImageUrl && restoredForm.productImageAssetIds.length > 0) {
+      restoredForm.productImageUrl = buildAssetContentUrl(restoredForm.productImageAssetIds[0]);
+    }
+    const restoredActiveStep =
+      typeof draftState.activeStudioStep === "string" && STUDIO_STEP_ORDER.includes(draftState.activeStudioStep)
+        ? draftState.activeStudioStep
+        : "brief";
+    const restoredTemplatePlan = draftState.templatePlan && typeof draftState.templatePlan === "object"
+      ? {
+          ...draftState.templatePlan,
+          renderSpecs: Array.isArray(session?.renderSpecs)
+            ? session.renderSpecs
+            : Array.isArray(draftState.templatePlan.renderSpecs)
+              ? draftState.templatePlan.renderSpecs
+              : [],
+          scenePlan:
+            session?.scenePlan && typeof session.scenePlan === "object"
+              ? session.scenePlan
+              : draftState.templatePlan.scenePlan ?? null
+        }
+      : session?.scenePlan && typeof session.scenePlan === "object"
+        ? {
+            renderSpecs: Array.isArray(session?.renderSpecs) ? session.renderSpecs : [],
+            scenePlan: session.scenePlan,
+            sceneSpecs: [],
+            templateRenderSpec: null
+          }
+        : null;
+
+    setStudioSessionId(session.id);
+    setWorkflowMode(restoredWorkflowMode);
+    setForm(restoredForm);
+    setActiveStudioStep(restoredActiveStep);
+    setMaxReachedStepIndex(Math.max(STUDIO_STEP_ORDER.indexOf(restoredActiveStep), 0));
+    setReviewTab(
+      typeof draftState.reviewTab === "string"
+        ? draftState.reviewTab
+        : restoredWorkflowMode === "quick"
+          ? "validation"
+          : "script"
+    );
+    setSelectedScriptId(typeof draftState.selectedScriptId === "string" ? draftState.selectedScriptId : null);
+    setSelectedTemplateId(typeof draftState.selectedTemplateId === "string" ? draftState.selectedTemplateId : null);
+    setTemplateScope(typeof draftState.templateScope === "string" ? draftState.templateScope : DEFAULT_TEMPLATE_SCOPE);
+    setTemplatePlan(restoredTemplatePlan);
+    setRenderJob(draftState.renderJob && typeof draftState.renderJob === "object" ? draftState.renderJob : null);
+    setRenderBatch(draftState.renderBatch && typeof draftState.renderBatch === "object" ? draftState.renderBatch : null);
+    setAssemblyResult(draftState.assemblyResult && typeof draftState.assemblyResult === "object" ? draftState.assemblyResult : null);
+    setPublishJob(draftState.publishJob && typeof draftState.publishJob === "object" ? draftState.publishJob : null);
+    setSelectedConnectedAccountId(
+      typeof draftState.selectedConnectedAccountId === "string" ? draftState.selectedConnectedAccountId : ""
+    );
+    setConnectedAccountForm(
+      draftState.connectedAccountForm && typeof draftState.connectedAccountForm === "object"
+        ? {
+            ...DEFAULT_CONNECTED_ACCOUNT_FORM,
+            ...draftState.connectedAccountForm
+          }
+        : DEFAULT_CONNECTED_ACCOUNT_FORM
+    );
+    setProductAssetUploadState({
+      assetId: Array.isArray(rawBrief.productImageAssetIds) ? rawBrief.productImageAssetIds[0] ?? null : null,
+      fileName:
+        Array.isArray(rawBrief.productImageAssetIds) && rawBrief.productImageAssetIds.length > 0
+          ? locale === "id"
+            ? `${rawBrief.productImageAssetIds.length} asset tersimpan`
+            : `${rawBrief.productImageAssetIds.length} saved asset(s)`
+          : "",
+      previewUrl: "",
+      uploading: false
+    });
+    setLastSavedAt(typeof session.updatedAt === "string" ? session.updatedAt : null);
+    setRestoredDraft(true);
+    setFeedback({
+      type: "success",
+      message: locale === "id" ? "Sesi studio berhasil dipulihkan." : "Studio session restored."
+    });
+  }
+
+  async function handleProductAssetUpload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    if (!canUploadAssets) {
+      setFeedback({
+        type: "error",
+        message: locale === "id" ? "Akses upload asset belum tersedia." : "Asset upload access is not available."
+      });
+      return;
+    }
+
+    const previewUrl = window.URL.createObjectURL(file);
+    setProductAssetUploadState({
+      assetId: null,
+      fileName: file.name,
+      previewUrl,
+      uploading: true
+    });
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/assets/upload-url", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          assetType: "image",
+          fileName: file.name,
+          fileSizeBytes: file.size,
+          mimeType: file.type || "application/octet-stream"
+        })
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(getRequestErrorMessage(response, payload, locale === "id" ? "Gagal menyiapkan upload asset." : "Unable to prepare asset upload."));
+      }
+
+      const uploadResponse = await fetch(payload.uploadUrl, {
+        body: file,
+        headers: {
+          "content-type": file.type || "application/octet-stream"
+        },
+        method: "PUT",
+        mode: "cors"
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(locale === "id" ? "Upload file gagal." : "File upload failed.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        productImageAssetIds: payload?.assetId ? [payload.assetId] : current.productImageAssetIds,
+        productImageUrl: payload?.assetId ? buildAssetContentUrl(payload.assetId) : current.productImageUrl
+      }));
+      setProductAssetUploadState({
+        assetId: payload?.assetId ?? null,
+        fileName: file.name,
+        previewUrl,
+        uploading: false
+      });
+      setFeedback({
+        type: "success",
+        message: locale === "id" ? "Foto produk berhasil di-upload." : "Product image uploaded."
+      });
+      await trackStudioEvent(
+        "content.asset.product_uploaded",
+        createTrackedProperties(form, workflowMode, {
+          asset_id: payload?.assetId ?? null
+        })
+      );
+    } catch (error) {
+      setProductAssetUploadState({
+        assetId: null,
+        fileName: file.name,
+        previewUrl,
+        uploading: false
+      });
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : (locale === "id" ? "Gagal upload asset." : "Asset upload failed.")
+      });
+    }
+  }
+
+  function handleScriptChange(field, value) {
+    setReviewScriptDraft((current) => ({
+      ...(current ?? selectedScript),
+      [field]: value
+    }));
+  }
+
+  function handleSceneTextChange(sceneId, value) {
+    setTemplatePlan((current) => {
+      if (!current?.scenePlan?.scenes?.length) {
+        return current;
+      }
+
+      return {
+        ...current,
+        scenePlan: {
+          ...current.scenePlan,
+          scenes: current.scenePlan.scenes.map((scene) => (
+            scene.id !== sceneId
+              ? scene
+              : {
+                  ...scene,
+                  textBlocks: Array.isArray(scene.textBlocks) && scene.textBlocks.length > 0
+                    ? [
+                        {
+                          ...scene.textBlocks[0],
+                          text: value
+                        },
+                        ...scene.textBlocks.slice(1)
+                      ]
+                    : [
+                        {
+                          style: "headline",
+                          text: value
+                        }
+                      ]
+                }
+          ))
+        }
+      };
+    });
+  }
+
+  async function handleSaveReview() {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    setReviewSaving(true);
+    setFeedback(null);
+
+    try {
+      const sessionId = await ensureServerStudioSession(workflowMode);
+      if (!sessionId) {
+        throw new Error(locale === "id" ? "Sesi studio belum siap." : "Studio session is not ready.");
+      }
+
+      const tasks = [];
+
+      if (!isSample && reviewTab === "script" && selectedScriptId && reviewScriptDraft) {
+        tasks.push(
+          fetch(`/api/content/scripts/${selectedScriptId}`, {
+            method: "PATCH",
+            headers: {
+              "content-type": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({
+              body: reviewScriptDraft.body ?? "",
+              cta: reviewScriptDraft.cta ?? "",
+              hook: reviewScriptDraft.hook ?? "",
+              title: reviewScriptDraft.title ?? ""
+            })
+          }).then(async (response) => {
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+              throw new Error(getRequestErrorMessage(response, payload, locale === "id" ? "Gagal menyimpan script." : "Unable to save script."));
+            }
+
+            if (payload?.item) {
+              setScripts((current) => current.map((item) => (
+                item.id === payload.item.id ? payload.item : item
+              )));
+              setReviewScriptDraft(payload.item);
+            }
+          })
+        );
+      }
+
+      if (reviewTab === "videoPlan" && templatePlan?.scenePlan) {
+        tasks.push(
+          fetch(`/api/content/studio-sessions/${sessionId}`, {
+            method: "PATCH",
+            headers: {
+              "content-type": "application/json"
+            },
+            credentials: "same-origin",
+            body: JSON.stringify({
+              draftState: buildStudioDraftState({
+                activeStudioStep,
+                assemblyResult,
+                connectedAccountForm,
+                publishJob,
+                renderBatch,
+                renderJob,
+                reviewTab,
+                selectedConnectedAccountId,
+                selectedScriptId,
+                selectedTemplateId,
+                templatePlan,
+                templateScope
+              }),
+              lastLayer: "L4",
+              renderSpecs: Array.isArray(templatePlan.renderSpecs) ? templatePlan.renderSpecs : [],
+              scenePlan: templatePlan.scenePlan,
+              status: renderInFlight ? "processing" : "draft",
+              workflowMode
+            })
+          }).then(async (response) => {
+            const payload = await response.json().catch(() => null);
+            if (!response.ok) {
+              throw new Error(getRequestErrorMessage(response, payload, locale === "id" ? "Gagal menyimpan scene plan." : "Unable to save scene plan."));
+            }
+          })
+        );
+      }
+
+      if (tasks.length === 0) {
+        throw new Error(locale === "id" ? "Belum ada perubahan yang bisa disimpan di tab ini." : "There are no edits to save on this tab.");
+      }
+
+      await Promise.all(tasks);
+      setFeedback({
+        type: "success",
+        message: locale === "id" ? "Perubahan review berhasil disimpan." : "Review edits saved."
+      });
+      await trackStudioEvent("content.review.saved", {
+        review_tab: reviewTab,
+        session_id: sessionId,
+        workflow_mode: workflowMode
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : (locale === "id" ? "Gagal menyimpan review." : "Unable to save review.")
+      });
+    } finally {
+      setReviewSaving(false);
+    }
+  }
+
+  async function handleRetrySceneRender(taskId) {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    if (!studioSessionId) {
+      setFeedback({
+        type: "error",
+        message: locale === "id" ? "Sesi studio belum tersedia." : "Studio session is not available."
+      });
+      return;
+    }
+
+    setRetryingSceneTaskId(taskId);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/content/studio-sessions/${studioSessionId}/render-batch-jobs/${taskId}/retry`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          preferredProvider: getVideoEngineConfig(form.videoEngine).preferredProvider
+        })
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(getRequestErrorMessage(response, payload, copy.renderSubmitError));
+      }
+
+      if (payload?.renderBatch && typeof payload.renderBatch === "object") {
+        setRenderBatch(payload.renderBatch);
+      }
+
+      if (payload?.primaryRenderJob && typeof payload.primaryRenderJob === "object") {
+        setRenderJob(payload.primaryRenderJob);
+      }
+
+      setAssemblyResult(null);
+      setPublishJob(null);
+      setFeedback({
+        type: "success",
+        message: locale === "id" ? "Scene dimasukkan ulang ke antrian render." : "Scene queued for retry."
+      });
+      await trackStudioEvent("content.video_render.scene_retried", {
+        render_batch_id: renderBatch?.batchId ?? null,
+        session_id: studioSessionId,
+        task_id: taskId,
+        workflow_mode: workflowMode
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : copy.renderSubmitError
+      });
+    } finally {
+      setRetryingSceneTaskId(null);
+    }
+  }
+
+  async function handleResumeStudioSession(sessionId) {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    setRestoringStudioSessionId(sessionId);
+    setFeedback(null);
+
+    try {
+      const response = await fetch(`/api/content/studio-sessions/${sessionId}`, {
+        credentials: "same-origin"
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(getRequestErrorMessage(response, payload, copy.loadError));
+      }
+
+      if (!payload?.item) {
+        throw new Error(locale === "id" ? "Sesi studio tidak ditemukan." : "Studio session not found.");
+      }
+
+      hydrateStudioSession(payload.item);
+      if (typeof payload.item?.draftState?.selectedScriptId === "string") {
+        await refreshScripts(payload.item.draftState.selectedScriptId);
+      }
+      await refreshRecentStudioSessions();
+      await trackStudioEvent("content.studio.resumed", {
+        resumed_session_id: sessionId,
+        workflow_mode: payload.item?.workflowMode ?? workflowMode
+      });
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : copy.loadError
+      });
+    } finally {
+      setRestoringStudioSessionId(null);
+    }
   }
 
   async function handleSubmit(event) {
@@ -4430,6 +5447,21 @@ export default function ContentStudioPage() {
         templateRenderSpec: renderSpecPayload?.templateRenderSpec ?? null
       };
 
+      await fetch(`/api/content/studio-sessions/${sessionId}`, {
+        method: "PATCH",
+        headers: {
+          "content-type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          lastLayer: "L4",
+          renderSpecs: payload.renderSpecs,
+          scenePlan: payload.scenePlan,
+          status: "draft",
+          workflowMode
+        })
+      }).catch(() => null);
+
       setTemplatePlan(payload);
       setRenderJob(null);
       setRenderBatch(null);
@@ -4522,15 +5554,19 @@ export default function ContentStudioPage() {
                 <GeneratorCard
                   authLocked={!sessionResolved || !isAuthenticated}
                   authMessage={sessionResolved ? authRequiredMessage : copy.authCheckingMessage}
+                  canUploadAssets={canUploadAssets}
                   copy={copy}
                   form={form}
+                  locale={locale}
                   modeCopy={modeCopy}
                   onChange={handleChange}
+                  onProductAssetUpload={handleProductAssetUpload}
                   onPreviewPlan={handlePreviewPlan}
                   onReset={handleReset}
                   onSwitchMode={handleModeSelect}
                   onSubmit={handleSubmit}
                   planning={planning}
+                  productAssetUploadState={productAssetUploadState}
                   submitting={submitting}
                   workflowModes={copy.workflowModes}
                   workflowMode={workflowMode}
@@ -4539,7 +5575,7 @@ export default function ContentStudioPage() {
             </div>
             <OptionalPanels title={optionalPanelsTitle} body={optionalPanelsBody}>
               <div className="row g-4">
-                <div className="col-12">
+                <div className="col-xl-7">
                   <BriefSnapshotCard
                     copy={copy}
                     form={form}
@@ -4548,6 +5584,15 @@ export default function ContentStudioPage() {
                     locale={locale}
                     templatePlan={templatePlan}
                     workflowMode={workflowMode}
+                  />
+                </div>
+                <div className="col-xl-5">
+                  <RecentStudioSessionsCard
+                    items={recentStudioSessions}
+                    loading={recentStudioSessionsLoading}
+                    locale={locale}
+                    onResume={handleResumeStudioSession}
+                    restoringStudioSessionId={restoringStudioSessionId}
                   />
                 </div>
               </div>
@@ -4567,12 +5612,16 @@ export default function ContentStudioPage() {
                   locale={locale}
                   loading={planning}
                   onEditBrief={() => moveToStep("brief")}
+                  onSaveReview={handleSaveReview}
+                  onSceneTextChange={handleSceneTextChange}
+                  onScriptChange={handleScriptChange}
                   onRender={handleRenderPlan}
                   plan={templatePlan}
                   renderJob={renderJob}
                   renderSubmitting={renderSubmitting}
+                  reviewSaving={reviewSaving}
                   reviewTab={reviewTab}
-                  script={selectedScript}
+                  script={effectiveReviewScript}
                   workflowMode={workflowMode}
                   setReviewTab={setReviewTab}
                 />
@@ -4580,7 +5629,7 @@ export default function ContentStudioPage() {
             </div>
             <OptionalPanels title={optionalPanelsTitle} body={optionalPanelsBody}>
               <div className="row g-4">
-                <div className="col-xl-5">
+                <div className="col-12">
                   <BriefSnapshotCard
                     copy={copy}
                     form={form}
@@ -4589,15 +5638,6 @@ export default function ContentStudioPage() {
                     locale={locale}
                     templatePlan={templatePlan}
                     workflowMode={workflowMode}
-                  />
-                </div>
-                <div className="col-xl-7">
-                  <RecentDraftsCard
-                    copy={copy}
-                    scripts={scripts}
-                    selectedScriptId={selectedScriptId}
-                    setSelectedScriptId={setSelectedScriptId}
-                    loading={loading}
                   />
                 </div>
               </div>
@@ -4619,6 +5659,7 @@ export default function ContentStudioPage() {
                   onPreviewTemplate={handleTemplateQuickPreview}
                   onDuplicateTemplate={handleDuplicateWorkspaceTemplate}
                   previewTemplateId={previewTemplateId}
+                  recommendedTemplates={recommendedTemplates}
                   scope={templateScope}
                   selectedTemplateId={selectedTemplateId}
                   templates={templates}
@@ -4629,7 +5670,7 @@ export default function ContentStudioPage() {
             </div>
             <OptionalPanels title={optionalPanelsTitle} body={optionalPanelsBody}>
               <div className="row g-4">
-                <div className="col-xl-5">
+                <div className="col-12">
                   <BriefSnapshotCard
                     copy={copy}
                     form={form}
@@ -4640,47 +5681,35 @@ export default function ContentStudioPage() {
                     workflowMode={workflowMode}
                   />
                 </div>
-                {canManageWorkspaceTemplates ? (
-                  <div className="col-12">
-                    <TemplateManagerCard
-                      badgeClass="bg-light text-dark border"
-                      copy={copy}
-                      form={workspaceTemplateEditorForm}
-                      loading={workspaceTemplateLoading}
-                      managerCopy={workspaceManagerCopy}
-                      templates={workspaceTemplates}
-                      saving={workspaceTemplateSaving}
-                      onChange={handleWorkspaceTemplateEditorChange}
-                      onCreateNew={handleCreateNewWorkspaceTemplate}
-                      onDuplicate={() => handleDuplicateWorkspaceTemplate(workspaceTemplateEditorForm)}
-                      onLoadTemplate={handleLoadWorkspaceTemplate}
-                      onPublish={() => handleChangeWorkspaceTemplateStatus("publish")}
-                      onArchive={() => handleChangeWorkspaceTemplateStatus("archive")}
-                      duplicateEnabled
-                      onSave={handleSaveWorkspaceTemplate}
-                    />
-                  </div>
-                ) : null}
-                {isSuperadmin ? (
-                  <div className="col-12">
-                    <TemplateManagerCard
-                      badgeClass="bg-gradient-dark"
-                      copy={copy}
-                      form={templateEditorForm}
-                      loading={superadminLoading}
-                      managerCopy={superadminManagerCopy}
-                      templates={superadminTemplates}
-                      saving={superadminSaving}
-                      onChange={handleTemplateEditorChange}
-                      onCreateNew={handleCreateNewTemplate}
-                      onDuplicate={undefined}
-                      onLoadTemplate={handleLoadSuperadminTemplate}
-                      onPublish={() => handleChangeOfficialTemplateStatus("publish")}
-                      onArchive={() => handleChangeOfficialTemplateStatus("archive")}
-                      onSave={handleSaveSuperadminTemplate}
-                    />
-                  </div>
-                ) : null}
+                <div className="col-12">
+                  <TemplateAdminPanels
+                    canManageWorkspaceTemplates={canManageWorkspaceTemplates}
+                    copy={copy}
+                    isSuperadmin={isSuperadmin}
+                    locale={locale}
+                    superadminLoading={superadminLoading}
+                    superadminManagerCopy={superadminManagerCopy}
+                    superadminSaving={superadminSaving}
+                    superadminTemplates={superadminTemplates}
+                    templateEditorForm={templateEditorForm}
+                    workspaceManagerCopy={workspaceManagerCopy}
+                    workspaceTemplateEditorForm={workspaceTemplateEditorForm}
+                    workspaceTemplateLoading={workspaceTemplateLoading}
+                    workspaceTemplateSaving={workspaceTemplateSaving}
+                    workspaceTemplates={workspaceTemplates}
+                    onChangeOfficial={handleTemplateEditorChange}
+                    onChangeOfficialStatus={handleChangeOfficialTemplateStatus}
+                    onChangeWorkspace={handleWorkspaceTemplateEditorChange}
+                    onChangeWorkspaceStatus={handleChangeWorkspaceTemplateStatus}
+                    onCreateNewOfficial={handleCreateNewTemplate}
+                    onCreateNewWorkspace={handleCreateNewWorkspaceTemplate}
+                    onDuplicateWorkspace={() => handleDuplicateWorkspaceTemplate(workspaceTemplateEditorForm)}
+                    onLoadOfficial={handleLoadSuperadminTemplate}
+                    onLoadWorkspace={handleLoadWorkspaceTemplate}
+                    onSaveOfficial={handleSaveSuperadminTemplate}
+                    onSaveWorkspace={handleSaveWorkspaceTemplate}
+                  />
+                </div>
               </div>
             </OptionalPanels>
           </>
@@ -4691,6 +5720,7 @@ export default function ContentStudioPage() {
             <div className="row g-4 mt-1">
               <div className="col-12">
                 <PlanPreviewCard
+                  assemblyResult={assemblyResult}
                   canManagePublishAccounts={canManagePublishAccounts}
                   canSubmitPublish={canSubmitPublishJobs}
                   canRender={canRenderVideos}
@@ -4704,6 +5734,7 @@ export default function ContentStudioPage() {
                   onCreateConnectedAccount={handleCreateConnectedAccount}
                   onPublish={handleQueuePublish}
                   onRender={handleRenderPlan}
+                  onRetryScene={handleRetrySceneRender}
                   onSelectConnectedAccount={setSelectedConnectedAccountId}
                   plan={templatePlan}
                   publishJob={publishJob}
@@ -4713,6 +5744,7 @@ export default function ContentStudioPage() {
                   renderPosterUrl={renderPosterUrl}
                   renderPreviewUrl={renderPreviewUrl}
                   renderSubmitting={renderSubmitting}
+                  retryingSceneTaskId={retryingSceneTaskId}
                   selectedVideoEngine={form.videoEngine}
                   selectedConnectedAccountId={selectedConnectedAccountId}
                   submitConnectedAccount={connectedAccountSubmitting}
@@ -4721,7 +5753,7 @@ export default function ContentStudioPage() {
             </div>
             <OptionalPanels title={optionalPanelsTitle} body={optionalPanelsBody}>
               <div className="row g-4">
-                <div className="col-xl-5">
+                <div className="col-12">
                   <BriefSnapshotCard
                     copy={copy}
                     form={form}
@@ -4731,18 +5763,6 @@ export default function ContentStudioPage() {
                     templatePlan={templatePlan}
                     workflowMode={workflowMode}
                   />
-                </div>
-                <div className="col-xl-7">
-                  <RecentDraftsCard
-                    copy={copy}
-                    scripts={scripts}
-                    selectedScriptId={selectedScriptId}
-                    setSelectedScriptId={setSelectedScriptId}
-                    loading={loading}
-                  />
-                </div>
-                <div className="col-12">
-                  <LaunchPadCard copy={copy} form={form} />
                 </div>
               </div>
             </OptionalPanels>

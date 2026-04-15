@@ -25,6 +25,75 @@ import {
 } from "./template-store.js";
 
 export function registerContentRoutes(app: FastifyInstance) {
+  app.get("/v1/content/studio-sessions", { preHandler: authenticateUserRequest }, async (request, reply) => {
+    const requestQuery = request.query as {
+      includeArchived?: string;
+      limit?: string;
+      workspaceId?: string;
+    };
+
+    try {
+      const workspaceId = requestQuery.workspaceId ?? request.userAuth?.workspaceId;
+      const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
+      if (workspaceError) {
+        return workspaceError;
+      }
+
+      const permissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "content",
+        permission: "content.read"
+      });
+      if (permissionError) {
+        return permissionError;
+      }
+
+      if (!workspaceId) {
+        return badRequest(reply, "workspaceId is required");
+      }
+
+      const limit = Math.max(1, Math.min(12, Number(requestQuery.limit ?? "6") || 6));
+      const includeArchived = requestQuery.includeArchived === "true";
+      const result = await query<StudioSessionRow>(
+        `
+          SELECT
+            id,
+            workspace_id,
+            created_by_user_id,
+            workflow_mode,
+            status,
+            last_layer,
+            raw_brief,
+            draft_state,
+            product_metadata,
+            extracted_context,
+            director_scripts,
+            scene_plan,
+            render_specs,
+            completeness_score,
+            missing_fields,
+            warnings,
+            ready_to_proceed,
+            last_error,
+            created_at,
+            updated_at
+          FROM content.studio_sessions
+          WHERE workspace_id = $1
+            AND ($2::boolean = TRUE OR status <> 'archived')
+          ORDER BY updated_at DESC
+          LIMIT $3
+        `,
+        [workspaceId, includeArchived, limit]
+      );
+
+      return reply.send({
+        items: result.rows.map((row) => serializeStudioSession(row))
+      });
+    } catch (error) {
+      request.log.error(error);
+      return internalError(reply);
+    }
+  });
+
   app.post("/v1/content/studio-sessions", { preHandler: authenticateUserRequest }, async (request, reply) => {
     const body = request.body as {
       draftState?: Record<string, unknown>;
@@ -222,6 +291,8 @@ export function registerContentRoutes(app: FastifyInstance) {
       lastError?: string | null;
       lastLayer?: string;
       rawBrief?: Record<string, unknown>;
+      renderSpecs?: Record<string, unknown>[];
+      scenePlan?: Record<string, unknown>;
       status?: StudioSessionStatus;
       workflowMode?: StudioWorkflowMode;
       workspaceId?: string;
@@ -257,11 +328,15 @@ export function registerContentRoutes(app: FastifyInstance) {
       const hasRawBrief = Object.prototype.hasOwnProperty.call(body, "rawBrief");
       const hasDraftState = Object.prototype.hasOwnProperty.call(body, "draftState");
       const hasLastError = Object.prototype.hasOwnProperty.call(body, "lastError");
+      const hasScenePlan = Object.prototype.hasOwnProperty.call(body, "scenePlan");
+      const hasRenderSpecs = Object.prototype.hasOwnProperty.call(body, "renderSpecs");
 
       if (
         !hasRawBrief &&
         !hasDraftState &&
         !hasLastError &&
+        !hasScenePlan &&
+        !hasRenderSpecs &&
         !body.lastLayer &&
         !body.status &&
         !body.workflowMode
@@ -287,6 +362,14 @@ export function registerContentRoutes(app: FastifyInstance) {
             raw_brief = CASE
               WHEN $10::boolean THEN $11::jsonb
               ELSE raw_brief
+            END,
+            scene_plan = CASE
+              WHEN $12::boolean THEN $13::jsonb
+              ELSE scene_plan
+            END,
+            render_specs = CASE
+              WHEN $14::boolean THEN $15::jsonb
+              ELSE render_specs
             END,
             updated_at = NOW()
           WHERE id = $1
@@ -324,7 +407,11 @@ export function registerContentRoutes(app: FastifyInstance) {
           hasDraftState,
           JSON.stringify(hasDraftState ? sanitizeObject(body.draftState) : {}),
           hasRawBrief,
-          JSON.stringify(hasRawBrief ? sanitizeObject(body.rawBrief) : {})
+          JSON.stringify(hasRawBrief ? sanitizeObject(body.rawBrief) : {}),
+          hasScenePlan,
+          JSON.stringify(hasScenePlan ? sanitizeObject(body.scenePlan) : {}),
+          hasRenderSpecs,
+          JSON.stringify(hasRenderSpecs ? ensureArrayOfObjects(body.renderSpecs) : [])
         ]
       );
 
@@ -1196,6 +1283,214 @@ export function registerContentRoutes(app: FastifyInstance) {
     }
   });
 
+  app.post("/v1/content/studio-sessions/:sessionId/render-batch-jobs/:taskId/retry", { preHandler: authenticateUserRequest }, async (request, reply) => {
+    const params = request.params as {
+      sessionId: string;
+      taskId: string;
+    };
+    const body = request.body as {
+      preferredProvider?: string;
+      workspaceId?: string;
+    };
+
+    if (!isUuid(params.sessionId)) {
+      return badRequest(reply, "sessionId must be a UUID");
+    }
+
+    if (!isUuidLike(params.taskId)) {
+      return badRequest(reply, "taskId must be a valid identifier");
+    }
+
+    try {
+      const workspaceId = body.workspaceId ?? request.userAuth?.workspaceId;
+      const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
+      if (workspaceError) {
+        return workspaceError;
+      }
+
+      const renderPermissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "media",
+        permission: "media.render"
+      });
+      if (renderPermissionError) {
+        return renderPermissionError;
+      }
+
+      const contentPermissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "content",
+        permission: "content.generate"
+      });
+      if (contentPermissionError) {
+        return contentPermissionError;
+      }
+
+      if (!workspaceId || !request.userAuth?.userId) {
+        return badRequest(reply, "workspaceId and user auth context are required");
+      }
+
+      const session = await loadStudioSession(params.sessionId, workspaceId);
+      if (!session) {
+        return reply.code(404).send({
+          message: "Studio session not found"
+        });
+      }
+
+      const draftState = sanitizeObject(session.draft_state);
+      const currentBatch = sanitizeObject(draftState.renderBatch);
+      const currentJobs = ensureArrayOfObjects(currentBatch.jobs);
+      const targetJob = currentJobs.find((job) => getStringValue(job.taskId) === params.taskId);
+
+      if (!targetJob) {
+        return reply.code(404).send({
+          message: "Render batch task not found"
+        });
+      }
+
+      if (getStringValue(targetJob.taskType) !== "scene") {
+        return badRequest(reply, "Only scene tasks can be retried");
+      }
+
+      const rawBrief = sanitizeObject(session.raw_brief);
+      const renderBundle = resolveSessionRenderBundle({
+        directorScriptId: undefined,
+        languageCode: getStringValue(rawBrief.languageCode, "id"),
+        productMetadata: inferProductMetadata(getStringValue(rawBrief.productUrl)),
+        rawBrief,
+        requestedScenePlan: sanitizeObject(session.scene_plan),
+        session
+      });
+
+      const sceneId = getStringValue(targetJob.sceneId);
+      const scene = ensureArrayOfObjects(renderBundle.scenePlan.scenes).find((item) => getStringValue(item.id) === sceneId);
+
+      if (!scene) {
+        return reply.code(404).send({
+          message: "Scene for retry task was not found"
+        });
+      }
+
+      const singleScenePlan = {
+        ...renderBundle.scenePlan,
+        scenes: [scene]
+      };
+      const singleSceneDurationSeconds = Math.max(1, Math.ceil(normalizeDuration(scene.durationFrames, 90) / 30));
+      const singleSceneTemplateSpec = {
+        ...renderBundle.templateRenderSpec,
+        durationSeconds: singleSceneDurationSeconds,
+        scenePlan: {
+          ...singleScenePlan,
+          durationSeconds: singleSceneDurationSeconds
+        }
+      };
+
+      const result = await callInternalService<RenderJobResponse>(request, {
+        body: {
+          aspectRatio: getStringValue(renderBundle.templateRenderSpec.aspectRatio, "9:16"),
+          durationSeconds: singleSceneDurationSeconds,
+          options: {
+            templateRenderSpec: singleSceneTemplateSpec
+          },
+          preferredProvider: body.preferredProvider ?? "template",
+          renderMode: "template_promo",
+          requestedByUserId: request.userAuth.userId,
+          scriptId: "",
+          sourceAssetId: "",
+          workspaceId
+        },
+        method: "POST",
+        path: "/internal/v1/render-jobs",
+        scope: ["media.render.write"],
+        service: "media-processing-service"
+      });
+
+      const updatedJobs = currentJobs.map((job) => {
+        if (getStringValue(job.taskId) !== params.taskId) {
+          return job;
+        }
+
+        return {
+          ...sanitizeObject(job),
+          errorMessage: null,
+          job: stripWorkspaceRenderJob(result.data),
+          jobId: result.data.jobId,
+          outputAssetId: null,
+          providerJobId: result.data.providerJobId ?? null,
+          providerName: result.data.providerName ?? null,
+          retriedAt: new Date().toISOString(),
+          status: result.data.status
+        };
+      });
+
+      const summary = summarizeRenderBatchJobs(updatedJobs);
+      const refreshedBatch = {
+        ...currentBatch,
+        jobs: updatedJobs,
+        status: deriveRenderBatchStatus(summary),
+        summary,
+        updatedAt: new Date().toISOString()
+      };
+      const nextDraftState = {
+        ...draftState,
+        assemblyResult: null,
+        renderBatch: refreshedBatch
+      };
+
+      const updatedResult = await query<StudioSessionRow>(
+        `
+          UPDATE content.studio_sessions
+          SET
+            status = 'processing',
+            draft_state = $3::jsonb,
+            updated_at = NOW()
+          WHERE id = $1
+            AND workspace_id = $2
+          RETURNING
+            id,
+            workspace_id,
+            created_by_user_id,
+            workflow_mode,
+            status,
+            last_layer,
+            raw_brief,
+            draft_state,
+            product_metadata,
+            extracted_context,
+            director_scripts,
+            scene_plan,
+            render_specs,
+            completeness_score,
+            missing_fields,
+            warnings,
+            ready_to_proceed,
+            last_error,
+            created_at,
+            updated_at
+        `,
+        [params.sessionId, workspaceId, JSON.stringify(nextDraftState)]
+      );
+
+      const updatedSession = updatedResult.rows[0];
+      if (!updatedSession) {
+        return reply.code(404).send({
+          message: "Studio session not found"
+        });
+      }
+
+      return reply.code(202).send({
+        item: serializeStudioSession(updatedSession),
+        primaryRenderJob: stripWorkspaceRenderJob(result.data),
+        renderBatch: refreshedBatch
+      });
+    } catch (error) {
+      if (error instanceof DownstreamServiceError) {
+        return reply.code(error.statusCode).send(error.responseBody);
+      }
+
+      request.log.error(error);
+      return internalError(reply);
+    }
+  });
+
   app.post("/v1/content/studio-sessions/:sessionId/assemble", { preHandler: authenticateUserRequest }, async (request, reply) => {
     const params = request.params as {
       sessionId: string;
@@ -1880,6 +2175,101 @@ export function registerContentRoutes(app: FastifyInstance) {
     }
   });
 
+  app.patch("/v1/content/scripts/:scriptId", { preHandler: authenticateUserRequest }, async (request, reply) => {
+    const params = request.params as {
+      scriptId: string;
+    };
+    const body = request.body as {
+      body?: string;
+      cta?: string;
+      hook?: string;
+      title?: string;
+      workspaceId?: string;
+    };
+
+    if (!isUuidLike(params.scriptId)) {
+      return badRequest(reply, "scriptId must be a valid identifier");
+    }
+
+    try {
+      const workspaceId = body.workspaceId ?? request.userAuth?.workspaceId;
+      const workspaceError = ensureWorkspaceScope(request, reply, workspaceId);
+      if (workspaceError) {
+        return workspaceError;
+      }
+
+      const permissionError = await ensureWorkspacePermission(request, reply, {
+        feature: "content",
+        permission: "content.generate"
+      });
+      if (permissionError) {
+        return permissionError;
+      }
+
+      if (!workspaceId) {
+        return badRequest(reply, "workspaceId is required");
+      }
+
+      const hasTitle = Object.prototype.hasOwnProperty.call(body, "title");
+      const hasHook = Object.prototype.hasOwnProperty.call(body, "hook");
+      const hasBody = Object.prototype.hasOwnProperty.call(body, "body");
+      const hasCta = Object.prototype.hasOwnProperty.call(body, "cta");
+
+      if (!hasTitle && !hasHook && !hasBody && !hasCta) {
+        return badRequest(reply, "No changes were provided");
+      }
+
+      const result = await query<ContentScriptRow>(
+        `
+          UPDATE content.scripts
+          SET
+            title = CASE WHEN $3::boolean THEN $4::text ELSE title END,
+            hook = CASE WHEN $5::boolean THEN $6::text ELSE hook END,
+            body = CASE WHEN $7::boolean THEN $8::text ELSE body END,
+            cta = CASE WHEN $9::boolean THEN $10::text ELSE cta END
+          WHERE id = $1
+            AND workspace_id = $2
+          RETURNING
+            id,
+            source_type,
+            title,
+            hook,
+            body,
+            cta,
+            language_code,
+            status,
+            created_at
+        `,
+        [
+          params.scriptId,
+          workspaceId,
+          hasTitle,
+          hasTitle ? body.title?.trim() ?? "" : null,
+          hasHook,
+          hasHook ? body.hook?.trim() ?? "" : null,
+          hasBody,
+          hasBody ? body.body?.trim() ?? "" : null,
+          hasCta,
+          hasCta ? body.cta?.trim() ?? "" : null
+        ]
+      );
+
+      const updatedScript = result.rows[0];
+      if (!updatedScript) {
+        return reply.code(404).send({
+          message: "Script not found"
+        });
+      }
+
+      return reply.send({
+        item: serializeScript(updatedScript)
+      });
+    } catch (error) {
+      request.log.error(error);
+      return internalError(reply);
+    }
+  });
+
   app.post("/v1/content/scripts:generate", { preHandler: authenticateUserRequest }, async (request, reply) => {
     const body = request.body as {
       languageCode?: string;
@@ -2271,6 +2661,17 @@ function ensureArrayOfObjects(input: unknown) {
     .filter((item) => Object.keys(item).length > 0);
 }
 
+function ensureArrayOfStrings(input: unknown) {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input
+    .filter((item) => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function getStringValue(value: unknown, fallback = "") {
   if (typeof value !== "string") {
     return fallback;
@@ -2406,7 +2807,7 @@ function buildContextExtraction(input: {
     missingFields.push("objective");
   }
 
-  if (productUrl || productImageUrl) {
+  if (productUrl || productImageUrl || ensureArrayOfStrings(rawBrief.productImageAssetIds).length > 0) {
     score += 15;
   } else {
     missingFields.push("productUrl_or_productImageUrl");
@@ -2894,6 +3295,7 @@ function buildTemplatePlannerInput(
     aspectRatio: getStringValue(rawBrief.aspectRatio, "9:16"),
     brandTone: normalizeBrandTone(getStringValue(rawBrief.brandTone, "direct")),
     durationSeconds: normalizeDuration(getStringValue(rawBrief.durationSeconds), 18),
+    imageAssetIds: ensureArrayOfStrings(rawBrief.productImageAssetIds),
     musicMode: normalizeMusicMode(getStringValue(rawBrief.musicMode, "clean")),
     niche: normalizeNiche(getStringValue(rawBrief.niche, getStringValue(extraction.enrichedContext.niche, "beauty"))),
     objective: normalizeObjective(getStringValue(rawBrief.objective, getStringValue(productBrief.objective, "promo_offer"))),
@@ -2922,7 +3324,9 @@ function hasScenePlanScenes(scenePlan: Record<string, unknown>) {
 
 function buildSceneSpecsFromPlan(scenePlan: Record<string, unknown>, rawBrief: Record<string, unknown>) {
   const scenes = ensureArrayOfObjects(scenePlan.scenes);
-  const hasProductImage = Boolean(getStringValue(rawBrief.productImageUrl));
+  const hasProductImage =
+    Boolean(getStringValue(rawBrief.productImageUrl)) ||
+    ensureArrayOfStrings(rawBrief.productImageAssetIds).length > 0;
   const hasPresenterImage = Boolean(getStringValue(rawBrief.presenterImageUrl));
   const videoEngine = getStringValue(rawBrief.videoEngine, "template_local");
 
@@ -2974,6 +3378,7 @@ function buildRenderSpecsFromScenePlan(
       durationFrames: scene.durationFrames,
       props: {
         accentColor: pickAccentColor(normalizeNiche(getStringValue(rawBrief.niche, "beauty"))),
+        productImageAssetIds: ensureArrayOfStrings(rawBrief.productImageAssetIds),
         priceText: getStringValue(rawBrief.priceText),
         productImageUrl: getStringValue(rawBrief.productImageUrl),
         presenterImageUrl: getStringValue(rawBrief.presenterImageUrl),

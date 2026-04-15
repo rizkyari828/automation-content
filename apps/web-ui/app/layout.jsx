@@ -543,6 +543,13 @@ export default function RootLayout({ children }) {
             background: linear-gradient(135deg, #0f8590 0%, #37c9b1 100%);
           }
 
+          .cf-content-subtle-state {
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.98) 100%);
+            border: 1px solid #e4ebf4;
+            border-radius: 0.9rem;
+            padding: 0.95rem 1rem;
+          }
+
           .cf-content-advanced {
             border: 1px dashed #d6e1ee;
             border-radius: 1rem;
@@ -550,10 +557,14 @@ export default function RootLayout({ children }) {
           }
 
           .cf-content-advanced summary {
+            align-items: center;
             color: #102c45;
             cursor: pointer;
+            display: flex;
             font-size: 0.82rem;
             font-weight: 700;
+            gap: 0.55rem;
+            justify-content: space-between;
             letter-spacing: 0.04em;
             list-style: none;
             text-transform: uppercase;
