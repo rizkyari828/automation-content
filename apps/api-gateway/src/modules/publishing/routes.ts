@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { FastifyInstance } from "fastify";
 import { authenticateUserRequest, ensureWorkspaceScope } from "../../lib/auth.js";
 import { ensureWorkspacePermission } from "../../lib/authorization.js";
-import { query } from "../../lib/database.js";
+import { query, withTransaction } from "../../lib/database.js";
 import {
   DownstreamServiceError,
   callInternalService
@@ -13,10 +13,19 @@ type PublishJobResponse = {
   jobId: string;
   lastErrorMessage?: string;
   platformCode: string;
+  publishPayload?: PublishPayload;
   publishedAt?: string;
   scheduledFor: string;
   status: string;
   workspaceId?: string;
+};
+
+type PublishPayload = {
+  caption?: string;
+  coverText?: string;
+  hashtags?: string[];
+  platformCode?: string;
+  title?: string;
 };
 
 type OwnershipRow = {
@@ -25,6 +34,10 @@ type OwnershipRow = {
   id: string;
   platform_code?: string;
   status?: string;
+};
+
+type CreatedRow = {
+  id: string;
 };
 
 const PLATFORM_CODES = new Set(["tiktok", "instagram", "facebook", "youtube"]);
@@ -184,6 +197,7 @@ export function registerPublishingRoutes(app: FastifyInstance) {
         connectedAccountId?: string;
         idempotencyKey?: string;
         platformCode?: string;
+        platformPackage?: PublishPayload;
         scheduledFor?: string;
         workspaceId?: string;
       };
@@ -219,6 +233,22 @@ export function registerPublishingRoutes(app: FastifyInstance) {
           return badRequest(reply, "workspaceId is required");
         }
 
+        const publishPayload = normalizePublishPayload(body.platformPackage, body.platformCode);
+        if (body.platformPackage && !publishPayload) {
+          return badRequest(reply, "platformPackage is invalid");
+        }
+
+        const effectiveCaptionId = body.captionId
+          ? body.captionId
+          : publishPayload
+            ? await createCaptionFromPublishPayload({
+              platformCode: body.platformCode,
+              publishPayload,
+              userId: request.userAuth?.userId ?? null,
+              workspaceId
+            })
+            : undefined;
+
         if (body.assetId) {
           const assetResult = await query<OwnershipRow>(
             `
@@ -235,7 +265,7 @@ export function registerPublishingRoutes(app: FastifyInstance) {
           }
         }
 
-        if (body.captionId) {
+        if (effectiveCaptionId) {
           const captionResult = await query<OwnershipRow>(
             `
               SELECT id, platform_code
@@ -243,7 +273,7 @@ export function registerPublishingRoutes(app: FastifyInstance) {
               WHERE id = $1 AND workspace_id = $2
               LIMIT 1
             `,
-            [body.captionId, workspaceId]
+            [effectiveCaptionId, workspaceId]
           );
 
           const caption = captionResult.rows[0];
@@ -280,10 +310,11 @@ export function registerPublishingRoutes(app: FastifyInstance) {
         const result = await callInternalService<PublishJobResponse>(request, {
           body: {
             assetId: body.assetId,
-            captionId: body.captionId,
+            captionId: effectiveCaptionId,
             connectedAccountId: body.connectedAccountId,
             idempotencyKey: body.idempotencyKey ?? randomUUID(),
             platformCode: body.platformCode,
+            publishPayload: publishPayload ?? undefined,
             scheduledFor: body.scheduledFor,
             workspaceId
           },
@@ -361,4 +392,132 @@ function createConnectedAccountExternalId(input: string | undefined, accountLabe
     .replace(/^_+|_+$/g, "");
 
   return candidate || randomUUID().slice(0, 12);
+}
+
+function normalizePublishPayload(
+  input: PublishPayload | undefined,
+  platformCode: string | undefined
+): PublishPayload | null {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+
+  const resolvedPlatformCode = typeof input.platformCode === "string" && input.platformCode.trim()
+    ? input.platformCode.trim()
+    : platformCode?.trim();
+
+  if (!resolvedPlatformCode || !PLATFORM_CODES.has(resolvedPlatformCode)) {
+    return null;
+  }
+
+  if (platformCode?.trim() && resolvedPlatformCode !== platformCode.trim()) {
+    return null;
+  }
+
+  const title = normalizeOptionalText(input.title);
+  const coverText = normalizeOptionalText(input.coverText);
+  const caption = normalizeOptionalText(input.caption);
+  const hashtags = normalizeHashtags(input.hashtags);
+
+  if (!title && !coverText && !caption && hashtags.length === 0) {
+    return null;
+  }
+
+  return {
+    caption: caption ?? undefined,
+    coverText: coverText ?? undefined,
+    hashtags,
+    platformCode: resolvedPlatformCode,
+    title: title ?? undefined
+  };
+}
+
+function normalizeOptionalText(value: unknown) {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function normalizeHashtags(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => (typeof item === "string" ? item.trim() : ""))
+    .filter(Boolean)
+    .slice(0, 30);
+}
+
+async function createCaptionFromPublishPayload(input: {
+  platformCode: string;
+  publishPayload: PublishPayload;
+  userId: string | null;
+  workspaceId: string;
+}) {
+  const title = input.publishPayload.title?.trim()
+    || input.publishPayload.coverText?.trim()
+    || `Publish package ${input.platformCode}`;
+  const body = input.publishPayload.caption?.trim()
+    || input.publishPayload.coverText?.trim()
+    || input.publishPayload.title?.trim()
+    || `Publish package for ${input.platformCode}`;
+  const hashtags = normalizeHashtags(input.publishPayload.hashtags);
+
+  return withTransaction(async (client) => {
+    const scriptResult = await client.query<CreatedRow>(
+      `
+        INSERT INTO content.scripts (
+          workspace_id,
+          created_by_user_id,
+          source_type,
+          title,
+          hook,
+          body,
+          cta,
+          language_code,
+          status
+        )
+        VALUES ($1, $2, 'manual', $3, $4, $5, NULL, 'id', 'ready')
+        RETURNING id
+      `,
+      [
+        input.workspaceId,
+        input.userId,
+        title,
+        input.publishPayload.coverText?.trim() || null,
+        body
+      ]
+    );
+    const scriptId = scriptResult.rows[0]?.id;
+    if (!scriptId) {
+      throw new Error("Failed to create publish script");
+    }
+
+    const captionResult = await client.query<CreatedRow>(
+      `
+        INSERT INTO content.captions (
+          script_id,
+          workspace_id,
+          platform_code,
+          caption_text,
+          hashtags
+        )
+        VALUES ($1, $2, $3, $4, $5::text[])
+        RETURNING id
+      `,
+      [
+        scriptId,
+        input.workspaceId,
+        input.platformCode,
+        input.publishPayload.caption?.trim() || body,
+        hashtags
+      ]
+    );
+
+    const captionId = captionResult.rows[0]?.id;
+    if (!captionId) {
+      throw new Error("Failed to create publish caption");
+    }
+
+    return captionId;
+  });
 }

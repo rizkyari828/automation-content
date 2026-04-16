@@ -80,6 +80,8 @@ components:
         captionId:
           type: string
           format: uuid
+        publishPayload:
+          $ref: "#/components/schemas/PublishPayload"
         platformCode:
           type: string
           enum: [tiktok, instagram, facebook, youtube]
@@ -114,6 +116,8 @@ components:
         platformCode:
           type: string
           enum: [tiktok, instagram, facebook, youtube]
+        publishPayload:
+          $ref: "#/components/schemas/PublishPayload"
         scheduledFor:
           type: string
           format: date-time
@@ -122,3 +126,19 @@ components:
           format: date-time
         lastErrorMessage:
           type: string
+    PublishPayload:
+      type: object
+      properties:
+        platformCode:
+          type: string
+          enum: [tiktok, instagram, facebook, youtube]
+        title:
+          type: string
+        coverText:
+          type: string
+        caption:
+          type: string
+        hashtags:
+          type: array
+          items:
+            type: string

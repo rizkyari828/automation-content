@@ -151,6 +151,79 @@ func main() {
 		writeJSON(w, http.StatusAccepted, job)
 	}))
 
+	mux.HandleFunc("/internal/v1/clip-jobs", auth.RequireInternalServiceAuth(auth.Config{
+		Audience: config.InternalServiceAudience,
+		Issuer:   config.InternalServiceIssuer,
+		Secret:   config.InternalServiceSecret,
+	}, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var body struct {
+			CandidateID       string  `json:"candidateId"`
+			EndSec            float64 `json:"endSec"`
+			Hook              string  `json:"hook"`
+			RequestedByUserID string  `json:"requestedByUserId"`
+			SourceAssetID     string  `json:"sourceAssetId"`
+			StartSec          float64 `json:"startSec"`
+			Summary           string  `json:"summary"`
+			Title             string  `json:"title"`
+			WorkspaceID       string  `json:"workspaceId"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": "Request body must be valid JSON",
+			})
+			return
+		}
+
+		if body.WorkspaceID == "" || body.SourceAssetID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": "workspaceId and sourceAssetId are required",
+			})
+			return
+		}
+
+		if body.EndSec <= body.StartSec {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": "endSec must be greater than startSec",
+			})
+			return
+		}
+
+		job, err := store.CreateClipJob(r.Context(), jobs.CreateClipJobInput{
+			CandidateID:       body.CandidateID,
+			EndSec:            body.EndSec,
+			Hook:              body.Hook,
+			RequestedByUserID: body.RequestedByUserID,
+			SourceAssetID:     body.SourceAssetID,
+			StartSec:          body.StartSec,
+			Summary:           body.Summary,
+			Title:             body.Title,
+			WorkspaceID:       body.WorkspaceID,
+		})
+		if err != nil {
+			logger.Error("clip job create failed", map[string]any{
+				"correlationId": requestCorrelationID(r.Context()),
+				"errorMessage":  err.Error(),
+				"workspaceId":   body.WorkspaceID,
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error":   "clip_job_create_failed",
+				"message": "Failed to create clip job",
+			})
+			return
+		}
+
+		writeJSON(w, http.StatusAccepted, job)
+	}))
+
 	mux.HandleFunc("/internal/v1/render-jobs/", auth.RequireInternalServiceAuth(auth.Config{
 		Audience: config.InternalServiceAudience,
 		Issuer:   config.InternalServiceIssuer,
@@ -248,6 +321,106 @@ func main() {
 			openErrorCode: "render_output_open_failed",
 			openLabel:     "render output",
 			statErrorCode: "render_output_stat_failed",
+		})
+	}))
+
+	mux.HandleFunc("/internal/v1/clip-jobs/", auth.RequireInternalServiceAuth(auth.Config{
+		Audience: config.InternalServiceAudience,
+		Issuer:   config.InternalServiceIssuer,
+		Secret:   config.InternalServiceSecret,
+	}, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		jobID := strings.TrimPrefix(r.URL.Path, "/internal/v1/clip-jobs/")
+		if jobID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": "jobId is required",
+			})
+			return
+		}
+
+		job, err := store.GetClipJob(r.Context(), jobID)
+		if errors.Is(err, jobs.ErrClipJobNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{
+				"error":   "clip_job_not_found",
+				"message": "Clip job was not found",
+			})
+			return
+		}
+		if err != nil {
+			logger.Error("clip job lookup failed", map[string]any{
+				"correlationId": requestCorrelationID(r.Context()),
+				"errorMessage":  err.Error(),
+				"jobId":         jobID,
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error":   "clip_job_lookup_failed",
+				"message": "Failed to load clip job",
+			})
+			return
+		}
+
+		writeJSON(w, http.StatusOK, job)
+	}))
+
+	mux.HandleFunc("/internal/v1/clip-jobs-output/", auth.RequireInternalServiceAuth(auth.Config{
+		Audience: config.InternalServiceAudience,
+		Issuer:   config.InternalServiceIssuer,
+		Secret:   config.InternalServiceSecret,
+	}, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		jobID := strings.TrimPrefix(r.URL.Path, "/internal/v1/clip-jobs-output/")
+		if jobID == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error":   "invalid_request",
+				"message": "jobId is required",
+			})
+			return
+		}
+
+		output, err := store.GetClipJobOutput(r.Context(), jobID)
+		if errors.Is(err, jobs.ErrClipJobNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]string{
+				"error":   "clip_job_not_found",
+				"message": "Clip job was not found",
+			})
+			return
+		}
+		if errors.Is(err, jobs.ErrClipOutputNotReady) {
+			writeJSON(w, http.StatusConflict, map[string]string{
+				"error":   "clip_output_not_ready",
+				"message": "Clipped output is not ready yet",
+			})
+			return
+		}
+		if err != nil {
+			logger.Error("clip job output lookup failed", map[string]any{
+				"correlationId": requestCorrelationID(r.Context()),
+				"errorMessage":  err.Error(),
+				"jobId":         jobID,
+			})
+			writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error":   "clip_output_lookup_failed",
+				"message": "Failed to load clip output",
+			})
+			return
+		}
+
+		serveRenderArtifact(w, r, logger, renderArtifactResponse{
+			filePath:      output.FilePath,
+			jobID:         jobID,
+			mimeType:      output.MimeType,
+			openErrorCode: "clip_output_open_failed",
+			openLabel:     "clip output",
+			statErrorCode: "clip_output_stat_failed",
 		})
 	}))
 

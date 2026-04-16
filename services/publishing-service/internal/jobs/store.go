@@ -2,6 +2,7 @@ package jobs
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 
 	"github.com/jackc/pgx/v5"
@@ -20,6 +21,7 @@ type CreatePublishJobInput struct {
 	ConnectedAccountID string
 	IdempotencyKey     string
 	PlatformCode       string
+	PublishPayload     json.RawMessage
 	ScheduledFor       string
 	WorkspaceID        string
 }
@@ -30,17 +32,19 @@ type DispatchablePublishJob struct {
 	ConnectedAccountID string
 	JobID              string
 	PlatformCode       string
+	PublishPayload     json.RawMessage
 	WorkspaceID        string
 }
 
 type PublishJob struct {
-	JobID            string  `json:"jobId"`
-	LastErrorMessage *string `json:"lastErrorMessage,omitempty"`
-	PlatformCode     string  `json:"platformCode"`
-	PublishedAt      *string `json:"publishedAt,omitempty"`
-	ScheduledFor     string  `json:"scheduledFor"`
-	Status           string  `json:"status"`
-	WorkspaceID      string  `json:"workspaceId"`
+	JobID            string          `json:"jobId"`
+	LastErrorMessage *string         `json:"lastErrorMessage,omitempty"`
+	PlatformCode     string          `json:"platformCode"`
+	PublishPayload   json.RawMessage `json:"publishPayload,omitempty"`
+	PublishedAt      *string         `json:"publishedAt,omitempty"`
+	ScheduledFor     string          `json:"scheduledFor"`
+	Status           string          `json:"status"`
+	WorkspaceID      string          `json:"workspaceId"`
 }
 
 func NewStore(ctx context.Context, databaseURL string) (*Store, error) {
@@ -70,6 +74,7 @@ func (s *Store) CreatePublishJob(ctx context.Context, input CreatePublishJobInpu
         asset_id,
         caption_id,
         platform_code,
+        publish_payload,
         status,
         scheduled_for,
         idempotency_key
@@ -80,19 +85,21 @@ func (s *Store) CreatePublishJob(ctx context.Context, input CreatePublishJobInpu
         NULLIF($3, '')::uuid,
         NULLIF($4, '')::uuid,
         $5,
+        COALESCE($6::jsonb, '{}'::jsonb),
         'scheduled',
-        $6::timestamptz,
-        $7
+        $7::timestamptz,
+        $8
       )
       ON CONFLICT (idempotency_key) DO UPDATE
       SET updated_at = publishing.publish_jobs.updated_at
-      RETURNING id, status, platform_code, scheduled_for::text, workspace_id, published_at::text, last_error_message
+      RETURNING id, status, platform_code, publish_payload, scheduled_for::text, workspace_id, published_at::text, last_error_message
     `,
 		input.WorkspaceID,
 		input.ConnectedAccountID,
 		input.AssetID,
 		input.CaptionID,
 		input.PlatformCode,
+		input.PublishPayload,
 		input.ScheduledFor,
 		input.IdempotencyKey,
 	)
@@ -102,6 +109,7 @@ func (s *Store) CreatePublishJob(ctx context.Context, input CreatePublishJobInpu
 		&job.JobID,
 		&job.Status,
 		&job.PlatformCode,
+		&job.PublishPayload,
 		&job.ScheduledFor,
 		&job.WorkspaceID,
 		&job.PublishedAt,
@@ -118,6 +126,7 @@ func (s *Store) GetPublishJob(ctx context.Context, jobID string) (PublishJob, er
         id,
         status,
         platform_code,
+        publish_payload,
         scheduled_for::text,
         workspace_id,
         published_at::text,
@@ -134,6 +143,7 @@ func (s *Store) GetPublishJob(ctx context.Context, jobID string) (PublishJob, er
 		&job.JobID,
 		&job.Status,
 		&job.PlatformCode,
+		&job.PublishPayload,
 		&job.ScheduledFor,
 		&job.WorkspaceID,
 		&job.PublishedAt,
@@ -182,6 +192,7 @@ func (s *Store) ClaimNextPublishJob(ctx context.Context, workerID string, leaseS
         COALESCE(job.caption_id::text, ''),
         COALESCE(job.connected_account_id::text, ''),
         job.platform_code,
+        job.publish_payload,
         job.workspace_id
     `,
 		workerID,
@@ -195,6 +206,7 @@ func (s *Store) ClaimNextPublishJob(ctx context.Context, workerID string, leaseS
 		&job.CaptionID,
 		&job.ConnectedAccountID,
 		&job.PlatformCode,
+		&job.PublishPayload,
 		&job.WorkspaceID,
 	); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

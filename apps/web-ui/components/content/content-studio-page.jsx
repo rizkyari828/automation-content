@@ -38,6 +38,7 @@ const DEFAULT_FORM = {
   productImageAssetIds: [],
   productImageUrl: "",
   priceText: "",
+  sourceVideoAssetId: "",
   sourceVideoUrl: "",
   sourceType: "product",
   studioUseCase: "affiliate_promo",
@@ -157,7 +158,11 @@ function createTemplateEditorForm(template) {
 }
 
 function isCreatorStudioUseCase(value) {
-  return value === "creator_short";
+  return value === "creator_short" || value === "long_to_short";
+}
+
+function isClipperStudioUseCase(value) {
+  return value === "long_to_short";
 }
 
 function normalizePlatformTargets(value) {
@@ -224,6 +229,7 @@ function buildCreatorCtaText(form, locale) {
 function buildCreatorPromptHint(form, locale) {
   const platformTargets = normalizePlatformTargets(form.platformTargets);
   const details = [
+    isClipperStudioUseCase(form.studioUseCase) ? `Use case: long_to_short` : "",
     form.topic.trim() ? `Topic: ${form.topic.trim()}` : "",
     form.creatorPersona ? `Persona: ${form.creatorPersona}` : "",
     form.contentPillar ? `Pillar: ${form.contentPillar}` : "",
@@ -231,6 +237,7 @@ function buildCreatorPromptHint(form, locale) {
     form.hookStyle ? `Hook style: ${form.hookStyle}` : "",
     form.durationTargetSec ? `Target duration: ${form.durationTargetSec}s` : "",
     form.sourceVideoUrl.trim() ? `Source URL: ${form.sourceVideoUrl.trim()}` : "",
+    form.sourceVideoAssetId ? `Source asset: ${form.sourceVideoAssetId}` : "",
     form.promptHint.trim() ? `Notes: ${form.promptHint.trim()}` : ""
   ].filter(Boolean);
   const transcriptSnippet = form.transcriptText.trim()
@@ -245,34 +252,46 @@ function normalizeTranscriptText(input) {
     return "";
   }
 
-  return input
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => {
+  const lines = input.split(/\r?\n/).map((line) => line.trim());
+  const result = [];
+  let activeTimestamp = "";
+  let activeText = [];
+
+  const flushCue = () => {
+    if (activeText.length === 0) {
+      activeTimestamp = "";
+      return;
+    }
+
+    const text = activeText.join(" ").trim();
+    if (text) {
+      result.push(activeTimestamp ? `[${activeTimestamp}] ${text}` : text);
+    }
+
+    activeTimestamp = "";
+    activeText = [];
+  };
+
+  for (const line of lines) {
+    if (!line || /^WEBVTT$/i.test(line) || /^\d+$/.test(line)) {
       if (!line) {
-        return false;
+        flushCue();
       }
+      continue;
+    }
 
-      if (/^\d+$/.test(line)) {
-        return false;
-      }
+    const timestampMatch = line.match(/^(\d{2}:\d{2}(?::\d{2})?[.,]\d{3})\s+-->\s+(\d{2}:\d{2}(?::\d{2})?[.,]\d{3})$/);
+    if (timestampMatch) {
+      flushCue();
+      activeTimestamp = `${timestampMatch[1].replace(",", ".")} --> ${timestampMatch[2].replace(",", ".")}`;
+      continue;
+    }
 
-      if (/^WEBVTT$/i.test(line)) {
-        return false;
-      }
+    activeText.push(line);
+  }
 
-      if (/^\d{2}:\d{2}:\d{2}[.,]\d{3}\s+-->\s+\d{2}:\d{2}:\d{2}[.,]\d{3}$/.test(line)) {
-        return false;
-      }
-
-      if (/^\d{2}:\d{2}[.,]\d{3}\s+-->\s+\d{2}:\d{2}[.,]\d{3}$/.test(line)) {
-        return false;
-      }
-
-      return true;
-    })
-    .join("\n")
-    .trim();
+  flushCue();
+  return result.join("\n").trim();
 }
 
 function buildCreatorPlatformPackages(form, script, locale) {
@@ -281,6 +300,7 @@ function buildCreatorPlatformPackages(form, script, locale) {
   const body = script?.body?.trim() || form.transcriptText.trim() || form.promptHint.trim();
   const cta = script?.cta?.trim() || buildCreatorCtaText(form, locale);
   const topic = form.topic.trim() || form.title.trim();
+  const isClipper = isClipperStudioUseCase(form.studioUseCase);
 
   return platforms.map((platform) => {
     const label = platform === "youtube"
@@ -289,10 +309,14 @@ function buildCreatorPlatformPackages(form, script, locale) {
         ? "IG Reels"
         : "TikTok";
     const title = platform === "youtube"
-      ? `${topic || "Creator short"} | ${hook}`.trim()
+      ? `${topic || (isClipper ? "Clip highlight" : "Creator short")} | ${hook}`.trim()
       : hook;
     const coverText = hook.split(/[.!?]/)[0]?.trim() || topic || label;
-    const caption = [body, cta].filter(Boolean).join("\n\n");
+    const caption = [
+      isClipper && topic ? `${locale === "id" ? "Clip dari" : "Clip from"}: ${topic}` : "",
+      body,
+      cta
+    ].filter(Boolean).join("\n\n");
 
     return {
       caption,
@@ -334,6 +358,47 @@ function getAvailablePublishPlatforms(form, assemblyResult) {
   }));
 }
 
+function getSelectedPublishPlatformPackage(form, assemblyResult, selectedPublishPlatformCode) {
+  const packages = Array.isArray(assemblyResult?.platformPackages)
+    ? assemblyResult.platformPackages.filter((item) => item && typeof item === "object")
+    : [];
+  const matchedPackage = packages.find((item) => item.platformCode === selectedPublishPlatformCode);
+
+  if (matchedPackage) {
+    return {
+      caption: typeof matchedPackage.caption === "string" ? matchedPackage.caption.trim() : "",
+      coverText: typeof matchedPackage.coverText === "string" ? matchedPackage.coverText.trim() : "",
+      hashtags: Array.isArray(matchedPackage.hashtags)
+        ? matchedPackage.hashtags.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+        : typeof matchedPackage.hashtags === "string"
+          ? matchedPackage.hashtags.split(/\s+/).filter(Boolean)
+          : [],
+      platformCode: matchedPackage.platformCode || selectedPublishPlatformCode,
+      title: typeof matchedPackage.title === "string" ? matchedPackage.title.trim() : ""
+    };
+  }
+
+  const caption = typeof assemblyResult?.caption === "string" ? assemblyResult.caption.trim() : "";
+  const hashtags = Array.isArray(assemblyResult?.hashtags)
+    ? assemblyResult.hashtags.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+    : typeof assemblyResult?.hashtags === "string"
+      ? assemblyResult.hashtags.split(/\s+/).filter(Boolean)
+      : [];
+  const title = typeof form?.title === "string" ? form.title.trim() : "";
+
+  if (!caption && hashtags.length === 0 && !title) {
+    return null;
+  }
+
+  return {
+    caption,
+    coverText: title,
+    hashtags,
+    platformCode: selectedPublishPlatformCode,
+    title
+  };
+}
+
 function getStudioUseCaseOptions(copy, locale) {
   if (Array.isArray(copy.studioUseCaseOptions) && copy.studioUseCaseOptions.length > 0) {
     return copy.studioUseCaseOptions;
@@ -353,6 +418,13 @@ function getStudioUseCaseOptions(copy, locale) {
       body: locale === "id"
         ? "Untuk Shorts, Reels, dan TikTok dari ide atau video panjang."
         : "For Shorts, Reels, and TikTok from ideas or long videos."
+    },
+    {
+      value: "long_to_short",
+      title: locale === "id" ? "Clipper" : "Clipper",
+      body: locale === "id"
+        ? "Untuk memotong long video menjadi candidate clips siap Shorts, Reels, atau TikTok."
+        : "Turn a long video into candidate clips for Shorts, Reels, or TikTok."
     }
   ];
 }
@@ -575,6 +647,14 @@ function getRenderPosterUrl(renderJob) {
   }
 
   return `/api/media/render-jobs/${renderJob.jobId}/poster`;
+}
+
+function getClipOutputUrl(clipJob) {
+  if (!clipJob?.jobId || clipJob.status !== "completed") {
+    return null;
+  }
+
+  return `/api/media/clip-jobs/${clipJob.jobId}/output`;
 }
 
 function formatDurationLabel(totalSeconds) {
@@ -938,10 +1018,12 @@ function GeneratorCard({
   onProductAssetUpload,
   onPreviewPlan,
   onReset,
+  onSourceVideoUpload,
   onStudioUseCaseChange,
   onTranscriptFileUpload,
   onTogglePlatformTarget,
   productAssetUploadState,
+  sourceVideoUploadState,
   onSubmit,
   planning,
   submitting,
@@ -1092,6 +1174,60 @@ function GeneratorCard({
                     onChange={onChange}
                     placeholder={creatorCopy.fields.sourceVideoUrl.placeholder}
                   />
+                </div>
+                <div className="col-12">
+                  <div className="cf-content-checkpoint">
+                    <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                      <div>
+                        <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                          {locale === "id" ? "Source video asset" : "Source video asset"}
+                        </p>
+                        <p className="text-xs text-secondary mb-0">
+                          {locale === "id"
+                            ? "Upload video panjang langsung supaya clipper bisa mengikat candidate clip ke source asset yang sama."
+                            : "Upload the long video directly so the clipper can bind candidate clips to the same source asset."}
+                        </p>
+                      </div>
+                      {canUploadAssets ? (
+                        <label className={`btn btn-sm mb-0 ${sourceVideoUploadState.uploading ? "btn-outline-dark" : "btn-outline-primary"}`}>
+                          {sourceVideoUploadState.uploading
+                            ? (locale === "id" ? "Mengunggah video..." : "Uploading video...")
+                            : (locale === "id" ? "Upload video sumber" : "Upload source video")}
+                          <input
+                            hidden
+                            accept="video/*"
+                            disabled={sourceVideoUploadState.uploading}
+                            type="file"
+                            onChange={onSourceVideoUpload}
+                          />
+                        </label>
+                      ) : (
+                        <span className="badge bg-light text-dark border">
+                          {locale === "id" ? "Butuh akses asset" : "Asset access needed"}
+                        </span>
+                      )}
+                    </div>
+                    {sourceVideoUploadState.fileName ? (
+                      <div className="d-flex align-items-center gap-2 flex-wrap mt-3">
+                        <span className="badge bg-light text-dark border">{sourceVideoUploadState.fileName}</span>
+                        {sourceVideoUploadState.assetId ? (
+                          <span className="badge bg-gradient-success">
+                            {locale === "id" ? "Source siap" : "Source ready"}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    {sourceVideoUploadState.previewUrl ? (
+                      <video
+                        className="border-radius-lg mt-3"
+                        controls
+                        muted
+                        preload="metadata"
+                        src={sourceVideoUploadState.previewUrl}
+                        style={{ width: 220, maxWidth: "100%" }}
+                      />
+                    ) : null}
+                  </div>
                 </div>
               </>
             ) : (
@@ -1662,12 +1798,16 @@ function BriefSnapshotCard({
 
 function ReviewApproveCard({
   canRender,
+  clipJob,
+  clipPreviewUrl,
+  clipSubmitting,
   copy,
   form,
   isSample,
   locale,
   loading,
   onEditBrief,
+  onExportClipCandidate,
   onSaveReview,
   onSceneTextChange,
   onScriptChange,
@@ -1684,7 +1824,16 @@ function ReviewApproveCard({
   const tabOptions = getReviewTabOptions(copy, workflowMode);
   const useGuidedReview = workflowMode !== "manual";
   const isCreator = isCreatorStudioUseCase(form.studioUseCase);
+  const isClipper = isClipperStudioUseCase(form.studioUseCase);
+  const hasSourceVideoAsset = Boolean(form.sourceVideoAssetId);
   const selectedPlatforms = normalizePlatformTargets(form.platformTargets);
+  const extractedClipCandidates = isClipper
+    ? (
+      Array.isArray(plan?.extractedContext?.enrichedContext?.clipCandidates)
+        ? plan.extractedContext.enrichedContext.clipCandidates
+        : []
+    ).filter((item) => item && typeof item === "object")
+    : [];
   const hasProductImage =
     Boolean(form.productImageUrl.trim()) ||
     (Array.isArray(form.productImageAssetIds) && form.productImageAssetIds.length > 0);
@@ -1712,10 +1861,14 @@ function ReviewApproveCard({
     },
     {
       key: "source",
-      state: form.sourceVideoUrl.trim() || form.transcriptText.trim() ? "ok" : "warn",
-      text: form.sourceVideoUrl.trim() || form.transcriptText.trim()
-        ? (locale === "id" ? "Sumber creator sudah siap dipakai." : "Creator source is ready.")
-        : (locale === "id" ? "Tambahkan transcript atau URL sumber video." : "Add a transcript or source video URL.")
+      state: form.sourceVideoUrl.trim() || form.sourceVideoAssetId || form.transcriptText.trim() ? "ok" : "warn",
+      text: form.sourceVideoUrl.trim() || form.sourceVideoAssetId || form.transcriptText.trim()
+        ? (isClipper
+          ? (locale === "id" ? "Source long video siap dipakai untuk clipping." : "The long-video source is ready for clipping.")
+          : (locale === "id" ? "Sumber creator sudah siap dipakai." : "Creator source is ready."))
+        : (isClipper
+          ? (locale === "id" ? "Tambahkan transcript atau URL long video dulu." : "Add a transcript or long-video URL first.")
+          : (locale === "id" ? "Tambahkan transcript atau URL sumber video." : "Add a transcript or source video URL."))
     },
     {
       key: "platforms",
@@ -1808,15 +1961,21 @@ function ReviewApproveCard({
     }
 
     if (tab.value === "script") {
-      return locale === "id" ? "Hook & packaging" : "Hook & packaging";
+      return isClipper
+        ? (locale === "id" ? "Clip hook & packaging" : "Clip hook & packaging")
+        : (locale === "id" ? "Hook & packaging" : "Hook & packaging");
     }
 
     if (tab.value === "videoPlan") {
-      return locale === "id" ? "Beat plan" : "Beat plan";
+      return isClipper
+        ? (locale === "id" ? "Clip plan" : "Clip plan")
+        : (locale === "id" ? "Beat plan" : "Beat plan");
     }
 
     if (tab.value === "validation") {
-      return locale === "id" ? "Checklist creator" : "Creator checklist";
+      return isClipper
+        ? (locale === "id" ? "Checklist clipper" : "Clipper checklist")
+        : (locale === "id" ? "Checklist creator" : "Creator checklist");
     }
 
     return tab.label;
@@ -1825,10 +1984,10 @@ function ReviewApproveCard({
   function renderReviewPanel(panelValue) {
     const creatorPackages = isCreator ? buildCreatorPlatformPackages(form, script, locale) : [];
     const reviewTitle = isCreator
-      ? (locale === "id" ? "Hook utama" : "Primary hook")
+      ? (isClipper ? (locale === "id" ? "Hook clip utama" : "Primary clip hook") : (locale === "id" ? "Hook utama" : "Primary hook"))
       : copy.previewMeta.hook;
     const reviewBodyTitle = isCreator
-      ? (locale === "id" ? "Beat / narasi utama" : "Main beat / narrative")
+      ? (isClipper ? (locale === "id" ? "Ringkasan clip" : "Clip summary") : (locale === "id" ? "Beat / narasi utama" : "Main beat / narrative"))
       : copy.previewMeta.body;
     const reviewCtaTitle = isCreator
       ? (locale === "id" ? "Closing / CTA" : "Closing / CTA")
@@ -1940,10 +2099,18 @@ function ReviewApproveCard({
             <div className="col-md-4">
               <div className="cf-content-mini-stat">
                 <span className="text-xs text-uppercase text-secondary">
-                  {isCreator ? (locale === "id" ? "Platform" : "Platform") : copy.planMeta.objective}
+                  {isClipper
+                    ? (locale === "id" ? "Candidate clips" : "Candidate clips")
+                    : isCreator
+                      ? (locale === "id" ? "Platform" : "Platform")
+                      : copy.planMeta.objective}
                 </span>
                 <h6 className="mb-0 mt-1">
-                  {isCreator ? (selectedPlatforms.join(", ") || "-") : (copy.objectiveLabels[plan?.templateRenderSpec?.objective] ?? "-")}
+                  {isClipper
+                    ? `${extractedClipCandidates.length || 0}`
+                    : isCreator
+                      ? (selectedPlatforms.join(", ") || "-")
+                      : (copy.objectiveLabels[plan?.templateRenderSpec?.objective] ?? "-")}
                 </h6>
               </div>
             </div>
@@ -1956,6 +2123,92 @@ function ReviewApproveCard({
               </div>
             </div>
           </div>
+          {isClipper && extractedClipCandidates.length ? (
+            <div className="cf-content-caption-box mb-3">
+              <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">
+                {locale === "id" ? "Candidate clips" : "Candidate clips"}
+              </p>
+              <div className="d-flex flex-column gap-3">
+                {extractedClipCandidates.map((candidate, index) => (
+                  <div key={candidate.id ?? `candidate-${index}`} className="cf-content-snapshot">
+                    <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
+                      <strong className="text-sm">
+                        {candidate.title || `${locale === "id" ? "Clip" : "Clip"} ${index + 1}`}
+                      </strong>
+                      <span className="badge bg-light text-dark border">
+                        {candidate.startSec != null && candidate.endSec != null
+                          ? `${candidate.startSec}s - ${candidate.endSec}s`
+                          : `${candidate.durationSec ?? form.durationTargetSec}s`}
+                      </span>
+                    </div>
+                    {candidate.hook ? <p className="text-sm mb-1">{candidate.hook}</p> : null}
+                    {candidate.summary ? <p className="text-xs text-secondary mb-1">{candidate.summary}</p> : null}
+                    {candidate.reason ? <p className="text-xs text-secondary mb-0">{candidate.reason}</p> : null}
+                    <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-3">
+                      <span className="text-xs text-secondary">
+                        {hasSourceVideoAsset
+                          ? (locale === "id" ? "Siap diexport dari source asset." : "Ready to export from the source asset.")
+                          : (locale === "id" ? "Upload source video asset untuk export final." : "Upload a source video asset for final export.")}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-dark mb-0"
+                        disabled={
+                          clipSubmitting ||
+                          !hasSourceVideoAsset ||
+                          !Number.isFinite(Number(candidate.startSec)) ||
+                          !Number.isFinite(Number(candidate.endSec)) ||
+                          Number(candidate.endSec) <= Number(candidate.startSec)
+                        }
+                        onClick={() => onExportClipCandidate?.(candidate)}
+                      >
+                        {clipSubmitting
+                          ? (locale === "id" ? "Queueing..." : "Queueing...")
+                          : (locale === "id" ? "Export clip" : "Export clip")}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {isClipper && clipJob?.jobId ? (
+            <div className="cf-content-snapshot mb-3">
+              <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
+                <div>
+                  <strong className="text-sm">
+                    {locale === "id" ? "Status export clip" : "Clip export status"}
+                  </strong>
+                  <p className="text-xs text-secondary mb-0 mt-1">
+                    {clipJob.status === "queued"
+                      ? (locale === "id" ? "Clip sedang menunggu antrean worker." : "The clip is waiting in the worker queue.")
+                      : clipJob.status === "processing"
+                        ? (locale === "id" ? "Worker sedang memotong video source." : "The worker is trimming the source video now.")
+                        : clipJob.status === "completed"
+                          ? (locale === "id" ? "Clip final siap dipreview dan dipublish." : "The final clip is ready to preview and publish.")
+                          : clipJob.status === "failed"
+                            ? (locale === "id" ? "Export clip gagal dan perlu dicoba lagi." : "The clip export failed and should be retried.")
+                            : clipJob.status}
+                  </p>
+                </div>
+                <span className={`badge ${clipJob.status === "failed" ? "bg-gradient-danger" : clipJob.status === "completed" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                  {clipJob.status}
+                </span>
+              </div>
+              {clipJob.lastErrorMessage ? (
+                <p className="text-xs text-danger mb-2">{clipJob.lastErrorMessage}</p>
+              ) : null}
+              {clipPreviewUrl ? (
+                <video
+                  key={clipPreviewUrl}
+                  className="d-block w-100 border-radius-lg"
+                  controls
+                  preload="metadata"
+                  src={clipPreviewUrl}
+                />
+              ) : null}
+            </div>
+          ) : null}
           <div className="cf-content-draft-list d-flex flex-column gap-3">
             {plan.scenePlan.scenes.map((scene, index) => (
               <div key={scene.id} className="cf-content-draft-item">
@@ -2034,14 +2287,20 @@ function ReviewApproveCard({
           <div>
             <h6 className="mb-1">
               {isCreator
-                ? (locale === "id" ? "Review hook & packaging" : "Review hook & packaging")
+                ? (isClipper
+                  ? (locale === "id" ? "Review clip hooks & packaging" : "Review clip hooks & packaging")
+                  : (locale === "id" ? "Review hook & packaging" : "Review hook & packaging"))
                 : copy.reviewBoardTitle}
             </h6>
             <p className="text-sm mb-0">
               {isCreator
-                ? (locale === "id"
-                  ? "Cek hook, beat plan, dan packaging per platform dalam satu tempat sebelum render dimulai."
-                  : "Review the hook, beat plan, and per-platform packaging in one place before rendering starts.")
+                ? (isClipper
+                  ? (locale === "id"
+                    ? "Cek candidate clips, clip plan, dan packaging per platform sebelum render dimulai."
+                    : "Review candidate clips, the clip plan, and per-platform packaging before rendering starts.")
+                  : (locale === "id"
+                    ? "Cek hook, beat plan, dan packaging per platform dalam satu tempat sebelum render dimulai."
+                    : "Review the hook, beat plan, and per-platform packaging in one place before rendering starts."))
                 : copy.reviewBoardBody}
             </p>
           </div>
@@ -2167,6 +2426,8 @@ function PlanPreviewCard({
   assemblyResult,
   canRender,
   canManagePublishAccounts,
+  clipJob,
+  clipPreviewUrl,
   connectedAccountForm,
   connectedAccountLoading,
   connectedAccounts,
@@ -2197,9 +2458,12 @@ function PlanPreviewCard({
   submitConnectedAccount
 }) {
   const isCreator = isCreatorStudioUseCase(form?.studioUseCase);
+  const isClipper = isClipperStudioUseCase(form?.studioUseCase);
+  const primaryPreviewUrl = isClipper && clipPreviewUrl ? clipPreviewUrl : renderPreviewUrl;
   const publishPlatformOptions = getAvailablePublishPlatforms(form, assemblyResult);
   const selectedPublishPlatformLabel = getPlatformPackageLabel(selectedPublishPlatformCode);
   const renderStatus = renderJob?.status ? copy.renderJobStatusLabels?.[renderJob.status] ?? renderJob.status : null;
+  const clipStatus = clipJob?.status ? copy.renderJobStatusLabels?.[clipJob.status] ?? clipJob.status : null;
   const publishStatus = publishJob?.status
     ? copy.publishJobStatusLabels?.[publishJob.status] ?? publishJob.status
     : null;
@@ -2233,6 +2497,8 @@ function PlanPreviewCard({
   const renderInFlight =
     renderBatch?.status === "processing" ||
     renderBatch?.status === "queued" ||
+    clipJob?.status === "queued" ||
+    clipJob?.status === "processing" ||
     renderJob?.status === "queued" ||
     renderJob?.status === "processing";
   const etaSeconds = renderInFlight ? Math.max(8, runningBatchJobs * 7) : 0;
@@ -2283,11 +2549,11 @@ function PlanPreviewCard({
     : [];
   const checklistItems = [
     {
-      done: Boolean(assemblyResult?.videoAssetId || renderJob?.outputAssetId),
+      done: Boolean(assemblyResult?.videoAssetId || renderJob?.outputAssetId || clipJob?.outputAssetId),
       label: locale === "id" ? "Video output siap" : "Video output ready"
     },
     {
-      done: Boolean(assemblyPlatformPackages.length > 0 || assemblyResult?.caption || renderPreviewUrl),
+      done: Boolean(assemblyPlatformPackages.length > 0 || assemblyResult?.caption || primaryPreviewUrl),
       label: locale === "id" ? "Caption siap pakai" : "Caption prepared"
     },
     {
@@ -2546,14 +2812,34 @@ function PlanPreviewCard({
                 </div>
               </details>
             ) : null}
-            {renderPreviewUrl ? (
+            {isClipper && clipJob?.jobId ? (
+              <div className="alert alert-light border text-sm py-2 px-3 mt-3 mb-0" role="alert">
+                <strong>{locale === "id" ? "Clip export" : "Clip export"}:</strong>{" "}
+                {clipJob.status === "queued"
+                  ? (locale === "id" ? "menunggu antrean worker." : "waiting in the worker queue.")
+                  : clipJob.status === "processing"
+                    ? (locale === "id" ? "sedang memotong source video." : "trimming the source video now.")
+                    : clipJob.status === "completed"
+                      ? (locale === "id" ? "selesai dan siap dipakai." : "completed and ready to use.")
+                      : clipJob.status === "failed"
+                        ? (locale === "id" ? "gagal, cek error lalu coba export lagi." : "failed, check the error and retry export.")
+                        : clipStatus}
+              </div>
+            ) : null}
+            {primaryPreviewUrl ? (
               <div className="mt-4 pt-3 border-top">
                 <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
                   <div>
                     <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
-                      {copy.renderPreviewTitle}
+                      {isClipper && clipPreviewUrl
+                        ? (locale === "id" ? "Clip preview" : "Clip preview")
+                        : copy.renderPreviewTitle}
                     </p>
-                    <p className="text-sm mb-0">{copy.renderPreviewBody}</p>
+                    <p className="text-sm mb-0">
+                      {isClipper && clipPreviewUrl
+                        ? (locale === "id" ? "Hasil trim final dari source video untuk clip yang dipilih." : "The final trimmed result from the source video for the selected clip.")
+                        : copy.renderPreviewBody}
+                    </p>
                   </div>
                   <span className="badge bg-gradient-dark">
                     {copy.renderDurationLabel.replace("{{duration}}", durationLabel)}
@@ -2570,14 +2856,14 @@ function PlanPreviewCard({
                     }}
                   >
                     <video
-                      key={renderPreviewUrl}
+                      key={primaryPreviewUrl}
                       className="d-block w-100"
                       controls
                       muted
                       poster={renderPosterUrl ?? undefined}
                       playsInline
                       preload="metadata"
-                      src={renderPreviewUrl}
+                      src={primaryPreviewUrl}
                       style={{
                         aspectRatio: "9 / 16",
                         background: "#09111a",
@@ -2695,7 +2981,7 @@ function PlanPreviewCard({
                       <a
                         className="btn btn-outline-primary mb-0"
                         download={createPublishFileName(plan)}
-                        href={renderPreviewUrl}
+                        href={primaryPreviewUrl}
                       >
                         {copy.renderActions.download}
                       </a>
@@ -2852,7 +3138,7 @@ function PlanPreviewCard({
                   <div className="d-flex flex-wrap gap-2 mt-3">
                     <a
                       className="btn btn-sm btn-outline-dark mb-0"
-                      href={renderPreviewUrl}
+                      href={primaryPreviewUrl}
                       rel="noreferrer"
                       target="_blank"
                     >
@@ -2861,7 +3147,7 @@ function PlanPreviewCard({
                     <a
                       className="btn btn-sm btn-outline-primary mb-0"
                       download={createPublishFileName(plan)}
-                      href={renderPreviewUrl}
+                      href={primaryPreviewUrl}
                     >
                       {copy.renderActions.download}
                     </a>
@@ -3542,6 +3828,7 @@ function createTrackedProperties(form, workflowMode, extras = {}) {
     has_product_image_asset: Array.isArray(form.productImageAssetIds) && form.productImageAssetIds.length > 0,
     has_price_text: Boolean(form.priceText.trim()),
     has_product_url: Boolean(form.productUrl.trim()),
+    has_source_video_asset: Boolean(form.sourceVideoAssetId),
     has_source_video_url: Boolean(form.sourceVideoUrl.trim()),
     has_transcript_text: Boolean(form.transcriptText.trim()),
     niche: form.niche,
@@ -3579,6 +3866,7 @@ function buildStudioRawBrief(form, workflowMode) {
     productImageUrl: isCreator ? "" : form.productImageUrl.trim(),
     productUrl: isCreator ? "" : form.productUrl.trim(),
     promptHint: isCreator ? buildCreatorPromptHint(form, locale) : form.promptHint.trim(),
+    sourceVideoAssetId: isCreator ? form.sourceVideoAssetId : undefined,
     sourceVideoUrl: isCreator ? form.sourceVideoUrl.trim() : undefined,
     sourceType: form.sourceType,
     studioUseCase: form.studioUseCase,
@@ -3623,6 +3911,10 @@ function buildStudioDraftState({
 }
 
 function deriveDirectorAngles(form) {
+  if (isClipperStudioUseCase(form.studioUseCase)) {
+    return ["highlight_clip", "retention_cut", `${form.contentPillar || "education"}_clip`];
+  }
+
   if (isCreatorStudioUseCase(form.studioUseCase)) {
     return [form.hookStyle || "curiosity_gap", `${form.contentPillar || "education"}_creator`];
   }
@@ -3685,6 +3977,8 @@ export default function ContentStudioPage() {
   const [workspaceTemplateEditorForm, setWorkspaceTemplateEditorForm] = useState(() => createTemplateEditorForm(null));
   const [renderJob, setRenderJob] = useState(null);
   const [renderBatch, setRenderBatch] = useState(null);
+  const [clipJob, setClipJob] = useState(null);
+  const [clipSubmitting, setClipSubmitting] = useState(false);
   const [assemblyResult, setAssemblyResult] = useState(null);
   const [assemblySubmitting, setAssemblySubmitting] = useState(false);
   const [renderSubmitting, setRenderSubmitting] = useState(false);
@@ -3697,6 +3991,12 @@ export default function ContentStudioPage() {
   const [connectedAccountForm, setConnectedAccountForm] = useState(DEFAULT_CONNECTED_ACCOUNT_FORM);
   const [connectedAccountSubmitting, setConnectedAccountSubmitting] = useState(false);
   const [productAssetUploadState, setProductAssetUploadState] = useState({
+    assetId: null,
+    fileName: "",
+    previewUrl: "",
+    uploading: false
+  });
+  const [sourceVideoUploadState, setSourceVideoUploadState] = useState({
     assetId: null,
     fileName: "",
     previewUrl: "",
@@ -3758,6 +4058,14 @@ export default function ContentStudioPage() {
             uploading: false
           });
         }
+        if (typeof saved.form.sourceVideoAssetId === "string" && saved.form.sourceVideoAssetId.trim()) {
+          setSourceVideoUploadState({
+            assetId: saved.form.sourceVideoAssetId,
+            fileName: locale === "id" ? "Video sumber tersimpan" : "Saved source video",
+            previewUrl: buildAssetContentUrl(saved.form.sourceVideoAssetId),
+            uploading: false
+          });
+        }
       }
 
       if (typeof saved?.workflowMode === "string") {
@@ -3790,6 +4098,10 @@ export default function ContentStudioPage() {
 
       if (saved?.renderBatch && typeof saved.renderBatch === "object") {
         setRenderBatch(saved.renderBatch);
+      }
+
+      if (saved?.clipJob && typeof saved.clipJob === "object") {
+        setClipJob(saved.clipJob);
       }
 
       if (saved?.assemblyResult && typeof saved.assemblyResult === "object") {
@@ -4592,6 +4904,39 @@ export default function ContentStudioPage() {
   }, [canReadRenderJobs, renderJob]);
 
   useEffect(() => {
+    if (!clipJob?.jobId || !canReadRenderJobs) {
+      return;
+    }
+
+    if (!["queued", "processing"].includes(clipJob.status)) {
+      return;
+    }
+
+    let active = true;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/media/clip-jobs/${clipJob.jobId}`, {
+          credentials: "same-origin"
+        });
+        const payload = await response.json().catch(() => null);
+
+        if (!active || !response.ok) {
+          return;
+        }
+
+        setClipJob(payload);
+      } catch {
+        // Polling should stay silent to avoid interrupting the studio.
+      }
+    }, 3000);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
+  }, [canReadRenderJobs, clipJob]);
+
+  useEffect(() => {
     if (!publishJob?.jobId || !canReadPublishJobs) {
       return;
     }
@@ -4638,6 +4983,7 @@ export default function ContentStudioPage() {
       activeStudioStep,
       assemblyResult,
       connectedAccountForm,
+      clipJob,
       form,
       publishJob,
       renderBatch,
@@ -4656,7 +5002,7 @@ export default function ContentStudioPage() {
 
     window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(payload));
     setLastSavedAt(payload.updatedAt);
-  }, [activeStudioStep, assemblyResult, connectedAccountForm, form, publishJob, renderBatch, renderJob, reviewTab, selectedPublishPlatformCode, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
+  }, [activeStudioStep, assemblyResult, clipJob, connectedAccountForm, form, publishJob, renderBatch, renderJob, reviewTab, selectedPublishPlatformCode, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
 
   useEffect(() => {
     if (!storageReady || !sessionResolved || !isAuthenticated || !studioSessionId) {
@@ -4792,8 +5138,14 @@ export default function ContentStudioPage() {
   const isSample = selectedScript.id === "sample";
   const effectiveReviewScript = reviewScriptDraft ?? selectedScript;
   const hasGeneratedScript = !isSample;
+  const isClipperStudio = isClipperStudioUseCase(form.studioUseCase);
+  const clipPreviewUrl = canReadRenderJobs ? getClipOutputUrl(clipJob) : null;
   const renderPreviewUrl = canReadRenderJobs ? getRenderOutputUrl(renderJob) : null;
   const renderPosterUrl = canReadRenderJobs ? getRenderPosterUrl(renderJob) : null;
+  const primaryPreviewUrl = isClipperStudio && clipPreviewUrl ? clipPreviewUrl : renderPreviewUrl;
+  const primaryVideoAssetId = isClipperStudio && clipJob?.outputAssetId
+    ? clipJob.outputAssetId
+    : renderJob?.outputAssetId;
   const modeCopy = copy.modeCheckpoints[workflowMode] ?? copy.modeCheckpoints.assisted;
   const superadminManagerCopy = {
     actions: copy.superadminActions,
@@ -5038,11 +5390,11 @@ export default function ContentStudioPage() {
       ...current,
       [name]: value,
       niche:
-        current.studioUseCase === "creator_short" && name === "contentPillar"
+        isCreatorStudioUseCase(current.studioUseCase) && name === "contentPillar"
           ? mapCreatorPillarToNiche(value)
           : current.niche,
       objective:
-        current.studioUseCase === "creator_short" && name === "ctaGoal"
+        isCreatorStudioUseCase(current.studioUseCase) && name === "ctaGoal"
           ? mapCreatorGoalToObjective(value)
           : current.objective
     }));
@@ -5069,7 +5421,9 @@ export default function ContentStudioPage() {
   function handleStudioUseCaseChange(nextUseCase) {
     setForm((current) => {
       const nextSourceType = isCreatorStudioUseCase(nextUseCase)
-        ? (current.sourceType === "product" ? "long_video" : current.sourceType)
+        ? (isClipperStudioUseCase(nextUseCase)
+          ? "long_video"
+          : (current.sourceType === "product" ? "long_video" : current.sourceType))
         : (current.sourceType === "long_video" ? "product" : current.sourceType);
 
       return {
@@ -5188,6 +5542,7 @@ export default function ContentStudioPage() {
       title: template.variables.title ?? current.title
     }));
     setTemplatePlan(null);
+    setClipJob(null);
     setRenderJob(null);
     setRenderBatch(null);
     setAssemblyResult(null);
@@ -5247,6 +5602,7 @@ export default function ContentStudioPage() {
         title: result?.item?.variables?.title ?? current.title
       }));
       setTemplatePlan(null);
+      setClipJob(null);
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -5304,6 +5660,7 @@ export default function ContentStudioPage() {
       setSelectedTemplateId(result?.item?.id ?? null);
       setPreviewTemplateId(null);
       setWorkspaceTemplateEditorForm(createTemplateEditorForm(result?.item ?? null));
+      setClipJob(null);
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -5674,6 +6031,84 @@ export default function ContentStudioPage() {
     }
   }
 
+  async function handleExportClipCandidate(candidate) {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    if (!form.sourceVideoAssetId) {
+      setFeedback({
+        type: "error",
+        message: locale === "id"
+          ? "Upload source video asset dulu supaya clipper bisa memotong video final."
+          : "Upload a source video asset first so the clipper can export the final cut."
+      });
+      return;
+    }
+
+    const startSec = Number(candidate?.startSec);
+    const endSec = Number(candidate?.endSec);
+    if (!Number.isFinite(startSec) || !Number.isFinite(endSec) || endSec <= startSec) {
+      setFeedback({
+        type: "error",
+        message: locale === "id"
+          ? "Candidate clip ini belum punya timestamp yang valid untuk diexport."
+          : "This clip candidate does not have valid timestamps for export yet."
+      });
+      return;
+    }
+
+    setClipSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/media/clip-jobs", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          candidateId: candidate?.id ?? undefined,
+          endSec,
+          hook: typeof candidate?.hook === "string" ? candidate.hook : undefined,
+          sourceAssetId: form.sourceVideoAssetId,
+          startSec,
+          summary: typeof candidate?.summary === "string" ? candidate.summary : undefined,
+          title: typeof candidate?.title === "string" ? candidate.title : form.title.trim() || undefined
+        })
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(getRequestErrorMessage(response, payload, copy.renderSubmitError));
+      }
+
+      setClipJob(payload);
+      setActiveStudioStep("render");
+      setFeedback({
+        type: "success",
+        message: locale === "id"
+          ? "Clip export dimasukkan ke antrean. Hasilnya akan muncul di panel output."
+          : "The clip export was queued. The result will appear in the output panel."
+      });
+      await trackStudioEvent("content.clipper.export_submitted", createTrackedProperties(form, workflowMode, {
+        clip_candidate_id: candidate?.id ?? null,
+        clip_job_id: payload?.jobId ?? null,
+        source_asset_id: form.sourceVideoAssetId,
+        start_sec: startSec,
+        end_sec: endSec
+      }));
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : copy.renderSubmitError
+      });
+    } finally {
+      setClipSubmitting(false);
+    }
+  }
+
   async function handleRenderPlan() {
     if (!ensureAuthenticated()) {
       return;
@@ -5833,7 +6268,7 @@ export default function ContentStudioPage() {
       return;
     }
 
-    if (!renderJob?.outputAssetId) {
+    if (!primaryVideoAssetId) {
       setFeedback({
         type: "error",
         message: copy.publishSubmitMissingAsset
@@ -5851,6 +6286,11 @@ export default function ContentStudioPage() {
 
     setPublishSubmitting(true);
     const selectedPlatformLabel = getPlatformPackageLabel(selectedPublishPlatformCode);
+    const selectedPlatformPackage = getSelectedPublishPlatformPackage(
+      form,
+      assemblyResult,
+      selectedPublishPlatformCode
+    );
 
     try {
       const scheduledFor = new Date().toISOString();
@@ -5861,9 +6301,10 @@ export default function ContentStudioPage() {
         },
         credentials: "same-origin",
         body: JSON.stringify({
-          assetId: renderJob.outputAssetId,
+          assetId: primaryVideoAssetId,
           connectedAccountId: selectedConnectedAccountId || undefined,
           platformCode: selectedPublishPlatformCode,
+          platformPackage: selectedPlatformPackage ?? undefined,
           scheduledFor
         })
       });
@@ -5881,9 +6322,11 @@ export default function ContentStudioPage() {
           : `Video was sent to the ${selectedPlatformLabel} publish queue.`
       });
       void trackStudioEvent("content.studio.publish_submitted", {
+        asset_id: primaryVideoAssetId,
+        clip_job_id: clipJob?.jobId ?? null,
         platform_code: selectedPublishPlatformCode,
         publish_job_id: payload?.jobId ?? null,
-        render_job_id: renderJob.jobId
+        render_job_id: renderJob?.jobId ?? null
       });
     } catch (error) {
       setFeedback({
@@ -5913,11 +6356,18 @@ export default function ContentStudioPage() {
     setReviewScriptDraft(null);
     setTemplatePlan(null);
     setPublishJob(null);
+    setClipJob(null);
     setRenderJob(null);
     setRenderBatch(null);
     setAssemblyResult(null);
     setSelectedPublishPlatformCode(DEFAULT_CONNECTED_ACCOUNT_FORM.platformCode);
     setProductAssetUploadState({
+      assetId: null,
+      fileName: "",
+      previewUrl: "",
+      uploading: false
+    });
+    setSourceVideoUploadState({
       assetId: null,
       fileName: "",
       previewUrl: "",
@@ -6004,6 +6454,7 @@ export default function ContentStudioPage() {
       productUrl: typeof rawBrief.productUrl === "string" ? rawBrief.productUrl : "",
       promptHint: typeof rawBrief.promptHint === "string" ? rawBrief.promptHint : "",
       sourceVideoUrl: typeof rawBrief.sourceVideoUrl === "string" ? rawBrief.sourceVideoUrl : "",
+      sourceVideoAssetId: typeof rawBrief.sourceVideoAssetId === "string" ? rawBrief.sourceVideoAssetId : "",
       sourceType: typeof rawBrief.sourceType === "string" ? rawBrief.sourceType : DEFAULT_FORM.sourceType,
       studioUseCase: typeof rawBrief.studioUseCase === "string" ? rawBrief.studioUseCase : DEFAULT_FORM.studioUseCase,
       title: typeof rawBrief.title === "string" ? rawBrief.title : "",
@@ -6059,6 +6510,7 @@ export default function ContentStudioPage() {
     setTemplatePlan(restoredTemplatePlan);
     setRenderJob(draftState.renderJob && typeof draftState.renderJob === "object" ? draftState.renderJob : null);
     setRenderBatch(draftState.renderBatch && typeof draftState.renderBatch === "object" ? draftState.renderBatch : null);
+    setClipJob(draftState.clipJob && typeof draftState.clipJob === "object" ? draftState.clipJob : null);
     setAssemblyResult(draftState.assemblyResult && typeof draftState.assemblyResult === "object" ? draftState.assemblyResult : null);
     setPublishJob(draftState.publishJob && typeof draftState.publishJob === "object" ? draftState.publishJob : null);
     setSelectedPublishPlatformCode(
@@ -6086,6 +6538,18 @@ export default function ContentStudioPage() {
             : `${rawBrief.productImageAssetIds.length} saved asset(s)`
           : "",
       previewUrl: "",
+      uploading: false
+    });
+    setSourceVideoUploadState({
+      assetId: typeof rawBrief.sourceVideoAssetId === "string" ? rawBrief.sourceVideoAssetId : null,
+      fileName:
+        typeof rawBrief.sourceVideoAssetId === "string" && rawBrief.sourceVideoAssetId
+          ? (locale === "id" ? "Video sumber tersimpan" : "Saved source video")
+          : "",
+      previewUrl:
+        typeof rawBrief.sourceVideoAssetId === "string" && rawBrief.sourceVideoAssetId
+          ? buildAssetContentUrl(rawBrief.sourceVideoAssetId)
+          : "",
       uploading: false
     });
     setTranscriptUploadState({
@@ -6195,6 +6659,102 @@ export default function ContentStudioPage() {
       setFeedback({
         type: "error",
         message: error instanceof Error ? error.message : (locale === "id" ? "Gagal upload asset." : "Asset upload failed.")
+      });
+    }
+  }
+
+  async function handleSourceVideoUpload(event) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    if (!canUploadAssets) {
+      setFeedback({
+        type: "error",
+        message: locale === "id" ? "Akses upload asset belum tersedia." : "Asset upload access is not available."
+      });
+      return;
+    }
+
+    const previewUrl = window.URL.createObjectURL(file);
+    setSourceVideoUploadState({
+      assetId: null,
+      fileName: file.name,
+      previewUrl,
+      uploading: true
+    });
+    setFeedback(null);
+
+    try {
+      const response = await fetch("/api/assets/upload-url", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          assetType: "video",
+          fileName: file.name,
+          fileSizeBytes: file.size,
+          mimeType: file.type || "video/mp4"
+        })
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(getRequestErrorMessage(response, payload, locale === "id" ? "Gagal menyiapkan upload video." : "Unable to prepare video upload."));
+      }
+
+      const uploadResponse = await fetch(payload.uploadUrl, {
+        body: file,
+        headers: {
+          "content-type": file.type || "video/mp4"
+        },
+        method: "PUT",
+        mode: "cors"
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error(locale === "id" ? "Upload video gagal." : "Video upload failed.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        sourceVideoAssetId: payload?.assetId ?? current.sourceVideoAssetId
+      }));
+      setSourceVideoUploadState({
+        assetId: payload?.assetId ?? null,
+        fileName: file.name,
+        previewUrl,
+        uploading: false
+      });
+      setFeedback({
+        type: "success",
+        message: locale === "id" ? "Video sumber berhasil di-upload." : "Source video uploaded."
+      });
+      await trackStudioEvent(
+        "content.asset.source_video_uploaded",
+        createTrackedProperties(form, workflowMode, {
+          asset_id: payload?.assetId ?? null
+        })
+      );
+    } catch (error) {
+      setSourceVideoUploadState({
+        assetId: null,
+        fileName: file.name,
+        previewUrl,
+        uploading: false
+      });
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : (locale === "id" ? "Upload video gagal." : "Video upload failed.")
       });
     }
   }
@@ -6603,6 +7163,7 @@ export default function ContentStudioPage() {
       }
 
       await refreshScripts(payload?.scriptId ?? payload?.script?.id ?? null);
+      setClipJob(null);
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -6686,6 +7247,10 @@ export default function ContentStudioPage() {
       }
 
       const payload = {
+        extractedContext:
+          scenePlanPayload?.item?.extractedContext ??
+          renderSpecPayload?.item?.extractedContext ??
+          null,
         renderSpecs: Array.isArray(renderSpecPayload?.renderSpecs) ? renderSpecPayload.renderSpecs : [],
         scenePlan: renderSpecPayload?.scenePlan ?? scenePlanPayload?.scenePlan ?? null,
         sceneSpecs: Array.isArray(scenePlanPayload?.sceneSpecs) ? scenePlanPayload.sceneSpecs : [],
@@ -6708,6 +7273,7 @@ export default function ContentStudioPage() {
       }).catch(() => null);
 
       setTemplatePlan(payload);
+      setClipJob(null);
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -6808,12 +7374,14 @@ export default function ContentStudioPage() {
                   onProductAssetUpload={handleProductAssetUpload}
                   onPreviewPlan={handlePreviewPlan}
                   onReset={handleReset}
+                  onSourceVideoUpload={handleSourceVideoUpload}
                   onStudioUseCaseChange={handleStudioUseCaseChange}
                   onSubmit={handleSubmit}
                   onTranscriptFileUpload={handleTranscriptFileUpload}
                   onTogglePlatformTarget={handleTogglePlatformTarget}
                   planning={planning}
                   productAssetUploadState={productAssetUploadState}
+                  sourceVideoUploadState={sourceVideoUploadState}
                   submitting={submitting}
                   transcriptUploadState={transcriptUploadState}
                   workflowMode={workflowMode}
@@ -6853,12 +7421,16 @@ export default function ContentStudioPage() {
               <div className="col-12">
                 <ReviewApproveCard
                   canRender={canRenderVideos}
+                  clipJob={clipJob}
+                  clipPreviewUrl={clipPreviewUrl}
+                  clipSubmitting={clipSubmitting}
                   copy={copy}
                   form={form}
                   isSample={isSample}
                   locale={locale}
                   loading={planning}
                   onEditBrief={() => moveToStep("brief")}
+                  onExportClipCandidate={handleExportClipCandidate}
                   onSaveReview={handleSaveReview}
                   onSceneTextChange={handleSceneTextChange}
                   onScriptChange={handleScriptChange}
@@ -6971,6 +7543,8 @@ export default function ContentStudioPage() {
                   canManagePublishAccounts={canManagePublishAccounts}
                   canSubmitPublish={canSubmitPublishJobs}
                   canRender={canRenderVideos}
+                  clipJob={clipJob}
+                  clipPreviewUrl={clipPreviewUrl}
                   connectedAccountForm={connectedAccountForm}
                   connectedAccountLoading={connectedAccountLoading}
                   connectedAccounts={connectedAccounts}
@@ -7028,7 +7602,7 @@ export default function ContentStudioPage() {
           copy={copy}
           locale={locale}
           planning={planning}
-          publishReady={Boolean(renderJob?.outputAssetId)}
+          publishReady={Boolean(primaryVideoAssetId)}
           publishSubmitting={publishSubmitting}
           renderInFlight={renderInFlight}
           renderSubmitting={renderSubmitting}

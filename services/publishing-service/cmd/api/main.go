@@ -74,6 +74,7 @@ func main() {
 			ConnectedAccountID string `json:"connectedAccountId"`
 			IdempotencyKey     string `json:"idempotencyKey"`
 			PlatformCode       string `json:"platformCode"`
+			PublishPayload     json.RawMessage `json:"publishPayload"`
 			ScheduledFor       string `json:"scheduledFor"`
 			WorkspaceID        string `json:"workspaceId"`
 		}
@@ -100,6 +101,7 @@ func main() {
 			ConnectedAccountID: body.ConnectedAccountID,
 			IdempotencyKey:     body.IdempotencyKey,
 			PlatformCode:       body.PlatformCode,
+			PublishPayload:     body.PublishPayload,
 			ScheduledFor:       body.ScheduledFor,
 			WorkspaceID:        body.WorkspaceID,
 		})

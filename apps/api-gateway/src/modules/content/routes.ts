@@ -2768,6 +2768,174 @@ function sanitizeAngles(input?: string[]) {
   ).slice(0, 4);
 }
 
+function isCreatorStudioUseCaseValue(value: string) {
+  return value === "creator_short" || value === "long_to_short";
+}
+
+function buildCreatorCtaByGoal(goal: string, languageCode: string) {
+  if (goal === "comment") {
+    return languageCode === "id" ? "Ajak penonton komentar di bagian akhir." : "Invite viewers to comment at the end.";
+  }
+
+  if (goal === "save") {
+    return languageCode === "id" ? "Ajak penonton simpan video ini." : "Invite viewers to save this video.";
+  }
+
+  if (goal === "visit_link") {
+    return languageCode === "id" ? "Arahkan penonton cek link di bio." : "Direct viewers to check the link in bio.";
+  }
+
+  return languageCode === "id" ? "Ajak penonton follow untuk part berikutnya." : "Invite viewers to follow for the next part.";
+}
+
+function buildClipCandidates(input: {
+  durationTargetSec: number;
+  languageCode: string;
+  promptHint: string;
+  title: string;
+  topic: string;
+  transcriptText: string;
+}) {
+  const timestampedSegments = extractTimestampedTranscriptSegments(input.transcriptText);
+  if (timestampedSegments.length > 0) {
+    return timestampedSegments.slice(0, 4).map((segment, index) => {
+      const lead = segment.text.split(/[.!?]/)[0]?.trim() || input.topic || input.title;
+      const clipTitle = input.languageCode === "id"
+        ? `Clip ${index + 1}: ${lead}`
+        : `Clip ${index + 1}: ${lead}`;
+
+      return {
+        durationSec: Math.max(8, segment.endSec - segment.startSec),
+        endSec: segment.endSec,
+        hook: input.languageCode === "id"
+          ? `${lead} - ini bagian paling padat untuk dipotong jadi short.`
+          : `${lead} - this is the densest moment to turn into a short.`,
+        id: `clip_${index + 1}`,
+        platformNote: input.languageCode === "id"
+          ? "Pertahankan transisi cepat dan payoff utama dari cue ini."
+          : "Keep the transition fast and preserve the main payoff from this cue.",
+        reason: input.languageCode === "id"
+          ? "Cue transcript ini sudah punya timestamp dan payoff yang jelas."
+          : "This transcript cue already has timestamps and a clear payoff.",
+        startSec: segment.startSec,
+        summary: segment.text,
+        title: clipTitle
+      };
+    });
+  }
+
+  const normalizedSegments = input.transcriptText
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => line.split(/[.!?]\s+/))
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const fallbackSegments = [
+    input.topic,
+    input.promptHint,
+    input.title
+  ].map((item) => item.trim()).filter(Boolean);
+
+  const segments = normalizedSegments.length > 0 ? normalizedSegments : fallbackSegments;
+  const chunkSize = segments.length >= 9 ? 3 : 2;
+  const targetDuration = Math.max(15, Math.min(60, input.durationTargetSec || 30));
+  const candidates: Record<string, unknown>[] = [];
+
+  for (let index = 0; index < Math.min(4, Math.ceil(segments.length / chunkSize)); index += 1) {
+    const chunk = segments.slice(index * chunkSize, (index + 1) * chunkSize);
+    if (chunk.length === 0) {
+      continue;
+    }
+
+    const summary = chunk.join(". ").trim();
+    const summaryLine = summary.endsWith(".") ? summary : `${summary}.`;
+    const lead = chunk[0] ?? input.topic ?? input.title;
+    const clipTitle = input.languageCode === "id"
+      ? `Clip ${index + 1}: ${lead}`
+      : `Clip ${index + 1}: ${lead}`;
+
+    candidates.push({
+      durationSec: targetDuration,
+      endSec: (index + 1) * targetDuration,
+      hook: input.languageCode === "id"
+        ? `${lead} - ini bagian yang paling bikin orang lanjut nonton.`
+        : `${lead} - this is the moment that keeps viewers watching.`,
+      id: `clip_${index + 1}`,
+      platformNote: input.languageCode === "id"
+        ? "Potong cepat, pertahankan payoff utama, dan akhiri dengan CTA ringan."
+        : "Cut fast, keep the main payoff, and close with a light CTA.",
+      reason: input.languageCode === "id"
+        ? "Momen ini punya payoff yang jelas untuk short-form."
+        : "This moment has a clear payoff for short-form.",
+      startSec: index * targetDuration,
+      summary: summaryLine,
+      title: clipTitle
+    });
+  }
+
+  return candidates;
+}
+
+function extractTimestampedTranscriptSegments(input: string) {
+  return input
+    .split(/\r?\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const bracketMatch = line.match(/^\[(\d{2}:\d{2}(?::\d{2})?[.,]\d{3})\s+-->\s+(\d{2}:\d{2}(?::\d{2})?[.,]\d{3})\]\s*(.+)$/);
+      if (bracketMatch) {
+        return {
+          endSec: parseTimestampToSeconds(bracketMatch[2]),
+          startSec: parseTimestampToSeconds(bracketMatch[1]),
+          text: bracketMatch[3].trim()
+        };
+      }
+
+      const rawMatch = line.match(/^(\d{2}:\d{2}(?::\d{2})?[.,]\d{3})\s+-->\s+(\d{2}:\d{2}(?::\d{2})?[.,]\d{3})\s+(.+)$/);
+      if (rawMatch) {
+        return {
+          endSec: parseTimestampToSeconds(rawMatch[2]),
+          startSec: parseTimestampToSeconds(rawMatch[1]),
+          text: rawMatch[3].trim()
+        };
+      }
+
+      return null;
+    })
+    .filter((item): item is { endSec: number; startSec: number; text: string } => {
+      if (!item) {
+        return false;
+      }
+
+      return Boolean(item.text) &&
+        Number.isFinite(item.startSec) &&
+        Number.isFinite(item.endSec) &&
+        item.endSec > item.startSec;
+    });
+}
+
+function parseTimestampToSeconds(input: string) {
+  const normalized = input.replace(",", ".");
+  const parts = normalized.split(":");
+
+  if (parts.length === 2) {
+    const minutes = Number(parts[0]);
+    const seconds = Number(parts[1]);
+    return minutes * 60 + seconds;
+  }
+
+  if (parts.length === 3) {
+    const hours = Number(parts[0]);
+    const minutes = Number(parts[1]);
+    const seconds = Number(parts[2]);
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  return Number.NaN;
+}
+
 function buildContextExtraction(input: {
   productMetadata: ProductMetadata;
   rawBrief: Record<string, unknown>;
@@ -2776,7 +2944,8 @@ function buildContextExtraction(input: {
   const metadata = input.productMetadata;
   const studioUseCase = getStringValue(rawBrief.studioUseCase);
 
-  if (studioUseCase === "creator_short") {
+  if (isCreatorStudioUseCaseValue(studioUseCase)) {
+    const isClipper = studioUseCase === "long_to_short";
     const title = getStringValue(rawBrief.title, getStringValue(rawBrief.topic, "Creator short"));
     const topic = getStringValue(rawBrief.topic, title);
     const objective = getStringValue(rawBrief.objective, "problem_solution");
@@ -2790,6 +2959,17 @@ function buildContextExtraction(input: {
     const ctaGoal = getStringValue(rawBrief.ctaGoal, "follow");
     const platformTargets = ensureArrayOfStrings(rawBrief.platformTargets);
     const legacyNiche = normalizeNiche(getStringValue(rawBrief.niche, "beauty"));
+    const durationTargetSec = normalizeDuration(getStringValue(rawBrief.durationTargetSec, getStringValue(rawBrief.durationSeconds, "30")), 30);
+    const clipCandidates = isClipper
+      ? buildClipCandidates({
+        durationTargetSec,
+        languageCode,
+        promptHint,
+        title,
+        topic,
+        transcriptText
+      })
+      : [];
 
     let score = 0;
     const missingFields: string[] = [];
@@ -2811,7 +2991,9 @@ function buildContextExtraction(input: {
       score += 25;
     } else {
       missingFields.push("sourceVideoUrl_or_transcriptText");
-      warnings.push("Sumber creator belum ada. Tambahkan URL video atau transcript.");
+      warnings.push(isClipper
+        ? "Sumber long video belum ada. Tambahkan URL video atau transcript."
+        : "Sumber creator belum ada. Tambahkan URL video atau transcript.");
     }
 
     if (platformTargets.length > 0) {
@@ -2831,41 +3013,50 @@ function buildContextExtraction(input: {
     }
 
     if (!transcriptText) {
-      warnings.push("Transcript belum diisi. Hook dan beat plan akan mengandalkan brief ringkas.");
+      warnings.push(isClipper
+        ? "Transcript belum diisi. Candidate clips masih akan mengandalkan brief ringkas."
+        : "Transcript belum diisi. Hook dan beat plan akan mengandalkan brief ringkas.");
     }
 
-    const creatorCtaText = ctaGoal === "comment"
-      ? (languageCode === "id" ? "Ajak penonton komentar di bagian akhir." : "Invite viewers to comment at the end.")
-      : ctaGoal === "save"
-        ? (languageCode === "id" ? "Ajak penonton simpan video ini." : "Invite viewers to save this video.")
-        : ctaGoal === "visit_link"
-          ? (languageCode === "id" ? "Arahkan penonton cek link di bio." : "Direct viewers to check the link in bio.")
-          : (languageCode === "id" ? "Ajak penonton follow untuk part berikutnya." : "Invite viewers to follow for the next part.");
+    if (isClipper && clipCandidates.length === 0) {
+      warnings.push(languageCode === "id"
+        ? "Belum ada candidate clip yang kuat. Tambahkan transcript lebih detail."
+        : "No strong clip candidates yet. Add a more detailed transcript.");
+    }
+
+    const creatorCtaText = buildCreatorCtaByGoal(ctaGoal, languageCode);
     const readyToProceed = score >= 55;
 
     return {
       completenessScore: Math.max(0, Math.min(100, score)),
       enrichedContext: {
+        clipCandidates,
         ctaPatterns: [
           creatorCtaText,
           languageCode === "id" ? "Bikin penonton berhenti scroll lalu lanjut sampai akhir." : "Stop the scroll and keep viewers watching to the end."
         ],
         hookGuardrail:
           languageCode === "id"
-            ? `Hook harus langsung ke inti topik ${topic || title}, memakai gaya ${hookStyle}, dan terasa native untuk ${platformTargets.join(", ") || "short-form video"}.`
-            : `The hook should get to the core topic ${topic || title}, use a ${hookStyle} pattern, and feel native for ${platformTargets.join(", ") || "short-form video"}.`,
+            ? `${isClipper ? "Pilih momen" : "Hook harus langsung ke inti topik"} ${topic || title}, memakai gaya ${hookStyle}, dan terasa native untuk ${platformTargets.join(", ") || "short-form video"}.`
+            : `${isClipper ? "Pick the moment around" : "The hook should get to the core topic"} ${topic || title}, use a ${hookStyle} pattern, and feel native for ${platformTargets.join(", ") || "short-form video"}.`,
         musicMood: languageCode === "id" ? "creator short upbeat editorial" : "creator short upbeat editorial",
         niche: legacyNiche,
         persona: languageCode === "id"
           ? `Strategist creator ${creatorPersona} untuk konten ${contentPillar}`
           : `${creatorPersona} creator strategist for ${contentPillar} content`,
         platformTargets,
+        sourceMode: isClipper ? "long_to_short" : "creator_short",
         visualGuide: languageCode === "id"
-          ? "Gunakan beat cepat, subtitle tegas, crop vertikal, dan transisi seperlunya."
-          : "Use fast beats, bold subtitles, vertical crop, and only the transitions that add clarity."
+          ? (isClipper
+            ? "Potong cepat per momen, subtitle tegas, crop vertikal, dan fokus ke payoff paling jelas."
+            : "Gunakan beat cepat, subtitle tegas, crop vertikal, dan transisi seperlunya.")
+          : (isClipper
+            ? "Cut quickly around the strongest moment, use bold subtitles, vertical crop, and focus on the clearest payoff."
+            : "Use fast beats, bold subtitles, vertical crop, and only the transitions that add clarity.")
       },
       missingFields,
       productBrief: {
+        clip_candidates: clipCandidates,
         content_pillar: contentPillar,
         creator_persona: creatorPersona,
         cta_text: creatorCtaText,
@@ -2880,13 +3071,13 @@ function buildContextExtraction(input: {
         offer_text: topic || title,
         platform_targets: platformTargets,
         price_text: "",
-        product_name: title || topic || "Creator short",
+        product_name: title || topic || (isClipper ? "Long to short clip" : "Creator short"),
         product_url: sourceVideoUrl,
         prompt_hint: promptHint || transcriptText,
         studio_use_case: studioUseCase,
         target_pain_point: languageCode === "id"
-          ? "ingin hook yang bikin orang lanjut nonton"
-          : "want a hook that keeps people watching"
+          ? (isClipper ? "ingin potongan video yang langsung kena ke inti" : "ingin hook yang bikin orang lanjut nonton")
+          : (isClipper ? "want a clip that lands on the strongest moment fast" : "want a hook that keeps people watching")
       },
       readyToProceed,
       warnings
@@ -2987,7 +3178,9 @@ function buildContextExtraction(input: {
 }
 
 function buildDirectorScripts(input: DirectorScriptInput) {
-  if (getStringValue(input.extraction.productBrief.studio_use_case) === "creator_short") {
+  if (isCreatorStudioUseCaseValue(getStringValue(input.extraction.productBrief.studio_use_case))) {
+    const studioUseCase = getStringValue(input.extraction.productBrief.studio_use_case);
+    const isClipper = studioUseCase === "long_to_short";
     const angles = input.angles.length > 0 ? input.angles : ["creator_hook", "retention_cut"];
     const languageCode = getStringValue(input.languageCode, "id");
     const title = getStringValue(input.extraction.productBrief.product_name, "Creator short");
@@ -2997,6 +3190,75 @@ function buildDirectorScripts(input: DirectorScriptInput) {
     const creatorPersona = getStringValue(input.extraction.productBrief.creator_persona, "educator");
     const contentPillar = getStringValue(input.extraction.productBrief.content_pillar, "education");
     const platformTargets = ensureArrayOfStrings(input.extraction.productBrief.platform_targets);
+    const clipCandidates = ensureArrayOfObjects(input.extraction.enrichedContext.clipCandidates);
+
+    if (isClipper && clipCandidates.length > 0) {
+      return clipCandidates.slice(0, 4).map((candidate, index) => {
+        const clipTitle = getStringValue(candidate.title, `${languageCode === "id" ? "Clip" : "Clip"} ${index + 1}`);
+        const clipSummary = getStringValue(candidate.summary, topic);
+        const clipHook = getStringValue(
+          candidate.hook,
+          languageCode === "id"
+            ? `${clipTitle}: ini bagian yang paling kuat buat short.`
+            : `${clipTitle}: this is the strongest moment for a short.`
+        );
+        const clipReason = getStringValue(
+          candidate.reason,
+          languageCode === "id"
+            ? "Payoff momen ini paling jelas untuk short-form."
+            : "This moment has the clearest payoff for short-form."
+        );
+        const bodyScenes = [
+          {
+            durationMs: 2600,
+            text: languageCode === "id"
+              ? `Buka langsung dari momen ini: ${clipSummary}`
+              : `Open directly on this moment: ${clipSummary}`,
+            type: "setup"
+          },
+          {
+            durationMs: 3200,
+            text: clipReason,
+            type: "payoff"
+          },
+          {
+            durationMs: 2200,
+            text: languageCode === "id"
+              ? `Tutup rapat supaya tetap native untuk ${platformTargets.join(", ") || "short-form"}.`
+              : `Close tight so it still feels native for ${platformTargets.join(", ") || "short-form"}.`,
+            type: "close"
+          }
+        ];
+
+        return {
+          angle: `clip_candidate_${index + 1}`,
+          backgroundMusic: {
+            mood: input.extraction.enrichedContext.musicMood,
+            query: `${contentPillar} ${creatorPersona} clip highlight`
+          },
+          bodyScenes,
+          cta: {
+            durationMs: 2200,
+            text: ctaText,
+            urgencyLevel: "soft"
+          },
+          hook: {
+            durationMs: 2200,
+            text: clipHook,
+            visual: input.extraction.enrichedContext.visualGuide
+          },
+          id: `dir_${randomUUID().slice(0, 8)}`,
+          persona: languageCode === "id"
+            ? `Clip Director ${creatorPersona}`
+            : `Clip Director ${creatorPersona}`,
+          voiceover: {
+            script: [clipHook, ...bodyScenes.map((scene) => scene.text), ctaText].join(" "),
+            speed: 1.02,
+            voiceId: languageCode === "id" ? "id-ID-female-warm" : "en-US-female-clear"
+          }
+        };
+      });
+    }
 
     return angles.map((angle, index) => {
       const angleLabel = angle || `creator-angle-${index + 1}`;
@@ -3398,7 +3660,8 @@ function pickBestCompletedSceneJob(sceneJobs: Record<string, unknown>[]) {
 }
 
 function buildCaptionPackage(rawBrief: Record<string, unknown>, session: StudioSessionRow) {
-  if (getStringValue(rawBrief.studioUseCase) === "creator_short") {
+  if (isCreatorStudioUseCaseValue(getStringValue(rawBrief.studioUseCase))) {
+    const isClipper = getStringValue(rawBrief.studioUseCase) === "long_to_short";
     const title = getStringValue(rawBrief.title, "Creator short");
     const topic = getStringValue(rawBrief.topic, title);
     const ctaGoal = getStringValue(rawBrief.ctaGoal, "follow");
@@ -3429,17 +3692,19 @@ function buildCaptionPackage(rawBrief: Record<string, unknown>, session: StudioS
       ].filter(Boolean);
 
       return {
-        caption: `${title}\n\n${topic}\n${ctaText}`,
+        caption: `${isClipper ? "Clip highlight" : title}\n\n${topic}\n${ctaText}`,
         coverText: title.split(/[.!?]/)[0]?.trim() || title,
         hashtags: platformHashtags,
         platformCode,
-        title: platformCode === "youtube" ? `${title} | ${topic}` : title
+        title: platformCode === "youtube"
+          ? `${isClipper ? "Clip highlight" : title} | ${topic}`
+          : (isClipper ? `${title} clip` : title)
       };
     });
 
     return {
-      caption: `${title}\n\n${topic}\n${ctaText}`,
-      hashtags: baseHashtags,
+      caption: `${isClipper ? "Clip highlight" : title}\n\n${topic}\n${ctaText}`,
+      hashtags: [...baseHashtags, ...(isClipper ? ["#clips"] : [])],
       platformPackages
     };
   }
