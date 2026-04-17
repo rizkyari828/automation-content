@@ -22,6 +22,7 @@ type PublishJobResponse = {
 
 type PublishPayload = {
   caption?: string;
+  coverFrameSec?: number;
   coverText?: string;
   hashtags?: string[];
   platformCode?: string;
@@ -418,13 +419,17 @@ function normalizePublishPayload(
   const coverText = normalizeOptionalText(input.coverText);
   const caption = normalizeOptionalText(input.caption);
   const hashtags = normalizeHashtags(input.hashtags);
+  const coverFrameSec = Number.isFinite(Number((input as { coverFrameSec?: unknown }).coverFrameSec))
+    ? Number((input as { coverFrameSec?: unknown }).coverFrameSec)
+    : null;
 
-  if (!title && !coverText && !caption && hashtags.length === 0) {
+  if (!title && !coverText && !caption && hashtags.length === 0 && coverFrameSec == null) {
     return null;
   }
 
   return {
     caption: caption ?? undefined,
+    coverFrameSec: coverFrameSec ?? undefined,
     coverText: coverText ?? undefined,
     hashtags,
     platformCode: resolvedPlatformCode,

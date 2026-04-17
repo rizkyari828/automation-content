@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/creatorflow/automation-content/services/media-processing-service/internal/jobs"
@@ -249,6 +250,7 @@ func processClipJob(
 	}
 
 	outputPath := filepath.Join(outputDir, "clip.mp4")
+	finalOutputPath := outputPath
 	command := exec.Command(
 		"ffmpeg",
 		"-y",
@@ -279,18 +281,67 @@ func processClipJob(
 		return
 	}
 
+	subtitleText := buildClipSubtitleText(job.Metadata)
+	if subtitleText != "" {
+		subtitleTextPath := filepath.Join(outputDir, "subtitle.txt")
+		if err := os.WriteFile(subtitleTextPath, []byte(wrapSubtitleText(subtitleText, 34)), 0o644); err != nil {
+			_ = store.MarkClipJobFailed(ctx, jobs.MarkClipJobFailedInput{
+				ErrorCode:    "clip_subtitle_write_failed",
+				ErrorMessage: err.Error(),
+				JobID:        job.JobID,
+			})
+			return
+		}
+
+		subtitledOutputPath := filepath.Join(outputDir, "clip-subtitled.mp4")
+		subtitleCommand := exec.Command(
+			"ffmpeg",
+			"-y",
+			"-i", outputPath,
+			"-vf", fmt.Sprintf(
+				"drawtext=textfile='%s':reload=0:fontcolor=white:fontsize=28:line_spacing=6:box=1:boxcolor=black@0.55:boxborderw=18:x=(w-text_w)/2:y=h-th-72",
+				escapeFFmpegFilterValue(filepath.ToSlash(subtitleTextPath)),
+			),
+			"-c:v", "libx264",
+			"-preset", "veryfast",
+			"-crf", "20",
+			"-c:a", "copy",
+			"-movflags", "+faststart",
+			subtitledOutputPath,
+		)
+		subtitleOutput, err := subtitleCommand.CombinedOutput()
+		if err != nil {
+			logger.Error("clip subtitle burn-in failed", map[string]any{
+				"component":    "worker",
+				"errorMessage": err.Error(),
+				"ffmpegOutput": string(subtitleOutput),
+				"jobId":        job.JobID,
+			})
+			_ = store.MarkClipJobFailed(ctx, jobs.MarkClipJobFailedInput{
+				ErrorCode:    "clip_subtitle_burn_failed",
+				ErrorMessage: string(subtitleOutput),
+				JobID:        job.JobID,
+			})
+			return
+		}
+
+		finalOutputPath = subtitledOutputPath
+	}
+
 	if err := store.MarkClipJobCompleted(ctx, jobs.MarkClipJobCompletedInput{
 		ArtifactMetadata: map[string]any{
-			"candidateId":  job.Metadata.CandidateID,
-			"durationSec":  job.Metadata.DurationSec,
-			"endSec":       job.Metadata.EndSec,
-			"hook":         job.Metadata.Hook,
+			"candidateId":   job.Metadata.CandidateID,
+			"durationSec":   job.Metadata.DurationSec,
+			"endSec":        job.Metadata.EndSec,
+			"hook":          job.Metadata.Hook,
 			"sourceAssetId": job.SourceAssetID,
-			"startSec":     job.Metadata.StartSec,
-			"summary":      job.Metadata.Summary,
-			"title":        job.Metadata.Title,
+			"startSec":      job.Metadata.StartSec,
+			"subtitleBurnedIn": subtitleText != "",
+			"subtitleText":  subtitleText,
+			"summary":       job.Metadata.Summary,
+			"title":         job.Metadata.Title,
 		},
-		FilePath:          outputPath,
+		FilePath:          finalOutputPath,
 		JobID:             job.JobID,
 		MimeType:          "video/mp4",
 		RequestedByUserID: job.RequestedByUserID,
@@ -360,6 +411,76 @@ func formatFFmpegSeconds(value float64) string {
 	}
 
 	return fmt.Sprintf("%.3f", value)
+}
+
+func buildClipSubtitleText(metadata jobs.ClipJobMetadata) string {
+	for _, candidate := range []string{metadata.Summary, metadata.Hook, metadata.Title} {
+		normalized := strings.TrimSpace(candidate)
+		if normalized != "" {
+			return normalized
+		}
+	}
+
+	return ""
+}
+
+func wrapSubtitleText(value string, maxLineLength int) string {
+	if maxLineLength <= 0 {
+		return strings.TrimSpace(value)
+	}
+
+	words := strings.Fields(strings.TrimSpace(value))
+	if len(words) == 0 {
+		return ""
+	}
+
+	var (
+		lines   []string
+		current []string
+		length  int
+	)
+
+	flush := func() {
+		if len(current) == 0 {
+			return
+		}
+
+		lines = append(lines, strings.Join(current, " "))
+		current = nil
+		length = 0
+	}
+
+	for _, word := range words {
+		wordLength := len([]rune(word))
+		if len(current) == 0 {
+			current = append(current, word)
+			length = wordLength
+			continue
+		}
+
+		if length+1+wordLength > maxLineLength {
+			flush()
+			current = append(current, word)
+			length = wordLength
+			continue
+		}
+
+		current = append(current, word)
+		length += 1 + wordLength
+	}
+
+	flush()
+	return strings.Join(lines, "\n")
+}
+
+func escapeFFmpegFilterValue(value string) string {
+	replacer := strings.NewReplacer(
+		"\\", "\\\\",
+		":", "\\:",
+		"'", "\\'",
+	)
+
+	return replacer.Replace(value)
 }
 
 func getEnvInt(key string, fallback int) int {

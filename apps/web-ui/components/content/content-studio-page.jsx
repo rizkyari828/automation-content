@@ -359,44 +359,142 @@ function getAvailablePublishPlatforms(form, assemblyResult) {
 }
 
 function getSelectedPublishPlatformPackage(form, assemblyResult, selectedPublishPlatformCode) {
-  const packages = Array.isArray(assemblyResult?.platformPackages)
-    ? assemblyResult.platformPackages.filter((item) => item && typeof item === "object")
-    : [];
-  const matchedPackage = packages.find((item) => item.platformCode === selectedPublishPlatformCode);
+  const packages = getContextualPlatformPackages(form, assemblyResult, {
+    clipJob: null,
+    clipPackageDrafts: null,
+    locale: form?.languageCode === "en" ? "en" : "id"
+  });
+  const matchedPackage = packages.find((item) => item.platformCode === selectedPublishPlatformCode) ?? packages[0] ?? null;
 
-  if (matchedPackage) {
-    return {
-      caption: typeof matchedPackage.caption === "string" ? matchedPackage.caption.trim() : "",
-      coverText: typeof matchedPackage.coverText === "string" ? matchedPackage.coverText.trim() : "",
-      hashtags: Array.isArray(matchedPackage.hashtags)
-        ? matchedPackage.hashtags.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
-        : typeof matchedPackage.hashtags === "string"
-          ? matchedPackage.hashtags.split(/\s+/).filter(Boolean)
-          : [],
-      platformCode: matchedPackage.platformCode || selectedPublishPlatformCode,
-      title: typeof matchedPackage.title === "string" ? matchedPackage.title.trim() : ""
-    };
-  }
-
-  const caption = typeof assemblyResult?.caption === "string" ? assemblyResult.caption.trim() : "";
-  const hashtags = Array.isArray(assemblyResult?.hashtags)
-    ? assemblyResult.hashtags.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
-    : typeof assemblyResult?.hashtags === "string"
-      ? assemblyResult.hashtags.split(/\s+/).filter(Boolean)
-      : [];
-  const title = typeof form?.title === "string" ? form.title.trim() : "";
-
-  if (!caption && hashtags.length === 0 && !title) {
+  if (!matchedPackage) {
     return null;
   }
 
   return {
-    caption,
-    coverText: title,
-    hashtags,
-    platformCode: selectedPublishPlatformCode,
-    title
+    caption: typeof matchedPackage.caption === "string" ? matchedPackage.caption.trim() : "",
+    coverFrameSec: Number.isFinite(Number(matchedPackage.coverFrameSec))
+      ? Number(matchedPackage.coverFrameSec)
+      : undefined,
+    coverText: typeof matchedPackage.coverText === "string" ? matchedPackage.coverText.trim() : "",
+    hashtags: Array.isArray(matchedPackage.hashtags)
+      ? matchedPackage.hashtags.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+      : typeof matchedPackage.hashtags === "string"
+        ? matchedPackage.hashtags.split(/\s+/).filter(Boolean)
+        : [],
+    platformCode: matchedPackage.platformCode || selectedPublishPlatformCode,
+    title: typeof matchedPackage.title === "string" ? matchedPackage.title.trim() : ""
   };
+}
+
+function buildClipPackageDraftKey(clipJobId, platformCode) {
+  return `${clipJobId || "global"}:${platformCode || "tiktok"}`;
+}
+
+function getClipPackageDraft(clipPackageDrafts, clipJobId, platformCode) {
+  if (!clipPackageDrafts || typeof clipPackageDrafts !== "object") {
+    return null;
+  }
+
+  const key = buildClipPackageDraftKey(clipJobId, platformCode);
+  const item = clipPackageDrafts[key];
+  return item && typeof item === "object" ? item : null;
+}
+
+function normalizeHashtagsValue(value) {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(/[\s,]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function getContextualPlatformPackages(form, assemblyResult, { clipJob = null, clipPackageDrafts = null, locale = "id" } = {}) {
+  const isCreator = isCreatorStudioUseCase(form?.studioUseCase);
+  const isClipper = isClipperStudioUseCase(form?.studioUseCase);
+  const assemblyPlatformPackages = Array.isArray(assemblyResult?.platformPackages)
+    ? assemblyResult.platformPackages.filter((item) => item && typeof item === "object")
+    : [];
+  const captionParts = [
+    typeof assemblyResult?.caption === "string" ? assemblyResult.caption.trim() : "",
+    Array.isArray(assemblyResult?.hashtags)
+      ? assemblyResult.hashtags.join(" ").trim()
+      : typeof assemblyResult?.hashtags === "string"
+        ? assemblyResult.hashtags.trim()
+        : ""
+  ].filter(Boolean);
+  const fallbackPlatformPackage = captionParts.length > 0
+    ? {
+        caption: captionParts.join("\n\n"),
+        coverText: typeof form?.title === "string" ? form.title.trim() : "",
+        hashtags: Array.isArray(assemblyResult?.hashtags)
+          ? assemblyResult.hashtags
+          : typeof assemblyResult?.hashtags === "string"
+            ? assemblyResult.hashtags.split(/\s+/).filter(Boolean)
+            : [],
+        platformCode: isCreator
+          ? (normalizePlatformTargets(form?.platformTargets)[0] ?? "tiktok")
+          : "tiktok",
+        title: typeof form?.title === "string" ? form.title.trim() : ""
+      }
+    : null;
+  const basePackages = assemblyPlatformPackages.length > 0
+    ? assemblyPlatformPackages
+    : fallbackPlatformPackage
+      ? [fallbackPlatformPackage]
+      : [];
+  const selectedClipLabel = clipJob?.candidateTitle || clipJob?.title || form?.title?.trim() || (locale === "id" ? "Clip terpilih" : "Selected clip");
+  const selectedClipHook = typeof clipJob?.hook === "string" && clipJob.hook.trim()
+    ? clipJob.hook.trim()
+    : selectedClipLabel;
+  const selectedClipSummary = typeof clipJob?.summary === "string" ? clipJob.summary.trim() : "";
+
+  return basePackages.map((item) => {
+    const platformCode = item.platformCode || "tiktok";
+    const draft = getClipPackageDraft(clipPackageDrafts, clipJob?.jobId, platformCode)
+      ?? getClipPackageDraft(clipPackageDrafts, null, platformCode);
+    const contextualTitle = isClipper && clipJob
+      ? (typeof item.title === "string" && item.title.trim() ? item.title.trim() : selectedClipLabel)
+      : (typeof item.title === "string" ? item.title.trim() : "");
+    const contextualCoverText = isClipper && clipJob
+      ? (typeof item.coverText === "string" && item.coverText.trim()
+        ? item.coverText.trim()
+        : (selectedClipHook.split(/[.!?]/)[0]?.trim() || selectedClipLabel))
+      : (typeof item.coverText === "string" ? item.coverText.trim() : "");
+    const contextualCaption = isClipper && clipJob
+      ? ((typeof item.caption === "string" && item.caption.trim()) || selectedClipSummary || selectedClipHook)
+      : (typeof item.caption === "string" ? item.caption.trim() : "");
+    const title = typeof draft?.title === "string" ? draft.title : contextualTitle;
+    const coverText = typeof draft?.coverText === "string" ? draft.coverText : contextualCoverText;
+    const caption = typeof draft?.caption === "string" ? draft.caption : contextualCaption;
+    const hashtags = draft?.hashtagsText != null
+      ? normalizeHashtagsValue(draft.hashtagsText)
+      : normalizeHashtagsValue(item.hashtags);
+    const coverFrameSec = Number.isFinite(Number(draft?.coverFrameSec))
+      ? Number(draft.coverFrameSec)
+      : Number.isFinite(Number(item.coverFrameSec))
+        ? Number(item.coverFrameSec)
+        : (Number.isFinite(Number(clipJob?.startSec)) ? Number(clipJob.startSec) : undefined);
+
+    return {
+      ...item,
+      caption,
+      coverFrameSec,
+      coverText,
+      hashtags,
+      platformCode,
+      title
+    };
+  });
 }
 
 function getStudioUseCaseOptions(copy, locale) {
@@ -655,6 +753,83 @@ function getClipOutputUrl(clipJob) {
   }
 
   return `/api/media/clip-jobs/${clipJob.jobId}/output`;
+}
+
+function mergeClipJobs(currentJobs, incomingJobs) {
+  const current = Array.isArray(currentJobs) ? currentJobs.filter((item) => item && typeof item === "object") : [];
+  const incoming = Array.isArray(incomingJobs) ? incomingJobs.filter((item) => item && typeof item === "object") : [];
+  const merged = new Map();
+
+  current.forEach((item) => {
+    if (item.jobId) {
+      merged.set(item.jobId, item);
+    }
+  });
+
+  incoming.forEach((item) => {
+    if (!item.jobId) {
+      return;
+    }
+
+    merged.set(item.jobId, {
+      ...(merged.get(item.jobId) ?? {}),
+      ...item
+    });
+  });
+
+  return Array.from(merged.values());
+}
+
+function findClipJobForCandidate(clipJobs, candidateId) {
+  if (!candidateId || !Array.isArray(clipJobs)) {
+    return null;
+  }
+
+  return clipJobs.find((item) => item?.candidateId === candidateId) ?? null;
+}
+
+function selectPrimaryClipJob(currentPrimaryClipJob, clipJobs) {
+  const items = Array.isArray(clipJobs) ? clipJobs.filter((item) => item && typeof item === "object") : [];
+  const matchedCurrent = currentPrimaryClipJob?.jobId
+    ? items.find((item) => item.jobId === currentPrimaryClipJob.jobId) ?? null
+    : null;
+
+  if (matchedCurrent?.status === "completed") {
+    return matchedCurrent;
+  }
+
+  return (
+    items.find((item) => item.status === "completed") ??
+    matchedCurrent ??
+    items[0] ??
+    null
+  );
+}
+
+function buildCandidateFromClipJob(clipJob) {
+  if (!clipJob || typeof clipJob !== "object") {
+    return null;
+  }
+
+  return {
+    endSec: clipJob.endSec,
+    hook: clipJob.hook,
+    id: clipJob.candidateId ?? clipJob.jobId,
+    startSec: clipJob.startSec,
+    summary: clipJob.summary,
+    title: clipJob.candidateTitle || clipJob.title || ""
+  };
+}
+
+function getClipTrimDraftValue(clipTrimDrafts, clipJob, field) {
+  const draft = clipTrimDrafts && clipJob?.jobId ? clipTrimDrafts[clipJob.jobId] : null;
+  const draftValue = draft?.[field];
+  if (Number.isFinite(Number(draftValue))) {
+    return Number(draftValue);
+  }
+
+  const sourceValue = clipJob?.[field];
+  return Number.isFinite(Number(sourceValue)) ? Number(sourceValue) : 0;
 }
 
 function formatDurationLabel(totalSeconds) {
@@ -1799,6 +1974,7 @@ function BriefSnapshotCard({
 function ReviewApproveCard({
   canRender,
   clipJob,
+  clipJobs,
   clipPreviewUrl,
   clipSubmitting,
   copy,
@@ -1808,6 +1984,7 @@ function ReviewApproveCard({
   loading,
   onEditBrief,
   onExportClipCandidate,
+  onExportTopClipCandidates,
   onSaveReview,
   onSceneTextChange,
   onScriptChange,
@@ -1826,6 +2003,7 @@ function ReviewApproveCard({
   const isCreator = isCreatorStudioUseCase(form.studioUseCase);
   const isClipper = isClipperStudioUseCase(form.studioUseCase);
   const hasSourceVideoAsset = Boolean(form.sourceVideoAssetId);
+  const recentClipJobs = Array.isArray(clipJobs) ? clipJobs.filter((item) => item && typeof item === "object") : [];
   const selectedPlatforms = normalizePlatformTargets(form.platformTargets);
   const extractedClipCandidates = isClipper
     ? (
@@ -2125,29 +2303,56 @@ function ReviewApproveCard({
           </div>
           {isClipper && extractedClipCandidates.length ? (
             <div className="cf-content-caption-box mb-3">
-              <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">
-                {locale === "id" ? "Candidate clips" : "Candidate clips"}
-              </p>
+              <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-0">
+                  {locale === "id" ? "Candidate clips" : "Candidate clips"}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary mb-0"
+                  disabled={clipSubmitting || !hasSourceVideoAsset}
+                  onClick={() => onExportTopClipCandidates?.(extractedClipCandidates.slice(0, 3))}
+                >
+                  {clipSubmitting
+                    ? (locale === "id" ? "Queueing..." : "Queueing...")
+                    : (locale === "id" ? "Export top 3 clips" : "Export top 3 clips")}
+                </button>
+              </div>
               <div className="d-flex flex-column gap-3">
                 {extractedClipCandidates.map((candidate, index) => (
                   <div key={candidate.id ?? `candidate-${index}`} className="cf-content-snapshot">
+                    {(() => {
+                      const candidateJob = findClipJobForCandidate(recentClipJobs, candidate.id);
+
+                      return (
+                        <>
                     <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
                       <strong className="text-sm">
                         {candidate.title || `${locale === "id" ? "Clip" : "Clip"} ${index + 1}`}
                       </strong>
-                      <span className="badge bg-light text-dark border">
-                        {candidate.startSec != null && candidate.endSec != null
-                          ? `${candidate.startSec}s - ${candidate.endSec}s`
-                          : `${candidate.durationSec ?? form.durationTargetSec}s`}
-                      </span>
+                      <div className="d-flex flex-wrap gap-2 align-items-center">
+                        <span className="badge bg-light text-dark border">
+                          {candidate.startSec != null && candidate.endSec != null
+                            ? `${candidate.startSec}s - ${candidate.endSec}s`
+                            : `${candidate.durationSec ?? form.durationTargetSec}s`}
+                        </span>
+                        {candidateJob?.status ? (
+                          <span className={`badge ${candidateJob.status === "failed" ? "bg-gradient-danger" : candidateJob.status === "completed" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                            {candidateJob.status}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     {candidate.hook ? <p className="text-sm mb-1">{candidate.hook}</p> : null}
                     {candidate.summary ? <p className="text-xs text-secondary mb-1">{candidate.summary}</p> : null}
                     {candidate.reason ? <p className="text-xs text-secondary mb-0">{candidate.reason}</p> : null}
+                    {candidateJob?.lastErrorMessage ? (
+                      <p className="text-xs text-danger mb-0 mt-2">{candidateJob.lastErrorMessage}</p>
+                    ) : null}
                     <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap mt-3">
                       <span className="text-xs text-secondary">
                         {hasSourceVideoAsset
-                          ? (locale === "id" ? "Siap diexport dari source asset." : "Ready to export from the source asset.")
+                          ? (locale === "id" ? "Siap diexport dari source asset, subtitle akan dibakar otomatis." : "Ready to export from the source asset, with subtitles burned in automatically.")
                           : (locale === "id" ? "Upload source video asset untuk export final." : "Upload a source video asset for final export.")}
                       </span>
                       <button
@@ -2164,40 +2369,48 @@ function ReviewApproveCard({
                       >
                         {clipSubmitting
                           ? (locale === "id" ? "Queueing..." : "Queueing...")
-                          : (locale === "id" ? "Export clip" : "Export clip")}
+                          : candidateJob?.status === "completed"
+                            ? (locale === "id" ? "Export lagi" : "Export again")
+                            : (locale === "id" ? "Export clip" : "Export clip")}
                       </button>
                     </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 ))}
               </div>
             </div>
           ) : null}
-          {isClipper && clipJob?.jobId ? (
+          {isClipper && recentClipJobs.length ? (
             <div className="cf-content-snapshot mb-3">
               <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
                 <div>
                   <strong className="text-sm">
-                    {locale === "id" ? "Status export clip" : "Clip export status"}
+                    {locale === "id" ? "Status export clips" : "Clip export status"}
                   </strong>
                   <p className="text-xs text-secondary mb-0 mt-1">
-                    {clipJob.status === "queued"
-                      ? (locale === "id" ? "Clip sedang menunggu antrean worker." : "The clip is waiting in the worker queue.")
-                      : clipJob.status === "processing"
-                        ? (locale === "id" ? "Worker sedang memotong video source." : "The worker is trimming the source video now.")
-                        : clipJob.status === "completed"
-                          ? (locale === "id" ? "Clip final siap dipreview dan dipublish." : "The final clip is ready to preview and publish.")
-                          : clipJob.status === "failed"
-                            ? (locale === "id" ? "Export clip gagal dan perlu dicoba lagi." : "The clip export failed and should be retried.")
-                            : clipJob.status}
+                    {locale === "id"
+                      ? `${recentClipJobs.filter((item) => item.status === "completed").length} selesai, ${recentClipJobs.filter((item) => item.status === "processing" || item.status === "queued").length} masih berjalan.`
+                      : `${recentClipJobs.filter((item) => item.status === "completed").length} completed, ${recentClipJobs.filter((item) => item.status === "processing" || item.status === "queued").length} still running.`}
                   </p>
                 </div>
-                <span className={`badge ${clipJob.status === "failed" ? "bg-gradient-danger" : clipJob.status === "completed" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
-                  {clipJob.status}
+                <span className="badge bg-light text-dark border">
+                  {recentClipJobs.length}
                 </span>
               </div>
-              {clipJob.lastErrorMessage ? (
-                <p className="text-xs text-danger mb-2">{clipJob.lastErrorMessage}</p>
-              ) : null}
+              <div className="d-flex flex-column gap-2 mb-3">
+                {recentClipJobs.slice(0, 4).map((item, index) => (
+                  <div key={item.jobId ?? `clip-job-${index}`} className="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <span className="text-xs text-secondary">
+                      {item.candidateTitle || item.candidateId || item.jobId}
+                    </span>
+                    <span className={`badge ${item.status === "failed" ? "bg-gradient-danger" : item.status === "completed" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
               {clipPreviewUrl ? (
                 <video
                   key={clipPreviewUrl}
@@ -2427,6 +2640,9 @@ function PlanPreviewCard({
   canRender,
   canManagePublishAccounts,
   clipJob,
+  clipJobs,
+  clipPackageDrafts,
+  clipTrimDrafts,
   clipPreviewUrl,
   connectedAccountForm,
   connectedAccountLoading,
@@ -2438,9 +2654,14 @@ function PlanPreviewCard({
   locale,
   onConnectedAccountChange,
   onCreateConnectedAccount,
+  onClipPackageDraftChange,
+  onClipTrimDraftChange,
   onPublish,
+  onReExportTrimmedClip,
   onRender,
   onRetryScene,
+  onRetryClipJob,
+  onSelectPrimaryClipJob,
   onSelectPublishPlatform,
   onSelectConnectedAccount,
   plan,
@@ -2459,6 +2680,23 @@ function PlanPreviewCard({
 }) {
   const isCreator = isCreatorStudioUseCase(form?.studioUseCase);
   const isClipper = isClipperStudioUseCase(form?.studioUseCase);
+  const recentClipJobs = Array.isArray(clipJobs) ? clipJobs.filter((item) => item && typeof item === "object") : [];
+  const clipResults = [...recentClipJobs].sort((left, right) => {
+    const rank = {
+      completed: 0,
+      processing: 1,
+      queued: 2,
+      failed: 3
+    };
+
+    const leftRank = rank[left?.status] ?? 9;
+    const rightRank = rank[right?.status] ?? 9;
+    if (leftRank !== rightRank) {
+      return leftRank - rightRank;
+    }
+
+    return String(left?.candidateTitle ?? left?.jobId ?? "").localeCompare(String(right?.candidateTitle ?? right?.jobId ?? ""));
+  });
   const primaryPreviewUrl = isClipper && clipPreviewUrl ? clipPreviewUrl : renderPreviewUrl;
   const publishPlatformOptions = getAvailablePublishPlatforms(form, assemblyResult);
   const selectedPublishPlatformLabel = getPlatformPackageLabel(selectedPublishPlatformCode);
@@ -2497,6 +2735,7 @@ function PlanPreviewCard({
   const renderInFlight =
     renderBatch?.status === "processing" ||
     renderBatch?.status === "queued" ||
+    recentClipJobs.some((item) => item.status === "queued" || item.status === "processing") ||
     clipJob?.status === "queued" ||
     clipJob?.status === "processing" ||
     renderJob?.status === "queued" ||
@@ -2514,12 +2753,16 @@ function PlanPreviewCard({
     : null;
   const showRenderProgress = totalBatchJobs > 0 || renderInFlight;
   const renderButtonLabel = renderSubmitting
-    ? copy.renderActions.submitting
+    ? (isClipper
+      ? (locale === "id" ? "Membuat variasi..." : "Creating variation...")
+      : copy.renderActions.submitting)
     : renderInFlight
       ? renderBatch?.status === "queued"
         ? copy.renderJobStatusLabels?.queued ?? "Queued"
         : copy.renderJobStatusLabels?.processing ?? "Processing"
-      : copy.renderActions.submit;
+      : (isClipper
+        ? (locale === "id" ? "Buat variasi baru" : "Create new variation")
+        : copy.renderActions.submit);
   const totalFrames =
     plan?.scenePlan?.scenes?.reduce((sum, scene) => sum + (scene.durationFrames ?? 0), 0) ?? 0;
   const durationLabel = formatDurationLabel(plan?.scenePlan?.durationSeconds ?? plan?.templateRenderSpec?.durationSeconds ?? 0);
@@ -2544,16 +2787,18 @@ function PlanPreviewCard({
       .filter((job) => job.taskType === "scene" && job.sceneId)
       .map((job) => [job.sceneId, job])
   );
-  const assemblyPlatformPackages = Array.isArray(assemblyResult?.platformPackages)
-    ? assemblyResult.platformPackages.filter((item) => item && typeof item === "object")
-    : [];
+  const contextualPlatformPackages = getContextualPlatformPackages(form, assemblyResult, {
+    clipJob,
+    clipPackageDrafts,
+    locale
+  });
   const checklistItems = [
     {
       done: Boolean(assemblyResult?.videoAssetId || renderJob?.outputAssetId || clipJob?.outputAssetId),
       label: locale === "id" ? "Video output siap" : "Video output ready"
     },
     {
-      done: Boolean(assemblyPlatformPackages.length > 0 || assemblyResult?.caption || primaryPreviewUrl),
+      done: Boolean(contextualPlatformPackages.length > 0 || assemblyResult?.caption || primaryPreviewUrl),
       label: locale === "id" ? "Caption siap pakai" : "Caption prepared"
     },
     {
@@ -2571,37 +2816,182 @@ function PlanPreviewCard({
       label: locale === "id" ? "Poster / thumbnail siap" : "Poster / thumbnail ready"
     }
   ];
-  const captionParts = [
-    typeof assemblyResult?.caption === "string" ? assemblyResult.caption.trim() : "",
-    Array.isArray(assemblyResult?.hashtags)
-      ? assemblyResult.hashtags.join(" ").trim()
-      : typeof assemblyResult?.hashtags === "string"
-        ? assemblyResult.hashtags.trim()
-        : ""
-  ].filter(Boolean);
   const publishPrimaryBody = publishStatus
     ? copy.publishStatusBody.replace("{{status}}", publishStatus)
     : copy.publishHint;
-  const fallbackPlatformPackage = captionParts.length > 0
-    ? {
-        caption: captionParts.join("\n\n"),
-        coverText: typeof form?.title === "string" ? form.title.trim() : "",
-        hashtags: Array.isArray(assemblyResult?.hashtags)
-          ? assemblyResult.hashtags
-          : typeof assemblyResult?.hashtags === "string"
-            ? assemblyResult.hashtags.split(/\s+/).filter(Boolean)
-            : [],
-        platformCode: isCreator
-          ? (normalizePlatformTargets(form?.platformTargets)[0] ?? "tiktok")
-          : "tiktok",
-        title: typeof form?.title === "string" ? form.title.trim() : ""
-      }
-    : null;
-  const displayPlatformPackages = assemblyPlatformPackages.length > 0
-    ? assemblyPlatformPackages
-    : fallbackPlatformPackage
-      ? [fallbackPlatformPackage]
+  const selectedClipLabel = clipJob?.candidateTitle || clipJob?.title || form?.title?.trim() || (locale === "id" ? "Clip terpilih" : "Selected clip");
+  const selectedClipHook = typeof clipJob?.hook === "string" && clipJob.hook.trim()
+    ? clipJob.hook.trim()
+    : selectedClipLabel;
+  const selectedClipSummary = typeof clipJob?.summary === "string" ? clipJob.summary.trim() : "";
+  const activePlatformPackage = contextualPlatformPackages.find(
+    (item) => (item.platformCode || "tiktok") === selectedPublishPlatformCode
+  ) ?? contextualPlatformPackages[0] ?? null;
+  const activePlatformHashtags = Array.isArray(activePlatformPackage?.hashtags)
+    ? activePlatformPackage.hashtags
+    : typeof activePlatformPackage?.hashtags === "string"
+      ? activePlatformPackage.hashtags.split(/\s+/).filter(Boolean)
       : [];
+  const selectedClipStartSec = getClipTrimDraftValue(clipTrimDrafts, clipJob, "startSec");
+  const selectedClipEndSec = getClipTrimDraftValue(clipTrimDrafts, clipJob, "endSec");
+  const selectedClipDurationSec = Math.max(1, selectedClipEndSec - selectedClipStartSec);
+  const activeCoverFrameSec = Number.isFinite(Number(activePlatformPackage?.coverFrameSec))
+    ? Number(activePlatformPackage.coverFrameSec)
+    : selectedClipStartSec;
+  const relativeCoverFrameSec = Math.max(0, activeCoverFrameSec - selectedClipStartSec);
+  const hasResultsSection = Boolean(renderJob?.jobId || primaryPreviewUrl || (isClipper && clipResults.length > 0));
+  const hasPackagingSection = Boolean(activePlatformPackage);
+  const hasPublishSection = Boolean(primaryPreviewUrl || publishPlatformOptions.length > 0);
+  const defaultOutputSection = hasResultsSection ? "results" : hasPackagingSection ? "packaging" : "publish";
+  const [activeOutputSection, setActiveOutputSection] = useState(defaultOutputSection);
+  const [coverFramePreviewUrl, setCoverFramePreviewUrl] = useState("");
+  const [coverFramePreviewStatus, setCoverFramePreviewStatus] = useState("idle");
+  const coverFramePreviewKey = [
+    clipJob?.jobId ?? "global",
+    activePlatformPackage?.platformCode ?? "tiktok",
+    primaryPreviewUrl ?? "",
+    relativeCoverFrameSec
+  ].join(":");
+
+  useEffect(() => {
+    if (activeOutputSection === "results" && hasResultsSection) {
+      return;
+    }
+
+    if (activeOutputSection === "packaging" && hasPackagingSection) {
+      return;
+    }
+
+    if (activeOutputSection === "publish" && hasPublishSection) {
+      return;
+    }
+
+    setActiveOutputSection(defaultOutputSection);
+  }, [activeOutputSection, defaultOutputSection, hasPackagingSection, hasPublishSection, hasResultsSection]);
+
+  useEffect(() => {
+    if (!isClipper || !clipJob?.jobId || !primaryPreviewUrl) {
+      setCoverFramePreviewUrl("");
+      setCoverFramePreviewStatus("idle");
+      return;
+    }
+
+    let active = true;
+    let objectUrl = "";
+    const video = document.createElement("video");
+    video.preload = "auto";
+    video.muted = true;
+    video.playsInline = true;
+    video.src = primaryPreviewUrl;
+
+    const cleanup = () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+
+    const captureFrame = () => {
+      if (!active) {
+        return;
+      }
+
+      try {
+        const canvas = document.createElement("canvas");
+        const width = Math.max(1, video.videoWidth || 720);
+        const height = Math.max(1, video.videoHeight || 1280);
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext("2d");
+        if (!context) {
+          throw new Error("Canvas context unavailable");
+        }
+
+        context.drawImage(video, 0, 0, width, height);
+        canvas.toBlob((blob) => {
+          if (!active || !blob) {
+            return;
+          }
+
+          objectUrl = URL.createObjectURL(blob);
+          setCoverFramePreviewUrl(objectUrl);
+          setCoverFramePreviewStatus("ready");
+        }, "image/jpeg", 0.9);
+      } catch {
+        if (active) {
+          setCoverFramePreviewUrl("");
+          setCoverFramePreviewStatus("error");
+        }
+      }
+    };
+
+    const handleLoadedMetadata = () => {
+      const safeDuration = Number.isFinite(video.duration) ? video.duration : selectedClipDurationSec;
+      const targetTime = Math.max(0, Math.min(Math.max(0, safeDuration - 0.05), relativeCoverFrameSec));
+      if (Math.abs(video.currentTime - targetTime) < 0.05) {
+        captureFrame();
+        return;
+      }
+
+      try {
+        video.currentTime = targetTime;
+      } catch {
+        captureFrame();
+      }
+    };
+
+    const handleSeeked = () => {
+      window.requestAnimationFrame(captureFrame);
+    };
+
+    setCoverFramePreviewStatus("loading");
+    setCoverFramePreviewUrl("");
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("seeked", handleSeeked);
+    video.addEventListener("error", () => {
+      if (active) {
+        setCoverFramePreviewUrl("");
+        setCoverFramePreviewStatus("error");
+      }
+    }, { once: true });
+
+    return () => {
+      active = false;
+      cleanup();
+    };
+  }, [clipJob?.jobId, isClipper, primaryPreviewUrl, relativeCoverFrameSec, selectedClipDurationSec, coverFramePreviewKey]);
+
+  const outputSectionOptions = [
+    hasResultsSection
+      ? {
+          body: locale === "id"
+            ? "Preview, clip results, dan file actions."
+            : "Preview, clip results, and file actions.",
+          label: locale === "id" ? "Results" : "Results",
+          value: "results"
+        }
+      : null,
+    hasPackagingSection
+      ? {
+          body: locale === "id"
+            ? "Caption, title, dan cover text untuk platform aktif."
+            : "Caption, title, and cover text for the active platform.",
+          label: locale === "id" ? "Packaging" : "Packaging",
+          value: "packaging"
+        }
+      : null,
+    hasPublishSection
+      ? {
+          body: locale === "id"
+            ? "Checklist publish, akun tujuan, dan queue status."
+            : "Pre-publish checklist, destination account, and queue status.",
+          label: locale === "id" ? "Publish" : "Publish",
+          value: "publish"
+        }
+      : null
+  ].filter(Boolean);
 
   return (
     <div className="card h-100 cf-surface-card">
@@ -2697,7 +3087,9 @@ function PlanPreviewCard({
             </details>
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mt-4 pt-3 border-top">
               <div>
-                <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">{copy.renderCardTitle}</p>
+                <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                  {isClipper ? (locale === "id" ? "Clip workflow" : "Clip workflow") : copy.renderCardTitle}
+                </p>
                 <p className="text-sm mb-0">{renderStatusBody}</p>
                 <p className="text-xs text-secondary mb-0 mt-2">
                   {copy.renderEngineActive.replace("{{engine}}", copy.videoEngineLabels[selectedVideoEngine] ?? selectedVideoEngine)}
@@ -2812,182 +3204,295 @@ function PlanPreviewCard({
                 </div>
               </details>
             ) : null}
-            {isClipper && clipJob?.jobId ? (
-              <div className="alert alert-light border text-sm py-2 px-3 mt-3 mb-0" role="alert">
-                <strong>{locale === "id" ? "Clip export" : "Clip export"}:</strong>{" "}
-                {clipJob.status === "queued"
-                  ? (locale === "id" ? "menunggu antrean worker." : "waiting in the worker queue.")
-                  : clipJob.status === "processing"
-                    ? (locale === "id" ? "sedang memotong source video." : "trimming the source video now.")
-                    : clipJob.status === "completed"
-                      ? (locale === "id" ? "selesai dan siap dipakai." : "completed and ready to use.")
-                      : clipJob.status === "failed"
-                        ? (locale === "id" ? "gagal, cek error lalu coba export lagi." : "failed, check the error and retry export.")
-                        : clipStatus}
+            {outputSectionOptions.length > 1 ? (
+              <div className="cf-content-section-switcher mt-4 pt-3 border-top">
+                <div className="d-flex flex-wrap gap-2">
+                  {outputSectionOptions.map((section) => (
+                    <button
+                      key={section.value}
+                      type="button"
+                      className={`btn btn-sm mb-0 ${activeOutputSection === section.value ? "btn-primary" : "btn-outline-dark"}`}
+                      onClick={() => setActiveOutputSection(section.value)}
+                    >
+                      {section.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-secondary mb-0 mt-2">
+                  {outputSectionOptions.find((section) => section.value === activeOutputSection)?.body}
+                </p>
               </div>
             ) : null}
-            {primaryPreviewUrl ? (
+            {activeOutputSection === "results" && hasResultsSection ? (
               <div className="mt-4 pt-3 border-top">
-                <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
-                  <div>
-                    <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
-                      {isClipper && clipPreviewUrl
-                        ? (locale === "id" ? "Clip preview" : "Clip preview")
-                        : copy.renderPreviewTitle}
-                    </p>
-                    <p className="text-sm mb-0">
-                      {isClipper && clipPreviewUrl
-                        ? (locale === "id" ? "Hasil trim final dari source video untuk clip yang dipilih." : "The final trimmed result from the source video for the selected clip.")
-                        : copy.renderPreviewBody}
-                    </p>
+                {isClipper && clipJob?.jobId ? (
+                  <div className="alert alert-light border text-sm py-2 px-3 mb-3" role="alert">
+                    <strong>{locale === "id" ? "Export clip" : "Clip export"}:</strong>{" "}
+                    {clipJob.status === "queued"
+                      ? (locale === "id" ? "menunggu antrean worker." : "waiting in the worker queue.")
+                      : clipJob.status === "processing"
+                        ? (locale === "id" ? "sedang memotong source video dan membakar subtitle." : "trimming the source video and burning in subtitles now.")
+                        : clipJob.status === "completed"
+                          ? (locale === "id" ? "selesai, subtitle sudah menyatu di video." : "completed, with subtitles already baked into the video.")
+                          : clipJob.status === "failed"
+                            ? (locale === "id" ? "gagal, cek error lalu coba export lagi." : "failed, check the error and retry export.")
+                            : clipStatus}
                   </div>
-                  <span className="badge bg-gradient-dark">
-                    {copy.renderDurationLabel.replace("{{duration}}", durationLabel)}
-                  </span>
-                </div>
-                <div className="cf-content-video-preview-shell">
-                  <div
-                    className="border-radius-xl overflow-hidden"
-                    style={{
-                      background: renderPosterUrl
-                        ? `linear-gradient(180deg, rgba(9, 17, 26, 0.18) 0%, rgba(16, 44, 69, 0.72) 100%), url(${renderPosterUrl}) center / cover`
-                        : "linear-gradient(180deg, #09111a 0%, #102c45 100%)",
-                      boxShadow: "0 20px 40px rgba(16, 44, 69, 0.16)"
-                    }}
-                  >
-                    <video
-                      key={primaryPreviewUrl}
-                      className="d-block w-100"
-                      controls
-                      muted
-                      poster={renderPosterUrl ?? undefined}
-                      playsInline
-                      preload="metadata"
-                      src={primaryPreviewUrl}
-                      style={{
-                        aspectRatio: "9 / 16",
-                        background: "#09111a",
-                        objectFit: "cover"
-                      }}
-                    />
-                  </div>
-                </div>
-                {displayPlatformPackages.length > 0 ? (
-                  <div className="cf-content-caption-box mt-3">
-                    <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">
-                      {isCreator
-                        ? (locale === "id" ? "Output per platform" : "Per-platform output")
-                        : (locale === "id" ? "Caption siap pakai" : "Ready-to-use caption")}
-                    </p>
-                    {publishPlatformOptions.length > 1 ? (
-                      <div className="d-flex flex-wrap gap-2 mb-3">
-                        {publishPlatformOptions.map((option) => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            className={`btn btn-sm mb-0 ${selectedPublishPlatformCode === option.value ? "btn-primary" : "btn-outline-dark"}`}
-                            onClick={() => onSelectPublishPlatform(option.value)}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
+                ) : null}
+                {isClipper && clipResults.length ? (
+                  <div className="cf-content-caption-box mb-3">
+                    <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                      <div>
+                        <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                          {locale === "id" ? "Clip results" : "Clip results"}
+                        </p>
+                        <p className="text-sm mb-0">
+                          {locale === "id"
+                            ? "Pilih clip utama dulu. Setelah itu preview, packaging, dan publish akan mengikuti clip yang kamu pilih."
+                            : "Choose the selected clip first. Preview, packaging, and publishing will follow that choice."}
+                        </p>
                       </div>
-                    ) : null}
+                      <span className="badge bg-light text-dark border">{clipResults.length}</span>
+                    </div>
                     <div className="d-flex flex-column gap-3">
-                      {displayPlatformPackages.map((item, index) => {
-                        const hashtags = Array.isArray(item.hashtags)
-                          ? item.hashtags
-                          : typeof item.hashtags === "string"
-                            ? item.hashtags.split(/\s+/).filter(Boolean)
-                            : [];
-                        const active = (item.platformCode || "tiktok") === selectedPublishPlatformCode;
+                      {clipResults.map((item, index) => {
+                        const isPrimaryClip = item.jobId === clipJob?.jobId;
+                        const itemOutputUrl = getClipOutputUrl(item);
+                        const clipLabel = item.candidateTitle || item.title || `${locale === "id" ? "Clip" : "Clip"} ${index + 1}`;
+                        const trimStartSec = getClipTrimDraftValue(clipTrimDrafts, item, "startSec");
+                        const trimEndSec = getClipTrimDraftValue(clipTrimDrafts, item, "endSec");
+                        const clipRangeMin = Math.max(0, Math.floor(Number(item.startSec) || 0));
+                        const clipRangeMax = Math.max(clipRangeMin + 1, Math.ceil(Number(item.endSec) || trimEndSec || clipRangeMin + 12));
+                        const clipRangeSpan = Math.max(1, clipRangeMax - clipRangeMin);
+                        const selectionLeftPercent = ((trimStartSec - clipRangeMin) / clipRangeSpan) * 100;
+                        const selectionWidthPercent = (Math.max(1, trimEndSec - trimStartSec) / clipRangeSpan) * 100;
 
                         return (
-                          <div key={`${item.platformCode || "platform"}-${index}`} className={`cf-content-snapshot${active ? " border border-primary" : ""}`}>
+                          <div key={item.jobId ?? `clip-result-${index}`} className={`cf-content-snapshot${isPrimaryClip ? " border border-primary" : ""}`}>
                             <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
-                              <strong className="text-sm">{getPlatformPackageLabel(item.platformCode)}</strong>
-                              {item.coverText ? (
-                                <span className="badge bg-light text-dark border">{item.coverText}</span>
-                              ) : null}
+                              <div>
+                                <strong className="text-sm">{clipLabel}</strong>
+                                <p className="text-xs text-secondary mb-0 mt-1">
+                                  {Number.isFinite(Number(item.startSec)) && Number.isFinite(Number(item.endSec))
+                                    ? `${item.startSec}s - ${item.endSec}s`
+                                    : item.jobId}
+                                </p>
+                              </div>
+                              <div className="d-flex flex-wrap gap-2 align-items-center">
+                                {isPrimaryClip ? (
+                                  <span className="badge bg-gradient-primary">
+                                    {locale === "id" ? "Dipilih" : "Selected"}
+                                  </span>
+                                ) : null}
+                                <span className={`badge ${item.status === "failed" ? "bg-gradient-danger" : item.status === "completed" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                                  {copy.renderJobStatusLabels?.[item.status] ?? item.status}
+                                </span>
+                              </div>
                             </div>
-                            {item.title ? (
-                              <>
-                                <p className="text-xs text-secondary mb-1">
-                                  {locale === "id" ? "Title" : "Title"}
-                                </p>
-                                <p className="text-sm mb-2">{item.title}</p>
-                              </>
-                            ) : null}
-                            {item.caption ? (
-                              <>
-                                <p className="text-xs text-secondary mb-1">
-                                  {locale === "id" ? "Caption" : "Caption"}
-                                </p>
-                                <p className="text-sm mb-2" style={{ whiteSpace: "pre-wrap" }}>{item.caption}</p>
-                              </>
-                            ) : null}
-                            {hashtags.length ? (
-                              <>
-                                <p className="text-xs text-secondary mb-1">
-                                  {locale === "id" ? "Hashtags" : "Hashtags"}
-                                </p>
-                                <p className="text-xs text-secondary mb-0">{hashtags.join(" ")}</p>
-                              </>
-                            ) : null}
+                            {item.summary ? <p className="text-sm mb-2">{item.summary}</p> : null}
+                            {item.lastErrorMessage ? <p className="text-xs text-danger mb-2">{item.lastErrorMessage}</p> : null}
+                            <div className="cf-content-subtle-state mb-3">
+                              <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                                <span className="text-xs text-uppercase font-weight-bolder text-secondary">
+                                  {locale === "id" ? "Mini trim editor" : "Mini trim editor"}
+                                </span>
+                                <span className="badge bg-light text-dark border">
+                                  {formatDurationLabel(Math.max(1, trimEndSec - trimStartSec))}
+                                </span>
+                              </div>
+                              <div className="cf-content-trim-track">
+                                <div className="cf-content-trim-track-base" />
+                                <div
+                                  className="cf-content-trim-track-active"
+                                  style={{
+                                    left: `${Math.max(0, Math.min(100, selectionLeftPercent))}%`,
+                                    width: `${Math.max(4, Math.min(100, selectionWidthPercent))}%`
+                                  }}
+                                />
+                              </div>
+                              <div className="row g-2 mt-1">
+                                <div className="col-md-6">
+                                  <label className="form-label text-xs mb-1">{locale === "id" ? "Geser start" : "Move start"}</label>
+                                  <input
+                                    className="form-range"
+                                    max={Math.max(clipRangeMin, trimEndSec - 1)}
+                                    min={clipRangeMin}
+                                    step="0.1"
+                                    type="range"
+                                    value={trimStartSec}
+                                    onChange={(event) => onClipTrimDraftChange?.(item, "startSec", event.target.value)}
+                                  />
+                                </div>
+                                <div className="col-md-6">
+                                  <label className="form-label text-xs mb-1">{locale === "id" ? "Geser end" : "Move end"}</label>
+                                  <input
+                                    className="form-range"
+                                    max={clipRangeMax}
+                                    min={Math.min(clipRangeMax, trimStartSec + 1)}
+                                    step="0.1"
+                                    type="range"
+                                    value={trimEndSec}
+                                    onChange={(event) => onClipTrimDraftChange?.(item, "endSec", event.target.value)}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="row g-2 mb-3">
+                              <div className="col-md-6">
+                                <label className="form-label text-xs">{locale === "id" ? "Trim start" : "Trim start"}</label>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-dark mb-0"
+                                    onClick={() => onClipTrimDraftChange?.(item, "startSec", -1)}
+                                  >
+                                    -1s
+                                  </button>
+                                  <input
+                                    className="form-control form-control-sm"
+                                    inputMode="decimal"
+                                    type="number"
+                                    step="0.1"
+                                    value={trimStartSec}
+                                    onChange={(event) => onClipTrimDraftChange?.(item, "startSec", event.target.value)}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-dark mb-0"
+                                    onClick={() => onClipTrimDraftChange?.(item, "startSec", 1)}
+                                  >
+                                    +1s
+                                  </button>
+                                </div>
+                              </div>
+                              <div className="col-md-6">
+                                <label className="form-label text-xs">{locale === "id" ? "Trim end" : "Trim end"}</label>
+                                <div className="d-flex gap-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-dark mb-0"
+                                    onClick={() => onClipTrimDraftChange?.(item, "endSec", -1)}
+                                  >
+                                    -1s
+                                  </button>
+                                  <input
+                                    className="form-control form-control-sm"
+                                    inputMode="decimal"
+                                    type="number"
+                                    step="0.1"
+                                    value={trimEndSec}
+                                    onChange={(event) => onClipTrimDraftChange?.(item, "endSec", event.target.value)}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-dark mb-0"
+                                    onClick={() => onClipTrimDraftChange?.(item, "endSec", 1)}
+                                  >
+                                    +1s
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="d-flex flex-wrap gap-2">
+                              {!isPrimaryClip ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-primary mb-0"
+                                  onClick={() => onSelectPrimaryClipJob?.(item.jobId)}
+                                >
+                                  {locale === "id" ? "Pakai clip ini" : "Use this clip"}
+                                </button>
+                              ) : null}
+                              {itemOutputUrl ? (
+                                <a
+                                  className="btn btn-sm btn-outline-dark mb-0"
+                                  href={itemOutputUrl}
+                                  rel="noreferrer"
+                                  target="_blank"
+                                >
+                                  {copy.renderActions.open}
+                                </a>
+                              ) : null}
+                              {itemOutputUrl ? (
+                                <a
+                                  className="btn btn-sm btn-outline-primary mb-0"
+                                  download={createPublishFileName(plan)}
+                                  href={itemOutputUrl}
+                                >
+                                  {copy.renderActions.download}
+                                </a>
+                              ) : null}
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-dark mb-0"
+                                disabled={clipResults.some((clipItem) => clipItem.status === "queued" || clipItem.status === "processing")}
+                                onClick={() => onRetryClipJob?.(item)}
+                              >
+                                {locale === "id" ? "Export lagi" : "Export again"}
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-primary mb-0"
+                                disabled={clipResults.some((clipItem) => clipItem.status === "queued" || clipItem.status === "processing")}
+                                onClick={() => onReExportTrimmedClip?.(item)}
+                              >
+                                {locale === "id" ? "Atur trim lalu export" : "Adjust trim & export"}
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
                     </div>
                   </div>
                 ) : null}
-                <div className="cf-content-checkpoint mt-3">
-                  <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                    <div>
-                      <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
-                        {locale === "id" ? "Langkah berikutnya" : "Next step"}
-                      </p>
-                      <p className="text-sm mb-0">{publishPrimaryBody}</p>
-                      <div className="d-flex flex-wrap gap-2 align-items-center mt-2">
-                        <span className="badge bg-light text-dark border">{selectedPublishPlatformLabel}</span>
-                        {publishJob?.jobId ? (
-                          <span className={`badge ${publishJob.status === "failed" ? "bg-gradient-danger" : publishJob.status === "published" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
-                            {publishStatus}
-                          </span>
-                        ) : null}
-                        {publishJob?.jobId ? <span className="badge bg-light text-dark border">{publishJob.jobId}</span> : null}
+                {primaryPreviewUrl ? (
+                  <>
+                    <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                      <div>
+                        <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                          {isClipper && clipPreviewUrl
+                            ? (locale === "id" ? "Preview clip terpilih" : "Selected clip preview")
+                            : copy.renderPreviewTitle}
+                        </p>
+                        <p className="text-sm mb-0">
+                          {isClipper && clipPreviewUrl
+                            ? (locale === "id" ? "Hasil final dari source video untuk clip yang sedang dipilih." : "The final source-video output for the clip that is currently selected.")
+                            : copy.renderPreviewBody}
+                        </p>
                       </div>
-                      <p className="text-xs text-secondary mb-0 mt-2">{copy.publishQueueNote}</p>
-                      {publishJob?.lastErrorMessage ? (
-                        <p className="text-xs text-danger mb-0 mt-2">{publishJob.lastErrorMessage}</p>
-                      ) : null}
+                      <span className="badge bg-gradient-dark">
+                        {copy.renderDurationLabel.replace("{{duration}}", durationLabel)}
+                      </span>
                     </div>
-                    <div className="d-flex flex-column align-items-stretch gap-2" style={{ minWidth: 220 }}>
-                      {canSubmitPublish ? (
-                        <button
-                          type="button"
-                          className="btn btn-primary mb-0"
-                          disabled={publishSubmitting}
-                          onClick={onPublish}
-                        >
-                          {publishSubmitting
-                            ? copy.publishActions.submitting
-                            : (locale === "id"
-                              ? `Kirim ke antrean ${selectedPublishPlatformLabel}`
-                              : `Queue for ${selectedPublishPlatformLabel}`)}
-                        </button>
-                      ) : (
-                        <span className="badge bg-light text-dark border align-self-start">{copy.publishActions.locked}</span>
-                      )}
-                      <a
-                        className="btn btn-outline-primary mb-0"
-                        download={createPublishFileName(plan)}
-                        href={primaryPreviewUrl}
+                    <div className="cf-content-video-preview-shell">
+                      <div
+                        className="border-radius-xl overflow-hidden"
+                        style={{
+                          background: renderPosterUrl
+                            ? `linear-gradient(180deg, rgba(9, 17, 26, 0.18) 0%, rgba(16, 44, 69, 0.72) 100%), url(${renderPosterUrl}) center / cover`
+                            : "linear-gradient(180deg, #09111a 0%, #102c45 100%)",
+                          boxShadow: "0 20px 40px rgba(16, 44, 69, 0.16)"
+                        }}
                       >
-                        {copy.renderActions.download}
-                      </a>
+                        <video
+                          key={primaryPreviewUrl}
+                          className="d-block w-100"
+                          controls
+                          muted
+                          poster={renderPosterUrl ?? undefined}
+                          playsInline
+                          preload="metadata"
+                          src={primaryPreviewUrl}
+                          style={{
+                            aspectRatio: "9 / 16",
+                            background: "#09111a",
+                            objectFit: "cover"
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  </>
+                ) : null}
                 {timelineScenes.length ? (
                   <details className="cf-content-advanced mt-3">
                     <summary>{copy.renderTimelineTitle}</summary>
@@ -3017,145 +3522,363 @@ function PlanPreviewCard({
                     </div>
                   </details>
                 ) : null}
-                <details className="cf-content-advanced mt-3">
-                  <summary>{locale === "id" ? "Pengaturan publish" : "Publish settings"}</summary>
-                  <div className="mt-3 cf-content-checkpoint">
-                    <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">
-                      {locale === "id" ? "Checklist sebelum publish" : "Pre-publish checklist"}
-                    </p>
-                    <div className="d-flex flex-column gap-2 mb-3">
-                      {checklistItems.map((item) => (
-                        <div key={item.label} className="cf-content-progress-item">
-                          <div className={`cf-content-progress-dot${item.done ? " is-done" : ""}`} />
-                          <span className="text-sm">{item.label}</span>
-                          <span className={`badge ms-auto ${item.done ? "bg-gradient-success" : "bg-light text-dark border"}`}>
-                            {item.done ? (locale === "id" ? "Siap" : "Ready") : (locale === "id" ? "Cek lagi" : "Check")}
-                          </span>
-                        </div>
-                      ))}
+                {primaryPreviewUrl ? (
+                  <details className="cf-content-advanced mt-3">
+                    <summary>{locale === "id" ? "Aksi file" : "File actions"}</summary>
+                    <div className="d-flex flex-wrap gap-2 mt-3">
+                      <a
+                        className="btn btn-sm btn-outline-dark mb-0"
+                        href={primaryPreviewUrl}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {copy.renderActions.open}
+                      </a>
+                      <a
+                        className="btn btn-sm btn-outline-primary mb-0"
+                        download={createPublishFileName(plan)}
+                        href={primaryPreviewUrl}
+                      >
+                        {copy.renderActions.download}
+                      </a>
+                      <button type="button" className="btn btn-sm btn-outline-dark mb-0" onClick={onRender}>
+                        {locale === "id" ? "Buat variasi baru" : "Create new variation"}
+                      </button>
                     </div>
+                  </details>
+                ) : null}
+              </div>
+            ) : null}
+            {activeOutputSection === "packaging" && hasPackagingSection ? (
+              <div className="mt-4 pt-3 border-top">
+                <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-3">
+                  <div>
                     <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
-                      {copy.publishCardTitle}
+                      {isCreator
+                        ? (locale === "id" ? "Packaging clip terpilih" : "Selected clip packaging")
+                        : (locale === "id" ? "Caption siap pakai" : "Ready-to-use caption")}
                     </p>
-                    <div className="row g-2 mb-3">
-                      <div className="col-md-7">
-                        <label className="form-label text-xs">
-                          {locale === "id" ? `Akun ${selectedPublishPlatformLabel}` : `${selectedPublishPlatformLabel} account`}
-                        </label>
-                        <select
-                          className="form-select"
-                          disabled={connectedAccountLoading}
-                          value={selectedConnectedAccountId}
-                          onChange={(event) => onSelectConnectedAccount(event.target.value)}
-                        >
-                          <option value="">{copy.publishAccountFields.account.placeholder}</option>
-                          {connectedAccounts.map((account) => (
-                            <option key={account.id} value={account.id}>
-                              {account.accountLabel}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-md-5">
-                        <label className="form-label text-xs">{copy.publishAccountFields.platform.label}</label>
-                        <select
-                          className="form-select"
-                          disabled={publishPlatformOptions.length <= 1}
-                          value={selectedPublishPlatformCode}
-                          onChange={(event) => onSelectPublishPlatform(event.target.value)}
-                        >
-                          {publishPlatformOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label text-xs">{copy.publishAccountFields.accountLabel.label}</label>
-                        <input
-                          className="form-control"
-                          disabled={!canManagePublishAccounts || submitConnectedAccount}
-                          name="accountLabel"
-                          placeholder={copy.publishAccountFields.accountLabel.placeholder}
-                          value={connectedAccountForm.accountLabel}
-                          onChange={onConnectedAccountChange}
-                        />
-                      </div>
-                      <div className="col-md-6">
-                        <label className="form-label text-xs">{copy.publishAccountFields.externalAccountId.label}</label>
-                        <input
-                          className="form-control"
-                          disabled={!canManagePublishAccounts || submitConnectedAccount}
-                          name="externalAccountId"
-                          placeholder={copy.publishAccountFields.externalAccountId.placeholder}
-                          value={connectedAccountForm.externalAccountId}
-                          onChange={onConnectedAccountChange}
-                        />
-                      </div>
-                      <div className="col-12 d-flex justify-content-between align-items-center gap-2 flex-wrap">
-                        <p className="text-xs text-secondary mb-0">
-                          {locale === "id"
-                            ? `Registry akun ini dipakai supaya tim bisa memilih tujuan publish ${selectedPublishPlatformLabel} yang tepat.`
-                            : `This lightweight account registry helps the team choose the correct ${selectedPublishPlatformLabel} publish destination.`}
-                        </p>
-                        {canManagePublishAccounts ? (
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-dark mb-0"
-                            disabled={submitConnectedAccount}
-                            onClick={onCreateConnectedAccount}
-                          >
-                            {submitConnectedAccount
-                              ? copy.publishAccountActions.creating
-                              : (locale === "id"
-                                ? `Tambah akun ${selectedPublishPlatformLabel}`
-                                : `Add ${selectedPublishPlatformLabel} account`)}
-                          </button>
+                    <p className="text-sm mb-0">
+                      {isClipper
+                        ? (locale === "id" ? "Package ini mengikuti clip yang sedang dipilih di section Results." : "This package follows the clip selected in the Results section.")
+                        : (locale === "id" ? "Pilih platform aktif untuk melihat copy yang siap dipakai." : "Choose the active platform to view ready-to-use copy.")}
+                    </p>
+                  </div>
+                  {isClipper ? (
+                    <span className="badge bg-light text-dark border">{selectedClipLabel}</span>
+                  ) : null}
+                </div>
+                {publishPlatformOptions.length > 1 ? (
+                  <div className="d-flex flex-wrap gap-2 mb-3">
+                    {publishPlatformOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        className={`btn btn-sm mb-0 ${selectedPublishPlatformCode === option.value ? "btn-primary" : "btn-outline-dark"}`}
+                        onClick={() => onSelectPublishPlatform(option.value)}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                {activePlatformPackage ? (
+                  <div className="cf-content-caption-box">
+                    <div className="cf-content-snapshot border border-primary">
+                      <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
+                        <strong className="text-sm">{getPlatformPackageLabel(activePlatformPackage.platformCode)}</strong>
+                        {activePlatformPackage.coverText ? (
+                          <span className="badge bg-light text-dark border">{activePlatformPackage.coverText}</span>
                         ) : null}
                       </div>
-                    </div>
-                    <p className="text-sm mb-2">
-                      {publishPrimaryBody}
-                    </p>
-                    <div className="d-flex flex-wrap gap-2 align-items-center">
-                      <span className="badge bg-light text-dark border">{selectedPublishPlatformLabel}</span>
-                      {publishJob?.jobId ? (
-                        <span className={`badge ${publishJob.status === "failed" ? "bg-gradient-danger" : publishJob.status === "published" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
-                          {publishStatus}
-                        </span>
+                      {isClipper && selectedClipSummary ? (
+                        <p className="text-xs text-secondary mb-2">
+                          {locale === "id" ? `Untuk clip: ${selectedClipSummary}` : `For clip: ${selectedClipSummary}`}
+                        </p>
                       ) : null}
-                      {publishJob?.jobId ? <span className="badge bg-light text-dark border">{publishJob.jobId}</span> : null}
+                      <div className="row g-3">
+                        <div className="col-md-6">
+                          <label className="form-label text-xs">{locale === "id" ? "Title" : "Title"}</label>
+                          <input
+                            className="form-control"
+                            value={activePlatformPackage.title ?? ""}
+                            onChange={(event) => onClipPackageDraftChange?.(clipJob, activePlatformPackage.platformCode, "title", event.target.value)}
+                          />
+                        </div>
+                        <div className="col-md-6">
+                          <label className="form-label text-xs">{locale === "id" ? "Cover text" : "Cover text"}</label>
+                          <input
+                            className="form-control"
+                            value={activePlatformPackage.coverText ?? ""}
+                            onChange={(event) => onClipPackageDraftChange?.(clipJob, activePlatformPackage.platformCode, "coverText", event.target.value)}
+                          />
+                        </div>
+                        <div className="col-12">
+                          <label className="form-label text-xs">{locale === "id" ? "Caption" : "Caption"}</label>
+                          <textarea
+                            className="form-control"
+                            rows="6"
+                            value={activePlatformPackage.caption ?? ""}
+                            onChange={(event) => onClipPackageDraftChange?.(clipJob, activePlatformPackage.platformCode, "caption", event.target.value)}
+                          />
+                        </div>
+                        <div className="col-12">
+                          <label className="form-label text-xs">{locale === "id" ? "Hashtags" : "Hashtags"}</label>
+                          <input
+                            className="form-control"
+                            value={activePlatformHashtags.join(" ")}
+                            onChange={(event) => onClipPackageDraftChange?.(clipJob, activePlatformPackage.platformCode, "hashtagsText", event.target.value)}
+                          />
+                        </div>
+                      </div>
+                      {isClipper && clipJob ? (
+                        <div className="cf-content-subtle-state mt-3">
+                          <div className="d-flex justify-content-between align-items-center gap-2 flex-wrap mb-2">
+                            <span className="text-xs text-uppercase font-weight-bolder text-secondary">
+                              {locale === "id" ? "Cover editor" : "Cover editor"}
+                            </span>
+                            <span className="badge bg-light text-dark border">
+                              {locale === "id"
+                                ? `Frame ${formatDurationLabel(Math.max(0, activeCoverFrameSec - selectedClipStartSec))}`
+                                : `Frame ${formatDurationLabel(Math.max(0, activeCoverFrameSec - selectedClipStartSec))}`}
+                            </span>
+                          </div>
+                          <div className="cf-content-cover-preview-shell mb-3">
+                            {coverFramePreviewUrl ? (
+                              <img
+                                alt={locale === "id" ? "Preview frame cover" : "Cover frame preview"}
+                                className="cf-content-cover-preview-image"
+                                src={coverFramePreviewUrl}
+                              />
+                            ) : (
+                              <div className="cf-content-cover-preview-placeholder">
+                                <span className="text-xs text-secondary">
+                                  {coverFramePreviewStatus === "loading"
+                                    ? (locale === "id" ? "Menyiapkan preview frame..." : "Preparing frame preview...")
+                                    : coverFramePreviewStatus === "error"
+                                      ? (locale === "id" ? "Preview frame belum bisa dibuat sekarang." : "The frame preview could not be generated right now.")
+                                      : (locale === "id" ? "Preview frame akan muncul di sini." : "The frame preview will appear here.")}
+                                </span>
+                              </div>
+                            )}
+                            {activePlatformPackage.coverText ? (
+                              <div className="cf-content-cover-preview-text">
+                                {activePlatformPackage.coverText}
+                              </div>
+                            ) : null}
+                          </div>
+                          <input
+                            className="form-range"
+                            max={selectedClipEndSec}
+                            min={selectedClipStartSec}
+                            step="0.1"
+                            type="range"
+                            value={Math.max(selectedClipStartSec, Math.min(selectedClipEndSec, activeCoverFrameSec))}
+                            onChange={(event) => onClipPackageDraftChange?.(clipJob, activePlatformPackage.platformCode, "coverFrameSec", event.target.value)}
+                          />
+                          <div className="d-flex justify-content-between gap-2 flex-wrap mt-2">
+                            <span className="text-xs text-secondary">
+                              {locale === "id"
+                                ? `Mulai clip ${formatDurationLabel(selectedClipStartSec)}`
+                                : `Clip start ${formatDurationLabel(selectedClipStartSec)}`}
+                            </span>
+                            <span className="text-xs text-secondary">
+                              {locale === "id"
+                                ? `Durasi ${formatDurationLabel(selectedClipDurationSec)}`
+                                : `Duration ${formatDurationLabel(selectedClipDurationSec)}`}
+                            </span>
+                            <span className="text-xs text-secondary">
+                              {locale === "id"
+                                ? `Frame cover ${formatDurationLabel(activeCoverFrameSec)}`
+                                : `Cover frame ${formatDurationLabel(activeCoverFrameSec)}`}
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                    <p className="text-xs text-secondary mb-0 mt-2">{copy.publishQueueNote}</p>
-                    {publishJob?.lastErrorMessage ? (
-                      <p className="text-xs text-danger mb-0 mt-2">{publishJob.lastErrorMessage}</p>
-                    ) : null}
                   </div>
-                </details>
-                <details className="cf-content-advanced mt-3">
-                  <summary>{locale === "id" ? "Aksi lain" : "More actions"}</summary>
-                  <div className="d-flex flex-wrap gap-2 mt-3">
-                    <a
-                      className="btn btn-sm btn-outline-dark mb-0"
-                      href={primaryPreviewUrl}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {copy.renderActions.open}
-                    </a>
-                    <a
-                      className="btn btn-sm btn-outline-primary mb-0"
-                      download={createPublishFileName(plan)}
-                      href={primaryPreviewUrl}
-                    >
-                      {copy.renderActions.download}
-                    </a>
-                    <button type="button" className="btn btn-sm btn-outline-dark mb-0" onClick={onRender}>
-                      {locale === "id" ? "Buat variasi baru" : "Create new variation"}
-                    </button>
+                ) : null}
+              </div>
+            ) : null}
+            {activeOutputSection === "publish" && hasPublishSection ? (
+              <div className="mt-4 pt-3 border-top">
+                <div className="cf-content-checkpoint">
+                  <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                    <div>
+                      <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                        {locale === "id" ? "Langkah berikutnya" : "Next step"}
+                      </p>
+                      <p className="text-sm mb-0">{publishPrimaryBody}</p>
+                      <div className="d-flex flex-wrap gap-2 align-items-center mt-2">
+                        <span className="badge bg-light text-dark border">{selectedPublishPlatformLabel}</span>
+                        {isClipper ? (
+                          <span className="badge bg-light text-dark border">{selectedClipLabel}</span>
+                        ) : null}
+                        {publishJob?.jobId ? (
+                          <span className={`badge ${publishJob.status === "failed" ? "bg-gradient-danger" : publishJob.status === "published" ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                            {publishStatus}
+                          </span>
+                        ) : null}
+                        {publishJob?.jobId ? <span className="badge bg-light text-dark border">{publishJob.jobId}</span> : null}
+                      </div>
+                      <p className="text-xs text-secondary mb-0 mt-2">{copy.publishQueueNote}</p>
+                      {publishJob?.lastErrorMessage ? (
+                        <p className="text-xs text-danger mb-0 mt-2">{publishJob.lastErrorMessage}</p>
+                      ) : null}
+                    </div>
+                    <div className="d-flex flex-column align-items-stretch gap-2" style={{ minWidth: 220 }}>
+                      {canSubmitPublish ? (
+                        <button
+                          type="button"
+                          className="btn btn-primary mb-0"
+                          disabled={publishSubmitting}
+                          onClick={onPublish}
+                        >
+                          {publishSubmitting
+                            ? copy.publishActions.submitting
+                            : (isClipper
+                              ? (locale === "id"
+                                ? `Publish clip ke ${selectedPublishPlatformLabel}`
+                                : `Publish clip to ${selectedPublishPlatformLabel}`)
+                              : (locale === "id"
+                                ? `Kirim ke antrean ${selectedPublishPlatformLabel}`
+                                : `Queue for ${selectedPublishPlatformLabel}`))}
+                        </button>
+                      ) : (
+                        <span className="badge bg-light text-dark border align-self-start">{copy.publishActions.locked}</span>
+                      )}
+                      {primaryPreviewUrl ? (
+                        <a
+                          className="btn btn-outline-primary mb-0"
+                          download={createPublishFileName(plan)}
+                          href={primaryPreviewUrl}
+                        >
+                          {copy.renderActions.download}
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
-                </details>
+                </div>
+                <div className="cf-content-caption-box mt-3">
+                  <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-2">
+                    {locale === "id" ? "Checklist sebelum publish" : "Pre-publish checklist"}
+                  </p>
+                  <div className="d-flex flex-column gap-2 mb-3">
+                    {checklistItems.map((item) => (
+                      <div key={item.label} className="cf-content-progress-item">
+                        <div className={`cf-content-progress-dot${item.done ? " is-done" : ""}`} />
+                        <span className="text-sm">{item.label}</span>
+                        <span className={`badge ms-auto ${item.done ? "bg-gradient-success" : "bg-light text-dark border"}`}>
+                          {item.done ? (locale === "id" ? "Siap" : "Ready") : (locale === "id" ? "Cek lagi" : "Check")}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-uppercase font-weight-bolder text-secondary mb-1">
+                    {copy.publishCardTitle}
+                  </p>
+                  <div className="row g-2 mb-3">
+                    <div className="col-md-7">
+                      <label className="form-label text-xs">
+                        {locale === "id" ? `Akun ${selectedPublishPlatformLabel}` : `${selectedPublishPlatformLabel} account`}
+                      </label>
+                      <select
+                        className="form-select"
+                        disabled={connectedAccountLoading}
+                        value={selectedConnectedAccountId}
+                        onChange={(event) => onSelectConnectedAccount(event.target.value)}
+                      >
+                        <option value="">{copy.publishAccountFields.account.placeholder}</option>
+                        {connectedAccounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.accountLabel}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-5">
+                      <label className="form-label text-xs">{copy.publishAccountFields.platform.label}</label>
+                      <select
+                        className="form-select"
+                        disabled={publishPlatformOptions.length <= 1}
+                        value={selectedPublishPlatformCode}
+                        onChange={(event) => onSelectPublishPlatform(event.target.value)}
+                      >
+                        {publishPlatformOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label text-xs">{copy.publishAccountFields.accountLabel.label}</label>
+                      <input
+                        className="form-control"
+                        disabled={!canManagePublishAccounts || submitConnectedAccount}
+                        name="accountLabel"
+                        placeholder={copy.publishAccountFields.accountLabel.placeholder}
+                        value={connectedAccountForm.accountLabel}
+                        onChange={onConnectedAccountChange}
+                      />
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label text-xs">{copy.publishAccountFields.externalAccountId.label}</label>
+                      <input
+                        className="form-control"
+                        disabled={!canManagePublishAccounts || submitConnectedAccount}
+                        name="externalAccountId"
+                        placeholder={copy.publishAccountFields.externalAccountId.placeholder}
+                        value={connectedAccountForm.externalAccountId}
+                        onChange={onConnectedAccountChange}
+                      />
+                    </div>
+                    <div className="col-12 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                      <p className="text-xs text-secondary mb-0">
+                        {locale === "id"
+                          ? `Registry akun ini dipakai supaya tim bisa memilih tujuan publish ${selectedPublishPlatformLabel} yang tepat.`
+                          : `This lightweight account registry helps the team choose the correct ${selectedPublishPlatformLabel} publish destination.`}
+                      </p>
+                      {canManagePublishAccounts ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-dark mb-0"
+                          disabled={submitConnectedAccount}
+                          onClick={onCreateConnectedAccount}
+                        >
+                          {submitConnectedAccount
+                            ? copy.publishAccountActions.creating
+                            : (locale === "id"
+                              ? `Tambah akun ${selectedPublishPlatformLabel}`
+                              : `Add ${selectedPublishPlatformLabel} account`)}
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                  {activePlatformPackage ? (
+                    <div className="cf-content-subtle-state">
+                      <div className="d-flex justify-content-between align-items-start gap-2 flex-wrap mb-2">
+                        <strong className="text-sm">
+                          {locale === "id" ? "Package yang akan dipakai" : "Package that will be used"}
+                        </strong>
+                        <span className="badge bg-light text-dark border">{selectedPublishPlatformLabel}</span>
+                      </div>
+                      {activePlatformPackage.title ? (
+                        <p className="text-sm mb-1">{activePlatformPackage.title}</p>
+                      ) : null}
+                      {activePlatformPackage.coverText ? (
+                        <p className="text-xs text-secondary mb-1">
+                          {locale === "id" ? `Cover text: ${activePlatformPackage.coverText}` : `Cover text: ${activePlatformPackage.coverText}`}
+                        </p>
+                      ) : null}
+                      {isClipper && selectedClipSummary ? (
+                        <p className="text-xs text-secondary mb-0">
+                          {locale === "id" ? `Clip terpilih: ${selectedClipSummary}` : `Selected clip: ${selectedClipSummary}`}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </>
@@ -3706,6 +4429,7 @@ function StudioStickyActionBar({
   reviewReady,
   savedLabel,
   selectedPublishPlatformCode,
+  studioUseCase,
   stepOrder,
   submitting,
   workflowMode,
@@ -3714,6 +4438,7 @@ function StudioStickyActionBar({
   onPublish,
   onRender
 }) {
+  const isClipper = isClipperStudioUseCase(studioUseCase);
   const selectedPublishPlatformLabel = getPlatformPackageLabel(selectedPublishPlatformCode);
   const activeIndex = Math.max(0, stepOrder.indexOf(activeStep));
   const hasBack = activeIndex > 0;
@@ -3756,12 +4481,18 @@ function StudioStickyActionBar({
     primaryLabel = locale === "id" ? "Kembali ke brief" : "Back to brief";
     onPrimary = () => onNextStep("brief");
   } else if (activeStep === "render") {
-    primaryLabel = locale === "id"
-      ? `Kirim ke antrean ${selectedPublishPlatformLabel}`
-      : `Queue for ${selectedPublishPlatformLabel}`;
+    primaryLabel = isClipper
+      ? (locale === "id"
+        ? `Publish clip ke ${selectedPublishPlatformLabel}`
+        : `Publish clip to ${selectedPublishPlatformLabel}`)
+      : (locale === "id"
+        ? `Kirim ke antrean ${selectedPublishPlatformLabel}`
+        : `Queue for ${selectedPublishPlatformLabel}`);
     onPrimary = onPublish;
     primaryDisabled = publishSubmitting || !canSubmitPublishJobs || !publishReady;
-    secondaryLabel = copy.renderActions.submit;
+    secondaryLabel = isClipper
+      ? (locale === "id" ? "Buat variasi baru" : "Create new variation")
+      : copy.renderActions.submit;
     onSecondary = onRender;
     secondaryDisabled = renderSubmitting || !canRenderVideos || renderInFlight;
   }
@@ -3881,6 +4612,9 @@ function buildStudioRawBrief(form, workflowMode) {
 function buildStudioDraftState({
   activeStudioStep,
   assemblyResult,
+  clipJobs,
+  clipPackageDrafts,
+  clipTrimDrafts,
   connectedAccountForm,
   publishJob,
   renderBatch,
@@ -3896,6 +4630,9 @@ function buildStudioDraftState({
   return {
     activeStudioStep,
     assemblyResult,
+    clipJobs,
+    clipPackageDrafts,
+    clipTrimDrafts,
     connectedAccountForm,
     publishJob,
     renderBatch,
@@ -3978,6 +4715,9 @@ export default function ContentStudioPage() {
   const [renderJob, setRenderJob] = useState(null);
   const [renderBatch, setRenderBatch] = useState(null);
   const [clipJob, setClipJob] = useState(null);
+  const [clipJobs, setClipJobs] = useState([]);
+  const [clipPackageDrafts, setClipPackageDrafts] = useState({});
+  const [clipTrimDrafts, setClipTrimDrafts] = useState({});
   const [clipSubmitting, setClipSubmitting] = useState(false);
   const [assemblyResult, setAssemblyResult] = useState(null);
   const [assemblySubmitting, setAssemblySubmitting] = useState(false);
@@ -4102,6 +4842,18 @@ export default function ContentStudioPage() {
 
       if (saved?.clipJob && typeof saved.clipJob === "object") {
         setClipJob(saved.clipJob);
+      }
+
+      if (Array.isArray(saved?.clipJobs)) {
+        setClipJobs(saved.clipJobs);
+      }
+
+      if (saved?.clipPackageDrafts && typeof saved.clipPackageDrafts === "object") {
+        setClipPackageDrafts(saved.clipPackageDrafts);
+      }
+
+      if (saved?.clipTrimDrafts && typeof saved.clipTrimDrafts === "object") {
+        setClipTrimDrafts(saved.clipTrimDrafts);
       }
 
       if (saved?.assemblyResult && typeof saved.assemblyResult === "object") {
@@ -4267,6 +5019,9 @@ export default function ContentStudioPage() {
           draftState: buildStudioDraftState({
             activeStudioStep,
             assemblyResult,
+            clipJobs,
+            clipPackageDrafts,
+            clipTrimDrafts,
             connectedAccountForm,
             publishJob,
             renderBatch,
@@ -4904,27 +5659,42 @@ export default function ContentStudioPage() {
   }, [canReadRenderJobs, renderJob]);
 
   useEffect(() => {
-    if (!clipJob?.jobId || !canReadRenderJobs) {
+    if (!canReadRenderJobs) {
       return;
     }
 
-    if (!["queued", "processing"].includes(clipJob.status)) {
+    const activeClipJobs = clipJobs.filter((item) => ["queued", "processing"].includes(item?.status));
+    if (activeClipJobs.length === 0) {
       return;
     }
 
     let active = true;
     const timeoutId = window.setTimeout(async () => {
       try {
-        const response = await fetch(`/api/media/clip-jobs/${clipJob.jobId}`, {
-          credentials: "same-origin"
-        });
-        const payload = await response.json().catch(() => null);
+        const payloads = await Promise.all(
+          activeClipJobs.map(async (item) => {
+            const response = await fetch(`/api/media/clip-jobs/${item.jobId}`, {
+              credentials: "same-origin"
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload || typeof payload !== "object") {
+              return null;
+            }
 
-        if (!active || !response.ok) {
+            return {
+              ...item,
+              ...payload
+            };
+          })
+        );
+
+        if (!active) {
           return;
         }
 
-        setClipJob(payload);
+        const nextClipJobs = mergeClipJobs(clipJobs, payloads.filter(Boolean));
+        setClipJobs(nextClipJobs);
+        setClipJob((current) => selectPrimaryClipJob(current, nextClipJobs));
       } catch {
         // Polling should stay silent to avoid interrupting the studio.
       }
@@ -4934,7 +5704,7 @@ export default function ContentStudioPage() {
       active = false;
       window.clearTimeout(timeoutId);
     };
-  }, [canReadRenderJobs, clipJob]);
+  }, [canReadRenderJobs, clipJobs]);
 
   useEffect(() => {
     if (!publishJob?.jobId || !canReadPublishJobs) {
@@ -4982,6 +5752,9 @@ export default function ContentStudioPage() {
     const payload = {
       activeStudioStep,
       assemblyResult,
+      clipJobs,
+      clipPackageDrafts,
+      clipTrimDrafts,
       connectedAccountForm,
       clipJob,
       form,
@@ -5002,7 +5775,7 @@ export default function ContentStudioPage() {
 
     window.localStorage.setItem(STUDIO_STORAGE_KEY, JSON.stringify(payload));
     setLastSavedAt(payload.updatedAt);
-  }, [activeStudioStep, assemblyResult, clipJob, connectedAccountForm, form, publishJob, renderBatch, renderJob, reviewTab, selectedPublishPlatformCode, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
+  }, [activeStudioStep, assemblyResult, clipJob, clipJobs, clipPackageDrafts, clipTrimDrafts, connectedAccountForm, form, publishJob, renderBatch, renderJob, reviewTab, selectedPublishPlatformCode, selectedConnectedAccountId, selectedScriptId, selectedTemplateId, storageReady, studioSessionId, templatePlan, templateScope, workflowMode]);
 
   useEffect(() => {
     if (!storageReady || !sessionResolved || !isAuthenticated || !studioSessionId) {
@@ -5041,6 +5814,9 @@ export default function ContentStudioPage() {
             draftState: buildStudioDraftState({
               activeStudioStep,
               assemblyResult,
+              clipJobs,
+              clipPackageDrafts,
+              clipTrimDrafts,
               connectedAccountForm,
               publishJob,
               renderBatch,
@@ -5075,6 +5851,8 @@ export default function ContentStudioPage() {
   }, [
     activeStudioStep,
     assemblyResult,
+    clipJobs,
+    clipPackageDrafts,
     connectedAccountForm,
     form,
     isAuthenticated,
@@ -5139,12 +5917,13 @@ export default function ContentStudioPage() {
   const effectiveReviewScript = reviewScriptDraft ?? selectedScript;
   const hasGeneratedScript = !isSample;
   const isClipperStudio = isClipperStudioUseCase(form.studioUseCase);
-  const clipPreviewUrl = canReadRenderJobs ? getClipOutputUrl(clipJob) : null;
+  const primaryClipJob = selectPrimaryClipJob(clipJob, clipJobs);
+  const clipPreviewUrl = canReadRenderJobs ? getClipOutputUrl(primaryClipJob) : null;
   const renderPreviewUrl = canReadRenderJobs ? getRenderOutputUrl(renderJob) : null;
   const renderPosterUrl = canReadRenderJobs ? getRenderPosterUrl(renderJob) : null;
   const primaryPreviewUrl = isClipperStudio && clipPreviewUrl ? clipPreviewUrl : renderPreviewUrl;
-  const primaryVideoAssetId = isClipperStudio && clipJob?.outputAssetId
-    ? clipJob.outputAssetId
+  const primaryVideoAssetId = isClipperStudio && primaryClipJob?.outputAssetId
+    ? primaryClipJob.outputAssetId
     : renderJob?.outputAssetId;
   const modeCopy = copy.modeCheckpoints[workflowMode] ?? copy.modeCheckpoints.assisted;
   const superadminManagerCopy = {
@@ -5256,6 +6035,7 @@ export default function ContentStudioPage() {
   const renderInFlight =
     renderBatch?.status === "processing" ||
     renderBatch?.status === "queued" ||
+    clipJobs.some((item) => item?.status === "queued" || item?.status === "processing") ||
     renderJob?.status === "queued" ||
     renderJob?.status === "processing";
   const savedLabel = formatDateLabel(locale, lastSavedAt);
@@ -5543,6 +6323,9 @@ export default function ContentStudioPage() {
     }));
     setTemplatePlan(null);
     setClipJob(null);
+    setClipJobs([]);
+    setClipPackageDrafts({});
+    setClipTrimDrafts({});
     setRenderJob(null);
     setRenderBatch(null);
     setAssemblyResult(null);
@@ -5603,6 +6386,9 @@ export default function ContentStudioPage() {
       }));
       setTemplatePlan(null);
       setClipJob(null);
+      setClipJobs([]);
+      setClipPackageDrafts({});
+      setClipTrimDrafts({});
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -5661,6 +6447,9 @@ export default function ContentStudioPage() {
       setPreviewTemplateId(null);
       setWorkspaceTemplateEditorForm(createTemplateEditorForm(result?.item ?? null));
       setClipJob(null);
+      setClipJobs([]);
+      setClipPackageDrafts({});
+      setClipTrimDrafts({});
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -6031,6 +6820,40 @@ export default function ContentStudioPage() {
     }
   }
 
+  async function queueClipExportCandidate(candidate) {
+    const startSec = Number(candidate?.startSec);
+    const endSec = Number(candidate?.endSec);
+    const response = await fetch("/api/media/clip-jobs", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      credentials: "same-origin",
+      body: JSON.stringify({
+        candidateId: candidate?.id ?? undefined,
+        endSec,
+        hook: typeof candidate?.hook === "string" ? candidate.hook : undefined,
+        sourceAssetId: form.sourceVideoAssetId,
+        startSec,
+        summary: typeof candidate?.summary === "string" ? candidate.summary : undefined,
+        title: typeof candidate?.title === "string" ? candidate.title : form.title.trim() || undefined
+      })
+    });
+    const payload = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(getRequestErrorMessage(response, payload, copy.renderSubmitError));
+    }
+
+    return {
+      ...payload,
+      candidateId: candidate?.id ?? null,
+      candidateTitle: typeof candidate?.title === "string" ? candidate.title : "",
+      endSec,
+      startSec
+    };
+  }
+
   async function handleExportClipCandidate(candidate) {
     if (!ensureAuthenticated()) {
       return;
@@ -6062,29 +6885,10 @@ export default function ContentStudioPage() {
     setFeedback(null);
 
     try {
-      const response = await fetch("/api/media/clip-jobs", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json"
-        },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          candidateId: candidate?.id ?? undefined,
-          endSec,
-          hook: typeof candidate?.hook === "string" ? candidate.hook : undefined,
-          sourceAssetId: form.sourceVideoAssetId,
-          startSec,
-          summary: typeof candidate?.summary === "string" ? candidate.summary : undefined,
-          title: typeof candidate?.title === "string" ? candidate.title : form.title.trim() || undefined
-        })
-      });
-      const payload = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        throw new Error(getRequestErrorMessage(response, payload, copy.renderSubmitError));
-      }
-
-      setClipJob(payload);
+      const payload = await queueClipExportCandidate(candidate);
+      const nextClipJobs = mergeClipJobs(clipJobs, [payload]);
+      setClipJobs(nextClipJobs);
+      setClipJob(selectPrimaryClipJob(payload, nextClipJobs));
       setActiveStudioStep("render");
       setFeedback({
         type: "success",
@@ -6107,6 +6911,205 @@ export default function ContentStudioPage() {
     } finally {
       setClipSubmitting(false);
     }
+  }
+
+  async function handleExportTopClipCandidates(candidates) {
+    if (!ensureAuthenticated()) {
+      return;
+    }
+
+    if (!form.sourceVideoAssetId) {
+      setFeedback({
+        type: "error",
+        message: locale === "id"
+          ? "Upload source video asset dulu supaya clipper bisa memotong video final."
+          : "Upload a source video asset first so the clipper can export the final cut."
+      });
+      return;
+    }
+
+    const queueableCandidates = Array.isArray(candidates)
+      ? candidates.filter((candidate) => {
+        const existingJob = findClipJobForCandidate(clipJobs, candidate?.id);
+        return (
+          Number.isFinite(Number(candidate?.startSec)) &&
+          Number.isFinite(Number(candidate?.endSec)) &&
+          Number(candidate.endSec) > Number(candidate.startSec) &&
+          !["queued", "processing"].includes(existingJob?.status)
+        );
+      })
+      : [];
+
+    if (queueableCandidates.length === 0) {
+      setFeedback({
+        type: "error",
+        message: locale === "id"
+          ? "Belum ada candidate clip bertimestamp yang siap diexport."
+          : "There are no timestamped clip candidates ready to export."
+      });
+      return;
+    }
+
+    setClipSubmitting(true);
+    setFeedback(null);
+
+    try {
+      const payloads = [];
+      for (const candidate of queueableCandidates) {
+        const payload = await queueClipExportCandidate(candidate);
+        payloads.push(payload);
+      }
+
+      const nextClipJobs = mergeClipJobs(clipJobs, payloads);
+      setClipJobs(nextClipJobs);
+      setClipJob(selectPrimaryClipJob(payloads[0] ?? clipJob, nextClipJobs));
+      setActiveStudioStep("render");
+      setFeedback({
+        type: "success",
+        message: locale === "id"
+          ? `${payloads.length} clip dimasukkan ke antrean export.`
+          : `${payloads.length} clips were queued for export.`
+      });
+      await trackStudioEvent("content.clipper.bulk_export_submitted", createTrackedProperties(form, workflowMode, {
+        clip_count: payloads.length,
+        clip_job_ids: payloads.map((item) => item.jobId).filter(Boolean),
+        source_asset_id: form.sourceVideoAssetId
+      }));
+    } catch (error) {
+      setFeedback({
+        type: "error",
+        message: error instanceof Error ? error.message : copy.renderSubmitError
+      });
+    } finally {
+      setClipSubmitting(false);
+    }
+  }
+
+  function handleClipTrimDraftChange(clipItem, field, directionOrValue) {
+    if (!clipItem?.jobId || (field !== "startSec" && field !== "endSec")) {
+      return;
+    }
+
+    setClipTrimDrafts((current) => {
+      const next = { ...current };
+      const currentStart = getClipTrimDraftValue(current, clipItem, "startSec");
+      const currentEnd = getClipTrimDraftValue(current, clipItem, "endSec");
+
+      let nextStart = currentStart;
+      let nextEnd = currentEnd;
+      if (typeof directionOrValue === "number") {
+        const delta = directionOrValue;
+        if (field === "startSec") {
+          nextStart = Math.max(0, currentStart + delta);
+          if (nextStart >= nextEnd) {
+            nextStart = Math.max(0, nextEnd - 1);
+          }
+        } else {
+          nextEnd = Math.max(currentStart + 1, currentEnd + delta);
+        }
+      } else {
+        const parsed = Number(directionOrValue);
+        if (Number.isFinite(parsed)) {
+          if (field === "startSec") {
+            nextStart = Math.max(0, Math.min(parsed, currentEnd - 1));
+          } else {
+            nextEnd = Math.max(currentStart + 1, parsed);
+          }
+        }
+      }
+
+      next[clipItem.jobId] = {
+        endSec: nextEnd,
+        startSec: nextStart
+      };
+
+      return next;
+    });
+  }
+
+  function handleClipPackageDraftChange(clipItem, platformCode, field, value) {
+    if (!platformCode || typeof field !== "string") {
+      return;
+    }
+
+    const jobId = clipItem?.jobId ?? null;
+    const key = buildClipPackageDraftKey(jobId, platformCode);
+    setClipPackageDrafts((current) => {
+      const next = { ...current };
+      const existing = next[key] && typeof next[key] === "object" ? next[key] : {};
+      const normalizedValue = field === "coverFrameSec"
+        ? (() => {
+          const parsed = Number(value);
+          return Number.isFinite(parsed) ? parsed : "";
+        })()
+        : value;
+      const updated = {
+        ...existing,
+        [field]: normalizedValue
+      };
+      const hasValue = Object.values(updated).some((item) => {
+        if (typeof item === "number") {
+          return Number.isFinite(item);
+        }
+
+        return typeof item === "string" ? item.trim().length > 0 : false;
+      });
+
+      if (!hasValue) {
+        delete next[key];
+      } else {
+        next[key] = updated;
+      }
+
+      return next;
+    });
+  }
+
+  function handleSelectPrimaryClipJob(jobId) {
+    const nextPrimaryClipJob = clipJobs.find((item) => item?.jobId === jobId) ?? null;
+    if (!nextPrimaryClipJob) {
+      return;
+    }
+
+    setClipJob(nextPrimaryClipJob);
+    setFeedback({
+      type: "success",
+      message: locale === "id"
+        ? "Clip utama untuk preview dan publish sudah diganti."
+        : "The primary clip for preview and publishing was updated."
+    });
+  }
+
+  async function handleRetryClipJob(clipItem) {
+    const candidate = buildCandidateFromClipJob(clipItem);
+    if (!candidate) {
+      setFeedback({
+        type: "error",
+        message: locale === "id"
+          ? "Data clip ini belum cukup untuk di-export ulang."
+          : "This clip does not have enough data to export again."
+      });
+      return;
+    }
+
+    await handleExportClipCandidate(candidate);
+  }
+
+  async function handleReExportTrimmedClip(clipItem) {
+    const candidate = buildCandidateFromClipJob(clipItem);
+    if (!candidate) {
+      setFeedback({
+        type: "error",
+        message: locale === "id"
+          ? "Data clip ini belum cukup untuk di-export ulang."
+          : "This clip does not have enough data to export again."
+      });
+      return;
+    }
+
+    candidate.startSec = getClipTrimDraftValue(clipTrimDrafts, clipItem, "startSec");
+    candidate.endSec = getClipTrimDraftValue(clipTrimDrafts, clipItem, "endSec");
+    await handleExportClipCandidate(candidate);
   }
 
   async function handleRenderPlan() {
@@ -6286,10 +7289,13 @@ export default function ContentStudioPage() {
 
     setPublishSubmitting(true);
     const selectedPlatformLabel = getPlatformPackageLabel(selectedPublishPlatformCode);
-    const selectedPlatformPackage = getSelectedPublishPlatformPackage(
-      form,
-      assemblyResult,
-      selectedPublishPlatformCode
+    const selectedPlatformPackage = (
+      getContextualPlatformPackages(form, assemblyResult, {
+        clipJob: primaryClipJob,
+        clipPackageDrafts,
+        locale
+      }).find((item) => item.platformCode === selectedPublishPlatformCode)
+      ?? getSelectedPublishPlatformPackage(form, assemblyResult, selectedPublishPlatformCode)
     );
 
     try {
@@ -6323,7 +7329,7 @@ export default function ContentStudioPage() {
       });
       void trackStudioEvent("content.studio.publish_submitted", {
         asset_id: primaryVideoAssetId,
-        clip_job_id: clipJob?.jobId ?? null,
+        clip_job_id: primaryClipJob?.jobId ?? null,
         platform_code: selectedPublishPlatformCode,
         publish_job_id: payload?.jobId ?? null,
         render_job_id: renderJob?.jobId ?? null
@@ -6357,6 +7363,9 @@ export default function ContentStudioPage() {
     setTemplatePlan(null);
     setPublishJob(null);
     setClipJob(null);
+    setClipJobs([]);
+    setClipPackageDrafts({});
+    setClipTrimDrafts({});
     setRenderJob(null);
     setRenderBatch(null);
     setAssemblyResult(null);
@@ -6511,6 +7520,9 @@ export default function ContentStudioPage() {
     setRenderJob(draftState.renderJob && typeof draftState.renderJob === "object" ? draftState.renderJob : null);
     setRenderBatch(draftState.renderBatch && typeof draftState.renderBatch === "object" ? draftState.renderBatch : null);
     setClipJob(draftState.clipJob && typeof draftState.clipJob === "object" ? draftState.clipJob : null);
+    setClipJobs(Array.isArray(draftState.clipJobs) ? draftState.clipJobs : []);
+    setClipPackageDrafts(draftState.clipPackageDrafts && typeof draftState.clipPackageDrafts === "object" ? draftState.clipPackageDrafts : {});
+    setClipTrimDrafts(draftState.clipTrimDrafts && typeof draftState.clipTrimDrafts === "object" ? draftState.clipTrimDrafts : {});
     setAssemblyResult(draftState.assemblyResult && typeof draftState.assemblyResult === "object" ? draftState.assemblyResult : null);
     setPublishJob(draftState.publishJob && typeof draftState.publishJob === "object" ? draftState.publishJob : null);
     setSelectedPublishPlatformCode(
@@ -6911,6 +7923,9 @@ export default function ContentStudioPage() {
               draftState: buildStudioDraftState({
                 activeStudioStep,
                 assemblyResult,
+                clipJobs,
+                clipPackageDrafts,
+                clipTrimDrafts,
                 connectedAccountForm,
                 publishJob,
                 renderBatch,
@@ -7164,6 +8179,9 @@ export default function ContentStudioPage() {
 
       await refreshScripts(payload?.scriptId ?? payload?.script?.id ?? null);
       setClipJob(null);
+      setClipJobs([]);
+      setClipPackageDrafts({});
+      setClipTrimDrafts({});
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -7274,6 +8292,9 @@ export default function ContentStudioPage() {
 
       setTemplatePlan(payload);
       setClipJob(null);
+      setClipJobs([]);
+      setClipPackageDrafts({});
+      setClipTrimDrafts({});
       setRenderJob(null);
       setRenderBatch(null);
       setAssemblyResult(null);
@@ -7421,7 +8442,8 @@ export default function ContentStudioPage() {
               <div className="col-12">
                 <ReviewApproveCard
                   canRender={canRenderVideos}
-                  clipJob={clipJob}
+                  clipJob={primaryClipJob}
+                  clipJobs={clipJobs}
                   clipPreviewUrl={clipPreviewUrl}
                   clipSubmitting={clipSubmitting}
                   copy={copy}
@@ -7431,6 +8453,7 @@ export default function ContentStudioPage() {
                   loading={planning}
                   onEditBrief={() => moveToStep("brief")}
                   onExportClipCandidate={handleExportClipCandidate}
+                  onExportTopClipCandidates={handleExportTopClipCandidates}
                   onSaveReview={handleSaveReview}
                   onSceneTextChange={handleSceneTextChange}
                   onScriptChange={handleScriptChange}
@@ -7543,7 +8566,10 @@ export default function ContentStudioPage() {
                   canManagePublishAccounts={canManagePublishAccounts}
                   canSubmitPublish={canSubmitPublishJobs}
                   canRender={canRenderVideos}
-                  clipJob={clipJob}
+                  clipJob={primaryClipJob}
+                  clipJobs={clipJobs}
+                  clipPackageDrafts={clipPackageDrafts}
+                  clipTrimDrafts={clipTrimDrafts}
                   clipPreviewUrl={clipPreviewUrl}
                   connectedAccountForm={connectedAccountForm}
                   connectedAccountLoading={connectedAccountLoading}
@@ -7554,9 +8580,14 @@ export default function ContentStudioPage() {
                   locale={locale}
                   onConnectedAccountChange={handleConnectedAccountChange}
                   onCreateConnectedAccount={handleCreateConnectedAccount}
+                  onClipPackageDraftChange={handleClipPackageDraftChange}
+                  onClipTrimDraftChange={handleClipTrimDraftChange}
                   onPublish={handleQueuePublish}
+                  onReExportTrimmedClip={handleReExportTrimmedClip}
                   onRender={handleRenderPlan}
+                  onRetryClipJob={handleRetryClipJob}
                   onRetryScene={handleRetrySceneRender}
+                  onSelectPrimaryClipJob={handleSelectPrimaryClipJob}
                   onSelectPublishPlatform={handleSelectPublishPlatform}
                   onSelectConnectedAccount={setSelectedConnectedAccountId}
                   plan={templatePlan}
@@ -7609,6 +8640,7 @@ export default function ContentStudioPage() {
           reviewReady={reviewReady}
           savedLabel={savedLabel}
           selectedPublishPlatformCode={selectedPublishPlatformCode}
+          studioUseCase={form.studioUseCase}
           stepOrder={STUDIO_STEP_ORDER}
           submitting={submitting}
           workflowMode={workflowMode}

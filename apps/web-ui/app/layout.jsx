@@ -640,11 +640,85 @@ export default function RootLayout({ children }) {
             padding: 1rem;
           }
 
+          .cf-content-section-switcher {
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.82) 0%, rgba(255, 255, 255, 0.96) 100%);
+            border: 1px solid #e4ebf4;
+            border-radius: 1rem;
+            padding: 0.9rem 1rem;
+          }
+
           .cf-content-subtle-state {
             background: linear-gradient(180deg, rgba(248, 250, 252, 0.92) 0%, rgba(241, 245, 249, 0.98) 100%);
             border: 1px solid #e4ebf4;
             border-radius: 0.9rem;
             padding: 0.95rem 1rem;
+          }
+
+          .cf-content-trim-track {
+            position: relative;
+            height: 0.75rem;
+            margin-bottom: 0.35rem;
+          }
+
+          .cf-content-trim-track-base,
+          .cf-content-trim-track-active {
+            border-radius: 999px;
+            height: 100%;
+            position: absolute;
+            top: 0;
+          }
+
+          .cf-content-trim-track-base {
+            background: #dfe8f0;
+            left: 0;
+            right: 0;
+          }
+
+          .cf-content-trim-track-active {
+            background: linear-gradient(135deg, #0f8590 0%, #37c9b1 100%);
+            box-shadow: 0 8px 18px rgba(15, 133, 144, 0.24);
+          }
+
+          .cf-content-cover-preview-shell {
+            position: relative;
+            width: min(100%, 240px);
+            aspect-ratio: 9 / 16;
+            border-radius: 1rem;
+            overflow: hidden;
+            background: linear-gradient(180deg, #dfe8f0 0%, #102c45 100%);
+            box-shadow: 0 14px 28px rgba(16, 44, 69, 0.16);
+          }
+
+          .cf-content-cover-preview-image,
+          .cf-content-cover-preview-placeholder {
+            width: 100%;
+            height: 100%;
+          }
+
+          .cf-content-cover-preview-image {
+            display: block;
+            object-fit: cover;
+          }
+
+          .cf-content-cover-preview-placeholder {
+            align-items: center;
+            display: flex;
+            justify-content: center;
+            padding: 1rem;
+            text-align: center;
+            background: linear-gradient(180deg, rgba(248, 250, 252, 0.88) 0%, rgba(228, 235, 244, 0.96) 100%);
+          }
+
+          .cf-content-cover-preview-text {
+            position: absolute;
+            left: 0.85rem;
+            right: 0.85rem;
+            bottom: 0.85rem;
+            color: #ffffff;
+            font-size: 0.88rem;
+            font-weight: 700;
+            line-height: 1.3;
+            text-shadow: 0 4px 12px rgba(9, 17, 26, 0.72);
           }
 
           .cf-content-advanced {
